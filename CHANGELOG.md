@@ -1,3 +1,7 @@
+## v1.0.7.1
+- Profile subpages reuse a consistent back button style
+- Mis actividades now returns cleanly to Perfil
+
 ## v1.0.7.0
 - Mock local reports for activities, users and messages
 - Report screen with private moderation reasons

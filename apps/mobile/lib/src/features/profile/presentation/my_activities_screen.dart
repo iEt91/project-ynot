@@ -7,6 +7,7 @@ import '../../../core/state/app_controller.dart';
 import '../../../shared/widgets/activity_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
+import 'profile_back_button.dart';
 
 class MyActivitiesScreen extends ConsumerWidget {
   const MyActivitiesScreen({super.key});
@@ -40,6 +41,12 @@ class MyActivitiesScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
             children: [
+              Row(
+                children: [
+                  ProfileBackButton(onTap: () => context.pop()),
+                ],
+              ),
+              const SizedBox(height: 14),
               const SectionHeader(
                 title: 'Mis actividades',
                 subtitle: 'Lo que estás creando o viviendo ahora.',
@@ -53,7 +60,8 @@ class MyActivitiesScreen extends ConsumerWidget {
               const SizedBox(height: 14),
               _ActivitySection(
                 title: 'Participando activamente',
-                emptyText: 'Todavía no estás participando en ninguna actividad.',
+                emptyText:
+                    'Todavía no estás participando en ninguna actividad.',
                 activities: participatingActive,
               ),
             ],

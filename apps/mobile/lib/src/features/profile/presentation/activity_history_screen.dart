@@ -7,6 +7,7 @@ import '../../../core/state/app_controller.dart';
 import '../../../shared/widgets/activity_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
+import 'profile_back_button.dart';
 
 class ActivityHistoryScreen extends ConsumerWidget {
   const ActivityHistoryScreen({super.key});
@@ -28,8 +29,7 @@ class ActivityHistoryScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  _RoundBubble(
-                    icon: Icons.arrow_back_rounded,
+                  ProfileBackButton(
                     onTap: () => context.pop(),
                   ),
                 ],
@@ -63,34 +63,6 @@ class ActivityHistoryScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RoundBubble extends StatelessWidget {
-  const _RoundBubble({
-    required this.icon,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: Icon(icon, size: 18, color: Colors.white),
       ),
     );
   }
