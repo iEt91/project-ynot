@@ -32,7 +32,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final activities = ref.read(appControllerProvider).filteredActivities();
     final bottomPadding =
         MediaQuery.of(context).padding.bottom + KawaiiBottomNav.dockHeight + 12.0;
-    final fabBottom = bottomPadding + (_selectedActivity == null ? 12.0 : 126.0);
+    final fabBottom = bottomPadding + 12.0;
 
     return KawaiiScene(
       child: SafeArea(
@@ -116,23 +116,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         onTap: () => context.push('/activity/${_selectedActivity!.id}'),
                       ),
                     ),
-                  Positioned(
-                    right: 16,
-                    bottom: fabBottom,
-                    child: Transform.scale(
-                      scale: 1.18,
-                      child: FloatingActionButton.small(
-                        heroTag: 'create_activity_fab',
-                        onPressed: () => context.push(
-                          '/create-activity',
-                          extra: _cameraTarget,
+                  if (_selectedActivity == null)
+                    Positioned(
+                      right: 24,
+                      bottom: fabBottom,
+                      child: Transform.scale(
+                        scale: 1.25,
+                        child: FloatingActionButton.small(
+                          heroTag: 'create_activity_fab',
+                          onPressed: () => context.push(
+                            '/create-activity',
+                            extra: _cameraTarget,
+                          ),
+                          backgroundColor: YnotTheme.mint,
+                          foregroundColor: YnotTheme.bg,
+                          child: const Icon(Icons.add_rounded),
                         ),
-                        backgroundColor: YnotTheme.mint,
-                        foregroundColor: YnotTheme.bg,
-                        child: const Icon(Icons.add_rounded),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

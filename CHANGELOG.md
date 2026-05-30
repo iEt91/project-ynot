@@ -1,3 +1,8 @@
+## v1.0.5.4
+- Final map FAB positioning above the dock
+- FAB hidden while the activity preview card is open
+- Mint create button kept larger and aligned to the right
+
 ## v1.0.5.3
 - Map create activity FAB is larger and closer to the dock
 - Profile visuals cleaned up to flow directly into actions
