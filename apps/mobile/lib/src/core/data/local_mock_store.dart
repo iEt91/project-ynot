@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/activity.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
+import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
 
 class LocalMockSnapshot {
@@ -12,12 +13,14 @@ class LocalMockSnapshot {
     required this.user,
     required this.activities,
     required this.messagesByActivityId,
+    required this.reports,
     required this.feedbackEntries,
   });
 
   final AppUser? user;
   final List<Activity> activities;
   final Map<String, List<ChatMessage>> messagesByActivityId;
+  final List<ModerationReport> reports;
   final List<PrivateFeedbackEntry> feedbackEntries;
 
   Map<String, dynamic> toJson() {
@@ -32,6 +35,7 @@ class LocalMockSnapshot {
           value.map((message) => message.toJson()).toList(growable: false),
         ),
       ),
+      'reports': reports.map((report) => report.toJson()).toList(growable: false),
       'feedbackEntries': feedbackEntries
           .map((entry) => entry.toJson())
           .toList(growable: false),
@@ -61,8 +65,16 @@ class LocalMockSnapshot {
                         ),
                       )
                       .toList(growable: false),
-                ),
               ),
+            ),
+      reports: (json['reports'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => ModerationReport.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false),
       feedbackEntries: (json['feedbackEntries'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(

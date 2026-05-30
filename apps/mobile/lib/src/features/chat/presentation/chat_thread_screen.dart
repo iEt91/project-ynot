@@ -8,6 +8,7 @@ import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/models/app_user.dart';
 import '../../../core/models/chat_message.dart';
+import '../../../core/models/moderation_report.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
@@ -143,8 +144,6 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
       );
     }
 
-    final reporterId = state.user?.id ?? 'user_demo_001';
-
     return Scaffold(
       body: KawaiiScene(
         child: SafeArea(
@@ -225,8 +224,25 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           case _ChatAction.feedback:
                             context.push('/activity/${activity.id}/feedback');
                             break;
-                          case _ChatAction.report:
-                            context.push('/activity/${activity.id}/report');
+                          case _ChatAction.reportActivity:
+                            context.push(
+                              '/activity/${activity.id}/report',
+                              extra: ReportRequest(
+                                activityId: activity.id,
+                                targetType: ReportTargetType.activity,
+                                targetId: activity.id,
+                              ),
+                            );
+                            break;
+                          case _ChatAction.reportUser:
+                            context.push(
+                              '/activity/${activity.id}/report',
+                              extra: ReportRequest(
+                                activityId: activity.id,
+                                targetType: ReportTargetType.user,
+                                targetId: activity.creatorId,
+                              ),
+                            );
                             break;
                           case _ChatAction.leaveEvent:
                             if (canLeave) {
@@ -318,15 +334,20 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           value: _ChatAction.feedback,
                           child: Text('Feedback'),
                         ),
-                        const PopupMenuItem(
-                          value: _ChatAction.report,
-                          child: Text('Reportar'),
-                        ),
                         if (!isFinishedOrArchived && !isCreator)
                           PopupMenuItem(
                             value: _ChatAction.leaveEvent,
                             enabled: canLeave,
                             child: const Text('Salir del evento'),
+                          ),
+                        const PopupMenuItem(
+                          value: _ChatAction.reportActivity,
+                          child: Text('Reportar actividad'),
+                        ),
+                        if (!isCreator)
+                          const PopupMenuItem(
+                            value: _ChatAction.reportUser,
+                            child: Text('Reportar usuario'),
                           ),
                         if (isCreator)
                           const PopupMenuItem(
@@ -454,30 +475,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                             (message) => Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: _ChatMessageBubble(
+                                activityId: activity.id,
                                 message: message,
                                 accentColor: _categoryColor(activity.category),
-                                onReportMessage: (reportedMessage) async {
-                                  final messenger = ScaffoldMessenger.of(
-                                    context,
-                                  );
-                                  await ref
-                                      .read(appControllerProvider)
-                                      .reportChatMessage(
-                                        messageId: reportedMessage.id,
-                                        chatId: reportedMessage.chatId,
-                                        activityId: reportedMessage.activityId,
-                                        senderId: reportedMessage.senderId,
-                                        reporterId: reporterId,
-                                        content: reportedMessage.content,
-                                        timestamp: reportedMessage.createdAt,
-                                      );
-                                  if (!mounted) return;
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Mensaje reportado.'),
-                                    ),
-                                  );
-                                },
                               ),
                             ),
                           ),
@@ -579,14 +579,14 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
 
 class _ChatMessageBubble extends StatelessWidget {
   const _ChatMessageBubble({
+    required this.activityId,
     required this.message,
     required this.accentColor,
-    required this.onReportMessage,
   });
 
+  final String activityId;
   final ChatMessage message;
   final Color accentColor;
-  final ValueChanged<ChatMessage> onReportMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -626,7 +626,15 @@ class _ChatMessageBubble extends StatelessWidget {
           ],
         );
         if (selected == _MessageMenuAction.report) {
-          onReportMessage(message);
+          if (!context.mounted) return;
+          context.push(
+            '/activity/$activityId/report',
+            extra: ReportRequest(
+              activityId: activityId,
+              targetType: ReportTargetType.message,
+              targetId: message.id,
+            ),
+          );
         }
       },
       child: Row(
@@ -753,8 +761,9 @@ enum _ChatAction {
   confirmAttendance,
   cancelAttendance,
   feedback,
-  report,
   leaveEvent,
+  reportActivity,
+  reportUser,
   deleteActivity,
 }
 

@@ -11,6 +11,7 @@ import '../data/local_session_store.dart';
 import '../models/activity.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
+import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
 import '../utils/app_logger.dart';
 
@@ -22,7 +23,7 @@ class AppState {
     required this.demoMode,
     required this.activities,
     required this.chatMessages,
-    required this.messageReports,
+    required this.reports,
     required this.feedbackEntries,
     this.user,
     this.phoneInput = '',
@@ -37,7 +38,7 @@ class AppState {
       demoMode: AppEnvironment.isDemoMode,
       activities: const [],
       chatMessages: const {},
-      messageReports: const [],
+      reports: const [],
       feedbackEntries: const [],
     );
   }
@@ -47,7 +48,7 @@ class AppState {
   final AppUser? user;
   final List<Activity> activities;
   final Map<String, List<ChatMessage>> chatMessages;
-  final List<ChatMessageReport> messageReports;
+  final List<ModerationReport> reports;
   final List<PrivateFeedbackEntry> feedbackEntries;
   final String phoneInput;
   final String verificationInput;
@@ -60,7 +61,7 @@ class AppState {
     AppUser? user,
     List<Activity>? activities,
     Map<String, List<ChatMessage>>? chatMessages,
-    List<ChatMessageReport>? messageReports,
+    List<ModerationReport>? reports,
     List<PrivateFeedbackEntry>? feedbackEntries,
     String? phoneInput,
     String? verificationInput,
@@ -73,7 +74,7 @@ class AppState {
       user: user ?? this.user,
       activities: activities ?? this.activities,
       chatMessages: chatMessages ?? this.chatMessages,
-      messageReports: messageReports ?? this.messageReports,
+      reports: reports ?? this.reports,
       feedbackEntries: feedbackEntries ?? this.feedbackEntries,
       phoneInput: phoneInput ?? this.phoneInput,
       verificationInput: verificationInput ?? this.verificationInput,
@@ -81,26 +82,6 @@ class AppState {
       errorMessage: errorMessage,
     );
   }
-}
-
-class ChatMessageReport {
-  const ChatMessageReport({
-    required this.messageId,
-    required this.chatId,
-    required this.activityId,
-    required this.senderId,
-    required this.reporterId,
-    required this.content,
-    required this.timestamp,
-  });
-
-  final String messageId;
-  final String chatId;
-  final String activityId;
-  final String senderId;
-  final String reporterId;
-  final String content;
-  final DateTime timestamp;
 }
 
 final appControllerProvider = ChangeNotifierProvider<AppController>(
@@ -163,7 +144,7 @@ class AppController extends ChangeNotifier {
         user: null,
         activities: const [],
         chatMessages: const {},
-        messageReports: const [],
+        reports: const [],
         feedbackEntries: const [],
         errorMessage: null,
       );
@@ -203,7 +184,7 @@ class AppController extends ChangeNotifier {
       user: user,
       activities: _seedActivities(),
       chatMessages: const {},
-      messageReports: const [],
+      reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
     );
@@ -257,7 +238,7 @@ class AppController extends ChangeNotifier {
       stage: AppStage.ready,
       activities: _seedActivities(),
       chatMessages: const {},
-      messageReports: const [],
+      reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
     );
@@ -307,7 +288,7 @@ class AppController extends ChangeNotifier {
       demoMode: true,
       activities: const [],
       chatMessages: const {},
-      messageReports: const [],
+      reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
     );
@@ -601,7 +582,40 @@ class AppController extends ChangeNotifier {
     unawaited(_persistSnapshot());
   }
 
-  Future<void> reportChatMessage({
+  Future<bool> submitReport({
+    required String reporterUserId,
+    required ReportTargetType targetType,
+    required String targetId,
+    required String activityId,
+    required ReportReason reason,
+    String? note,
+  }) async {
+    if (hasSubmittedReport(
+      reporterUserId: reporterUserId,
+      targetType: targetType,
+      targetId: targetId,
+    )) {
+      return false;
+    }
+
+    final report = ModerationReport(
+      reportId:
+          'report_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(9999)}',
+      reporterUserId: reporterUserId,
+      targetType: targetType,
+      targetId: targetId,
+      activityId: activityId,
+      reason: reason,
+      note: note?.trim().isEmpty == true ? null : note?.trim(),
+      createdAt: DateTime.now(),
+    );
+
+    state = state.copyWith(reports: [report, ...state.reports]);
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
+  Future<bool> reportChatMessage({
     required String messageId,
     required String chatId,
     required String activityId,
@@ -610,17 +624,14 @@ class AppController extends ChangeNotifier {
     required String content,
     required DateTime timestamp,
   }) async {
-    final report = ChatMessageReport(
-      messageId: messageId,
-      chatId: chatId,
+    return submitReport(
+      reporterUserId: reporterId,
+      targetType: ReportTargetType.message,
+      targetId: messageId,
       activityId: activityId,
-      senderId: senderId,
-      reporterId: reporterId,
-      content: content,
-      timestamp: timestamp,
+      reason: ReportReason.inappropriateMessage,
+      note: content,
     );
-
-    state = state.copyWith(messageReports: [report, ...state.messageReports]);
   }
 
   Future<void> refreshActivity(String activityId) async {
@@ -698,7 +709,20 @@ class AppController extends ChangeNotifier {
       (entry) =>
           entry.activityId == activityId &&
           entry.reviewerUserId == reviewerUserId &&
-          entry.reviewedUserId == reviewedUserId,
+      entry.reviewedUserId == reviewedUserId,
+    );
+  }
+
+  bool hasSubmittedReport({
+    required String reporterUserId,
+    required ReportTargetType targetType,
+    required String targetId,
+  }) {
+    return state.reports.any(
+      (report) =>
+          report.reporterUserId == reporterUserId &&
+          report.targetType == targetType &&
+          report.targetId == targetId,
     );
   }
 
@@ -824,7 +848,7 @@ class AppController extends ChangeNotifier {
     final nextChatMessages = Map<String, List<ChatMessage>>.from(
       state.chatMessages,
     )..remove(activityId);
-    final nextReports = state.messageReports
+    final nextReports = state.reports
         .where((report) => report.activityId != activityId)
         .toList(growable: false);
     final createdCount = currentUser.createdActivityCount > 0
@@ -837,7 +861,7 @@ class AppController extends ChangeNotifier {
     state = state.copyWith(
       activities: nextActivities,
       chatMessages: nextChatMessages,
-      messageReports: nextReports,
+      reports: nextReports,
       feedbackEntries: state.feedbackEntries
           .where((entry) => entry.activityId != activityId)
           .toList(growable: false),
@@ -1345,6 +1369,7 @@ class AppController extends ChangeNotifier {
         messagesByActivityId: Map<String, List<ChatMessage>>.from(
           _messagesByActivityId,
         ),
+        reports: state.reports,
         feedbackEntries: state.feedbackEntries,
       ),
     );
@@ -1392,7 +1417,7 @@ class AppController extends ChangeNotifier {
           ? _seedActivities()
           : hydratedActivities,
       chatMessages: restoredMessages,
-      messageReports: const [],
+      reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
       errorMessage: null,
     );

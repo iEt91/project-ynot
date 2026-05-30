@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
 import 'package:ynot_mobile/src/core/models/activity.dart';
+import 'package:ynot_mobile/src/core/models/moderation_report.dart';
 import 'package:ynot_mobile/src/core/models/private_feedback.dart';
 import 'package:ynot_mobile/src/core/state/app_controller.dart';
 
@@ -497,6 +498,38 @@ void main() {
       },
     );
 
+    test('reports are saved once per reporter and target', () async {
+      final controller = await _buildLoggedInController();
+      final activity = controller.state.activities.first;
+      final reporterId = controller.state.user!.id;
+
+      expect(
+        await controller.submitReport(
+          reporterUserId: reporterId,
+          targetType: ReportTargetType.activity,
+          targetId: activity.id,
+          activityId: activity.id,
+          reason: ReportReason.noShow,
+          note: 'No estaba donde decía',
+        ),
+        isTrue,
+      );
+
+      expect(
+        await controller.submitReport(
+          reporterUserId: reporterId,
+          targetType: ReportTargetType.activity,
+          targetId: activity.id,
+          activityId: activity.id,
+          reason: ReportReason.other,
+        ),
+        isFalse,
+      );
+      expect(controller.state.reports, hasLength(1));
+      expect(controller.state.reports.first.targetType, ReportTargetType.activity);
+      expect(controller.state.reports.first.reason, ReportReason.noShow);
+    });
+
     test(
       'deleting activity removes related state and allows a new activity',
       () async {
@@ -554,6 +587,46 @@ void main() {
         );
       },
     );
+
+    test('reports survive a controller restart', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activity = firstController.state.activities.first;
+      final reporterId = firstController.state.user!.id;
+
+      await firstController.submitReport(
+        reporterUserId: reporterId,
+        targetType: ReportTargetType.user,
+        targetId: activity.creatorId,
+        activityId: activity.id,
+        reason: ReportReason.badAttitude,
+        note: 'Actitud rara',
+      );
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.reports, hasLength(1));
+      expect(
+        secondController.state.reports.first.targetType,
+        ReportTargetType.user,
+      );
+      expect(
+        secondController.state.reports.first.reason,
+        ReportReason.badAttitude,
+      );
+    });
 
     test('logout clears the session and returns to auth', () async {
       final controller = await _buildLoggedInController();

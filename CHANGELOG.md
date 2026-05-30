@@ -1,3 +1,8 @@
+## v1.0.7.0
+- Mock local reports for activities, users and messages
+- Report screen with private moderation reasons
+- Duplicate report prevention per target
+
 ## v1.0.6.2
 - Activities list opens chat directly when already joined or confirmed
 - Activities list gets safer bottom padding above the dock

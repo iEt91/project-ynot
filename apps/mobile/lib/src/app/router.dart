@@ -5,7 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../features/activities/presentation/activity_detail_screen.dart';
 import '../features/activities/presentation/create_activity_screen.dart';
 import '../features/chat/presentation/chat_thread_screen.dart';
-import '../core/state/app_controller.dart';
+import '../core/models/moderation_report.dart';
 import 'app.dart';
 import '../features/profile/presentation/activity_history_screen.dart';
 import '../features/profile/presentation/my_activities_screen.dart';
@@ -42,12 +42,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/activity/:id/report',
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          final activity = ref
-              .read(appStateProvider)
-              .activities
-              .where((item) => item.id == id)
-              .firstOrNull;
-          return ReportScreen(title: activity?.title ?? 'Tu actividad');
+          final request = state.extra is ReportRequest
+              ? state.extra as ReportRequest
+              : ReportRequest(
+                  activityId: id,
+                  targetType: ReportTargetType.activity,
+                  targetId: id,
+                );
+          return ReportScreen(
+            activityId: request.activityId,
+            targetType: request.targetType,
+            targetId: request.targetId,
+          );
         },
       ),
       GoRoute(
@@ -70,11 +76,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-extension _FirstOrNullExtension<T> on Iterable<T> {
-  T? get firstOrNull {
-    final iterator = this.iterator;
-    if (!iterator.moveNext()) return null;
-    return iterator.current;
-  }
-}

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/models/app_user.dart';
+import '../../../core/models/moderation_report.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
@@ -118,8 +119,25 @@ class ActivityDetailScreen extends ConsumerWidget {
                         case _DetailAction.feedback:
                           context.push('/activity/${activity.id}/feedback');
                           break;
-                        case _DetailAction.report:
-                          context.push('/activity/${activity.id}/report');
+                        case _DetailAction.reportActivity:
+                          context.push(
+                            '/activity/${activity.id}/report',
+                            extra: ReportRequest(
+                              activityId: activity.id,
+                              targetType: ReportTargetType.activity,
+                              targetId: activity.id,
+                            ),
+                          );
+                          break;
+                        case _DetailAction.reportUser:
+                          context.push(
+                            '/activity/${activity.id}/report',
+                            extra: ReportRequest(
+                              activityId: activity.id,
+                              targetType: ReportTargetType.user,
+                              targetId: activity.creatorId,
+                            ),
+                          );
                           break;
                         case _DetailAction.leaveEvent:
                           if (canLeave) {
@@ -160,9 +178,14 @@ class ActivityDetailScreen extends ConsumerWidget {
                         child: Text('Feedback'),
                       ),
                       const PopupMenuItem(
-                        value: _DetailAction.report,
-                        child: Text('Reportar'),
+                        value: _DetailAction.reportActivity,
+                        child: Text('Reportar actividad'),
                       ),
+                      if (!isCreator)
+                        const PopupMenuItem(
+                          value: _DetailAction.reportUser,
+                          child: Text('Reportar usuario'),
+                        ),
                       if (!isCreator && !activity.isFinishedOrArchived)
                         PopupMenuItem(
                           value: _DetailAction.leaveEvent,
@@ -290,7 +313,8 @@ enum _DetailAction {
   confirmAttendance,
   cancelAttendance,
   feedback,
-  report,
+  reportActivity,
+  reportUser,
   leaveEvent,
 }
 
