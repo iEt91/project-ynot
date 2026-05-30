@@ -38,6 +38,30 @@ enum ActivityFilter {
   social,
 }
 
+class ActivityFeedbackTarget {
+  const ActivityFeedbackTarget({
+    required this.userId,
+    required this.label,
+    required this.emoji,
+  });
+
+  final String userId;
+  final String label;
+  final String emoji;
+
+  Map<String, dynamic> toJson() {
+    return {'userId': userId, 'label': label, 'emoji': emoji};
+  }
+
+  factory ActivityFeedbackTarget.fromJson(Map<String, dynamic> json) {
+    return ActivityFeedbackTarget(
+      userId: json['userId'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      emoji: json['emoji'] as String? ?? '🌙',
+    );
+  }
+}
+
 class Activity {
   const Activity({
     required this.id,
@@ -62,6 +86,7 @@ class Activity {
     required this.maxPeople,
     required this.confirmedCount,
     required this.pendingCount,
+    this.feedbackTargets = const [],
     required this.myStatus,
     required this.isMine,
     this.lastMessagePreview = '',
@@ -91,6 +116,7 @@ class Activity {
   final int maxPeople;
   final int confirmedCount;
   final int pendingCount;
+  final List<ActivityFeedbackTarget> feedbackTargets;
   final ParticipantStatus? myStatus;
   final bool isMine;
   final String lastMessagePreview;
@@ -132,6 +158,7 @@ class Activity {
     int? maxPeople,
     int? confirmedCount,
     int? pendingCount,
+    List<ActivityFeedbackTarget>? feedbackTargets,
     ParticipantStatus? myStatus,
     bool? isMine,
     String? lastMessagePreview,
@@ -163,6 +190,7 @@ class Activity {
       maxPeople: maxPeople ?? this.maxPeople,
       confirmedCount: confirmedCount ?? this.confirmedCount,
       pendingCount: pendingCount ?? this.pendingCount,
+      feedbackTargets: feedbackTargets ?? this.feedbackTargets,
       myStatus: myStatus ?? this.myStatus,
       isMine: isMine ?? this.isMine,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
@@ -195,6 +223,9 @@ class Activity {
       'maxPeople': maxPeople,
       'confirmedCount': confirmedCount,
       'pendingCount': pendingCount,
+      'feedbackTargets': feedbackTargets
+          .map((target) => target.toJson())
+          .toList(growable: false),
       'myStatus': myStatus?.name,
       'isMine': isMine,
       'lastMessagePreview': lastMessagePreview,
@@ -239,6 +270,14 @@ class Activity {
       maxPeople: json['maxPeople'] as int? ?? 0,
       confirmedCount: json['confirmedCount'] as int? ?? 0,
       pendingCount: json['pendingCount'] as int? ?? 0,
+      feedbackTargets: (json['feedbackTargets'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => ActivityFeedbackTarget.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false),
       myStatus: json['myStatus'] == null
           ? null
           : ParticipantStatus.values.byName(json['myStatus'] as String),

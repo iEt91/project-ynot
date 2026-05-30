@@ -11,6 +11,7 @@ import '../data/local_session_store.dart';
 import '../models/activity.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
+import '../models/private_feedback.dart';
 import '../utils/app_logger.dart';
 
 enum AppStage { booting, phoneAuth, otpEntry, onboarding, ready }
@@ -22,6 +23,7 @@ class AppState {
     required this.activities,
     required this.chatMessages,
     required this.messageReports,
+    required this.feedbackEntries,
     this.user,
     this.phoneInput = '',
     this.verificationInput = '',
@@ -36,6 +38,7 @@ class AppState {
       activities: const [],
       chatMessages: const {},
       messageReports: const [],
+      feedbackEntries: const [],
     );
   }
 
@@ -45,6 +48,7 @@ class AppState {
   final List<Activity> activities;
   final Map<String, List<ChatMessage>> chatMessages;
   final List<ChatMessageReport> messageReports;
+  final List<PrivateFeedbackEntry> feedbackEntries;
   final String phoneInput;
   final String verificationInput;
   final ActivityFilter filter;
@@ -57,6 +61,7 @@ class AppState {
     List<Activity>? activities,
     Map<String, List<ChatMessage>>? chatMessages,
     List<ChatMessageReport>? messageReports,
+    List<PrivateFeedbackEntry>? feedbackEntries,
     String? phoneInput,
     String? verificationInput,
     ActivityFilter? filter,
@@ -69,6 +74,7 @@ class AppState {
       activities: activities ?? this.activities,
       chatMessages: chatMessages ?? this.chatMessages,
       messageReports: messageReports ?? this.messageReports,
+      feedbackEntries: feedbackEntries ?? this.feedbackEntries,
       phoneInput: phoneInput ?? this.phoneInput,
       verificationInput: verificationInput ?? this.verificationInput,
       filter: filter ?? this.filter,
@@ -158,6 +164,7 @@ class AppController extends ChangeNotifier {
         activities: const [],
         chatMessages: const {},
         messageReports: const [],
+        feedbackEntries: const [],
         errorMessage: null,
       );
       return;
@@ -197,6 +204,7 @@ class AppController extends ChangeNotifier {
       activities: _seedActivities(),
       chatMessages: const {},
       messageReports: const [],
+      feedbackEntries: const [],
       errorMessage: null,
     );
     unawaited(_persistSnapshot());
@@ -250,6 +258,7 @@ class AppController extends ChangeNotifier {
       activities: _seedActivities(),
       chatMessages: const {},
       messageReports: const [],
+      feedbackEntries: const [],
       errorMessage: null,
     );
     unawaited(_persistSnapshot());
@@ -299,6 +308,7 @@ class AppController extends ChangeNotifier {
       activities: const [],
       chatMessages: const {},
       messageReports: const [],
+      feedbackEntries: const [],
       errorMessage: null,
     );
   }
@@ -577,6 +587,54 @@ class AppController extends ChangeNotifier {
     // In-memory mock keeps the current activity list as source of truth.
   }
 
+  bool hasSubmittedFeedback({
+    required String activityId,
+    required String reviewerUserId,
+    required String reviewedUserId,
+  }) {
+    return state.feedbackEntries.any(
+      (entry) =>
+          entry.activityId == activityId &&
+          entry.reviewerUserId == reviewerUserId &&
+          entry.reviewedUserId == reviewedUserId,
+    );
+  }
+
+  Future<bool> submitPrivateFeedback({
+    required String activityId,
+    required String reviewerUserId,
+    required String reviewedUserId,
+    required PrivateFeedbackOption selectedFeedback,
+  }) async {
+    final currentActivity = _findActivity(activityId);
+    if (currentActivity == null ||
+        reviewerUserId.isEmpty ||
+        reviewedUserId.isEmpty ||
+        reviewerUserId == reviewedUserId) {
+      return false;
+    }
+
+    if (hasSubmittedFeedback(
+      activityId: activityId,
+      reviewerUserId: reviewerUserId,
+      reviewedUserId: reviewedUserId,
+    )) {
+      return false;
+    }
+
+    final entry = PrivateFeedbackEntry(
+      activityId: activityId,
+      reviewerUserId: reviewerUserId,
+      reviewedUserId: reviewedUserId,
+      selectedFeedback: selectedFeedback,
+      createdAt: DateTime.now(),
+    );
+
+    state = state.copyWith(feedbackEntries: [entry, ...state.feedbackEntries]);
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
   bool canCreateActivity() {
     final currentUser = state.user;
     if (currentUser == null) {
@@ -636,6 +694,9 @@ class AppController extends ChangeNotifier {
       activities: nextActivities,
       chatMessages: nextChatMessages,
       messageReports: nextReports,
+      feedbackEntries: state.feedbackEntries
+          .where((entry) => entry.activityId != activityId)
+          .toList(growable: false),
       user: currentUser.copyWith(createdActivityCount: createdCount),
     );
     unawaited(_persistSnapshot());
@@ -667,6 +728,27 @@ class AppController extends ChangeNotifier {
 
   Future<String?> ensureChatId(String activityId) async {
     return _resolveChatId(activityId);
+  }
+
+  Activity? _findActivity(String activityId) {
+    for (final activity in state.activities) {
+      if (activity.id == activityId) {
+        return activity;
+      }
+    }
+    return null;
+  }
+
+  String _categoryEmoji(String category) {
+    return switch (category) {
+      'Coffee' => '☕',
+      'Study' => '📚',
+      'Walks' => '🌙',
+      'Food' => '🍜',
+      'Art' => '🎨',
+      'Music' => '🎵',
+      _ => '🌙',
+    };
   }
 
   AppUser _buildDemoUser(String id, {required String phoneMasked}) {
@@ -735,6 +817,13 @@ class AppController extends ChangeNotifier {
       maxPeople: maxPeople,
       confirmedCount: 0,
       pendingCount: 0,
+      feedbackTargets: [
+        ActivityFeedbackTarget(
+          userId: creatorId,
+          label: creatorLabel,
+          emoji: _categoryEmoji(category),
+        ),
+      ],
       myStatus: null,
       isMine: isMine,
     );
@@ -767,6 +856,23 @@ class AppController extends ChangeNotifier {
         maxPeople: 6,
         confirmedCount: 3,
         pendingCount: 1,
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_mina',
+            label: 'Mina',
+            emoji: '☕',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_soojin',
+            label: 'Soojin',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_hana',
+            label: 'Hana',
+            emoji: '🌙',
+          ),
+        ],
         myStatus: null,
         isMine: false,
         lastMessagePreview: 'Soojin: ¿Ya llegaron?',
@@ -794,6 +900,23 @@ class AppController extends ChangeNotifier {
         maxPeople: 4,
         confirmedCount: 2,
         pendingCount: 0,
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_jisoo',
+            label: 'Jisoo',
+            emoji: '📚',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_jiyoon',
+            label: 'Jiyoon',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_mina',
+            label: 'Mina',
+            emoji: '🌸',
+          ),
+        ],
         myStatus: null,
         isMine: false,
         lastMessagePreview: 'Jiyoon: Yo llevo apuntes.',
@@ -821,6 +944,23 @@ class AppController extends ChangeNotifier {
         maxPeople: 12,
         confirmedCount: 8,
         pendingCount: 2,
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_aria',
+            label: 'Aria',
+            emoji: '🌙',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_juno',
+            label: 'Juno',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_minsu',
+            label: 'Minsu',
+            emoji: '🙂',
+          ),
+        ],
         myStatus: ParticipantStatus.confirmed,
         isMine: false,
         lastMessagePreview: 'Aria: Nos vemos en la entrada.',
@@ -848,6 +988,18 @@ class AppController extends ChangeNotifier {
         maxPeople: 5,
         confirmedCount: 1,
         pendingCount: 0,
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_nari',
+            label: 'Nari',
+            emoji: '🎨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_dami',
+            label: 'Dami',
+            emoji: '🙂',
+          ),
+        ],
         myStatus: null,
         isMine: false,
       ),
@@ -874,6 +1026,23 @@ class AppController extends ChangeNotifier {
         maxPeople: 4,
         confirmedCount: 4,
         pendingCount: 1,
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_sora',
+            label: 'Sora',
+            emoji: '🍜',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_yuna',
+            label: 'Yuna',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_jiho',
+            label: 'Jiho',
+            emoji: '🌙',
+          ),
+        ],
         myStatus: null,
         isMine: false,
       ),
@@ -952,6 +1121,7 @@ class AppController extends ChangeNotifier {
         messagesByActivityId: Map<String, List<ChatMessage>>.from(
           _messagesByActivityId,
         ),
+        feedbackEntries: state.feedbackEntries,
       ),
     );
   }
@@ -999,6 +1169,7 @@ class AppController extends ChangeNotifier {
           : hydratedActivities,
       chatMessages: restoredMessages,
       messageReports: const [],
+      feedbackEntries: snapshot.feedbackEntries,
       errorMessage: null,
     );
   }

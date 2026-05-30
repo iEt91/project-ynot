@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
 import 'package:ynot_mobile/src/core/models/activity.dart';
+import 'package:ynot_mobile/src/core/models/private_feedback.dart';
 import 'package:ynot_mobile/src/core/state/app_controller.dart';
 
 void main() {
@@ -256,6 +257,40 @@ void main() {
       );
     });
 
+    test('private feedback is saved once per reviewer and activity', () async {
+      final controller = await _buildLoggedInController();
+      final activity = controller.state.activities.first;
+      final reviewerId = controller.state.user!.id;
+      final reviewedId = activity.feedbackTargets.first.userId;
+
+      await controller.joinActivity(activity.id);
+
+      expect(
+        await controller.submitPrivateFeedback(
+          activityId: activity.id,
+          reviewerUserId: reviewerId,
+          reviewedUserId: reviewedId,
+          selectedFeedback: PrivateFeedbackOption.goodVibe,
+        ),
+        isTrue,
+      );
+
+      expect(
+        await controller.submitPrivateFeedback(
+          activityId: activity.id,
+          reviewerUserId: reviewerId,
+          reviewedUserId: reviewedId,
+          selectedFeedback: PrivateFeedbackOption.veryNice,
+        ),
+        isFalse,
+      );
+      expect(controller.state.feedbackEntries, hasLength(1));
+      expect(
+        controller.state.feedbackEntries.first.selectedFeedback,
+        PrivateFeedbackOption.goodVibe,
+      );
+    });
+
     test(
       'deleting activity removes related state and allows a new activity',
       () async {
@@ -336,23 +371,19 @@ void main() {
         mockStore: mockStore,
       );
 
-      await firstController.createActivity(
-        title: 'Cafe Talk',
-        description: 'Charlita suave y tranquila.',
-        category: 'Coffee',
-        vibe: 'Calm',
-        zone: 'Hongdae',
-        startTime: DateTime(2026, 6, 1, 18, 0),
-        duration: const Duration(hours: 2),
-        maxPeople: 6,
-        realLat: 37.5563,
-        realLng: 126.9228,
+      final createdActivity = firstController.state.activities.firstWhere(
+        (item) => item.id == 'seed_1',
       );
-
-      final createdId = firstController.state.activities.first.id;
-      await firstController.joinActivity(createdId);
-      await firstController.confirmAttendance(createdId);
-      await firstController.sendChatMessage(createdId, 'Persisted');
+      await firstController.joinActivity(createdActivity.id);
+      await firstController.confirmAttendance(createdActivity.id);
+      await firstController.sendChatMessage(createdActivity.id, 'Persisted');
+      final reviewedId = createdActivity.feedbackTargets.first.userId;
+      await firstController.submitPrivateFeedback(
+        activityId: createdActivity.id,
+        reviewerUserId: firstController.state.user!.id,
+        reviewedUserId: reviewedId,
+        selectedFeedback: PrivateFeedbackOption.normal,
+      );
 
       final secondController = await _buildController(
         sessionStore: sessionStore,
@@ -361,15 +392,19 @@ void main() {
 
       expect(secondController.state.activities, isNotEmpty);
       final restored = secondController.state.activities.firstWhere(
-        (item) => item.id == createdId,
+        (item) => item.id == createdActivity.id,
       );
       expect(restored.myStatus, ParticipantStatus.confirmed);
-      await secondController.loadChatMessages(createdId);
-      expect(secondController.state.chatMessages[createdId], isNotNull);
+      await secondController.loadChatMessages(createdActivity.id);
       expect(
-        secondController.state.chatMessages[createdId]!.last.content,
+        secondController.state.chatMessages[createdActivity.id],
+        isNotNull,
+      );
+      expect(
+        secondController.state.chatMessages[createdActivity.id]!.last.content,
         'Persisted',
       );
+      expect(secondController.state.feedbackEntries, hasLength(1));
     });
   });
 }

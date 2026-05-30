@@ -14,10 +14,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const RootGate(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const RootGate()),
       GoRoute(
         path: '/activity/:id',
         builder: (context, state) {
@@ -36,22 +33,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/activity/:id/feedback',
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          final activity = ref.read(appStateProvider).activities.where((item) => item.id == id).firstOrNull;
-          return FeedbackScreen(activityTitle: activity?.title ?? 'Tu actividad');
+          return FeedbackScreen(activityId: id);
         },
       ),
       GoRoute(
         path: '/activity/:id/report',
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          final activity = ref.read(appStateProvider).activities.where((item) => item.id == id).firstOrNull;
+          final activity = ref
+              .read(appStateProvider)
+              .activities
+              .where((item) => item.id == id)
+              .firstOrNull;
           return ReportScreen(title: activity?.title ?? 'Tu actividad');
         },
       ),
       GoRoute(
         path: '/create-activity',
         builder: (context, state) {
-          final initialLocation = state.extra is LatLng ? state.extra as LatLng : null;
+          final initialLocation = state.extra is LatLng
+              ? state.extra as LatLng
+              : null;
           return CreateActivityScreen(initialLocation: initialLocation);
         },
       ),
