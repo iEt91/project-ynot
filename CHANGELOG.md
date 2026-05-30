@@ -1,3 +1,8 @@
+## v1.0.9.0
+- Settings screen in mock/local mode
+- Local notification and privacy toggles
+- Clear local data action with confirmation
+
 ## v1.0.8.0
 - Saved activities and favorites in local mock mode
 - Save toggle from activity detail and map preview

@@ -115,6 +115,64 @@ void main() {
       expect(secondController.savedActivities(), isEmpty);
     });
 
+    test('settings persist locally and clear with local data', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      await firstController.setChatMessagesNotifications(false);
+      await firstController.setRecommendedActivitiesNotifications(false);
+      await firstController.setActivityStartingSoonNotifications(false);
+      await firstController.setHidePreciseLocationUntilUnlock(false);
+      await firstController.setPersonalizedRecommendations(false);
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.settings, isNotNull);
+      expect(
+        secondController.state.settings.chatMessagesNotifications,
+        isFalse,
+      );
+      expect(
+        secondController.state.settings.recommendedActivitiesNotifications,
+        isFalse,
+      );
+      expect(
+        secondController.state.settings.activityStartingSoonNotifications,
+        isFalse,
+      );
+      expect(
+        secondController.state.settings.hidePreciseLocationUntilUnlock,
+        isFalse,
+      );
+      expect(
+        secondController.state.settings.personalizedRecommendations,
+        isFalse,
+      );
+
+      await secondController.clearLocalData();
+
+      expect(secondController.state.stage, AppStage.phoneAuth);
+      expect(secondController.state.activities, isEmpty);
+      expect(secondController.state.savedActivityIds, isEmpty);
+      expect(secondController.state.chatMessages, isEmpty);
+      expect(secondController.state.reports, isEmpty);
+      expect(secondController.state.feedbackEntries, isEmpty);
+      expect(secondController.state.user, isNull);
+      expect(sessionStore.clientUid, isNull);
+      expect(mockStore.snapshot, isNull);
+    });
+
     test('joined or confirmed activities can open chat from the list', () {
       final activity = Activity(
         id: 'activity_001',

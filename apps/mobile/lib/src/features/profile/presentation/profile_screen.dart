@@ -123,7 +123,7 @@ class ProfileScreen extends ConsumerWidget {
                 _ProfileAction(
                   label: 'Configuración',
                   emoji: '⚙️',
-                  onTap: () {},
+                  onTap: () => context.push('/settings'),
                 ),
               ],
             ),
@@ -131,7 +131,10 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           KawaiiCard(
             child: FilledButton.tonal(
-              onPressed: () => ref.read(appControllerProvider).signOut(),
+              onPressed: () {
+                ref.read(appControllerProvider).signOut();
+                context.go('/');
+              },
               child: const Text('Cerrar sesión'),
             ),
           ),

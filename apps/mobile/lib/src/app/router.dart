@@ -10,6 +10,7 @@ import 'app.dart';
 import '../features/profile/presentation/activity_history_screen.dart';
 import '../features/profile/presentation/my_activities_screen.dart';
 import '../features/profile/presentation/saved_activities_screen.dart';
+import '../features/settings/presentation/settings_screen.dart';
 import '../features/feedback/presentation/feedback_screen.dart';
 import '../features/reports/presentation/report_screen.dart';
 
@@ -77,6 +78,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/saved',
         builder: (context, state) => const SavedActivitiesScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );

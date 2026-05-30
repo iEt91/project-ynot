@@ -105,9 +105,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                         active: isSaved,
                         onTap: activity.isActiveLifecycle
                             ? () {
-                                unawaited(
-                                  controller.toggleSavedActivity(activity.id).then((_) {}),
-                                );
+                                unawaited(controller.toggleSavedActivity(activity.id));
                               }
                             : null,
                       ),

@@ -9,6 +9,7 @@ import '../config/app_environment.dart';
 import '../data/local_mock_store.dart';
 import '../data/local_session_store.dart';
 import '../models/activity.dart';
+import '../models/app_settings.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
 import '../models/moderation_report.dart';
@@ -24,6 +25,7 @@ class AppState {
     required this.activities,
     required this.chatMessages,
     required this.savedActivityIds,
+    required this.settings,
     required this.reports,
     required this.feedbackEntries,
     this.user,
@@ -40,6 +42,7 @@ class AppState {
       activities: const [],
       chatMessages: const {},
       savedActivityIds: const {},
+      settings: AppSettings.initial(),
       reports: const [],
       feedbackEntries: const [],
     );
@@ -51,6 +54,7 @@ class AppState {
   final List<Activity> activities;
   final Map<String, List<ChatMessage>> chatMessages;
   final Set<String> savedActivityIds;
+  final AppSettings settings;
   final List<ModerationReport> reports;
   final List<PrivateFeedbackEntry> feedbackEntries;
   final String phoneInput;
@@ -65,6 +69,7 @@ class AppState {
     List<Activity>? activities,
     Map<String, List<ChatMessage>>? chatMessages,
     Set<String>? savedActivityIds,
+    AppSettings? settings,
     List<ModerationReport>? reports,
     List<PrivateFeedbackEntry>? feedbackEntries,
     String? phoneInput,
@@ -79,6 +84,7 @@ class AppState {
       activities: activities ?? this.activities,
       chatMessages: chatMessages ?? this.chatMessages,
       savedActivityIds: savedActivityIds ?? this.savedActivityIds,
+      settings: settings ?? this.settings,
       reports: reports ?? this.reports,
       feedbackEntries: feedbackEntries ?? this.feedbackEntries,
       phoneInput: phoneInput ?? this.phoneInput,
@@ -145,15 +151,16 @@ class AppController extends ChangeNotifier {
 
     if (localSession == null || localSession.isEmpty) {
       AppLogger.log('AUTH', 'session_restored=false');
-    state = state.copyWith(
-      stage: AppStage.phoneAuth,
-      user: null,
-      activities: const [],
-      chatMessages: const {},
-      savedActivityIds: const {},
-      reports: const [],
-      feedbackEntries: const [],
-      errorMessage: null,
+      state = state.copyWith(
+        stage: AppStage.phoneAuth,
+        user: null,
+        activities: const [],
+        chatMessages: const {},
+        savedActivityIds: const {},
+        settings: AppSettings.initial(),
+        reports: const [],
+        feedbackEntries: const [],
+        errorMessage: null,
       );
       return;
     }
@@ -192,6 +199,7 @@ class AppController extends ChangeNotifier {
       activities: _seedActivities(),
       chatMessages: const {},
       savedActivityIds: const {},
+      settings: AppSettings.initial(),
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -240,15 +248,10 @@ class AppController extends ChangeNotifier {
       phoneMasked: _maskPhone(state.phoneInput),
     );
 
-    _joinResetFromStoredSession(clientUid);
-    state = state.copyWith(
+    await _activateAuthenticatedState(
       user: user,
-      stage: AppStage.ready,
-      activities: _seedActivities(),
-      chatMessages: const {},
-      reports: const [],
-      feedbackEntries: const [],
-      errorMessage: null,
+      phoneMasked: _maskPhone(state.phoneInput),
+      clientUid: clientUid,
     );
     unawaited(_persistSnapshot());
 
@@ -285,7 +288,6 @@ class AppController extends ChangeNotifier {
   void signOut() {
     AppLogger.log('AUTH', 'logout');
     unawaited(_sessionStore.clear());
-    unawaited(_mockStore.clear());
     _clientUid = null;
     _messagesByActivityId.clear();
     _chatIdsByActivityId.clear();
@@ -297,6 +299,98 @@ class AppController extends ChangeNotifier {
       demoMode: true,
       activities: const [],
       chatMessages: const {},
+      savedActivityIds: const {},
+      settings: AppSettings.initial(),
+      reports: const [],
+      feedbackEntries: const [],
+      errorMessage: null,
+    );
+  }
+
+  Future<void> clearLocalData() async {
+    await _sessionStore.clear();
+    await _mockStore.clear();
+    _clientUid = null;
+    _messagesByActivityId.clear();
+    _chatIdsByActivityId.clear();
+    _joinedActivityIds.clear();
+    _confirmedAttendanceActivityIds.clear();
+    _savedActivityIds.clear();
+    state = AppState.initial().copyWith(
+      stage: AppStage.phoneAuth,
+      demoMode: true,
+      activities: const [],
+      chatMessages: const {},
+      savedActivityIds: const {},
+      settings: AppSettings.initial(),
+      reports: const [],
+      feedbackEntries: const [],
+      errorMessage: null,
+    );
+  }
+
+  Future<void> updateSettings(AppSettings settings) async {
+    state = state.copyWith(settings: settings);
+    unawaited(_persistSnapshot());
+  }
+
+  Future<void> setChatMessagesNotifications(bool value) {
+    return updateSettings(
+      state.settings.copyWith(chatMessagesNotifications: value),
+    );
+  }
+
+  Future<void> setRecommendedActivitiesNotifications(bool value) {
+    return updateSettings(
+      state.settings.copyWith(recommendedActivitiesNotifications: value),
+    );
+  }
+
+  Future<void> setActivityStartingSoonNotifications(bool value) {
+    return updateSettings(
+      state.settings.copyWith(activityStartingSoonNotifications: value),
+    );
+  }
+
+  Future<void> setHidePreciseLocationUntilUnlock(bool value) {
+    return updateSettings(
+      state.settings.copyWith(hidePreciseLocationUntilUnlock: value),
+    );
+  }
+
+  Future<void> setPersonalizedRecommendations(bool value) {
+    return updateSettings(
+      state.settings.copyWith(personalizedRecommendations: value),
+    );
+  }
+
+  Future<void> _activateAuthenticatedState({
+    required AppUser user,
+    required String phoneMasked,
+    required String clientUid,
+  }) async {
+    _joinResetFromStoredSession(clientUid);
+
+    final snapshot = await _mockStore.load();
+    if (snapshot != null) {
+      final restoredMessages = _restoreMessagesMap(
+        snapshot.messagesByActivityId,
+      );
+      _hydrateFromSnapshot(
+        snapshot,
+        restoredMessages,
+        phoneMasked: phoneMasked,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      user: user,
+      stage: AppStage.ready,
+      activities: _seedActivities(),
+      chatMessages: const {},
+      savedActivityIds: const {},
+      settings: AppSettings.initial(),
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -1422,6 +1516,7 @@ class AppController extends ChangeNotifier {
           _messagesByActivityId,
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
+        settings: state.settings.toJson(),
         reports: state.reports,
         feedbackEntries: state.feedbackEntries,
       ),
@@ -1472,6 +1567,10 @@ class AppController extends ChangeNotifier {
         )
         .toSet();
 
+    final hydratedSettings = snapshot.settings.isEmpty
+        ? AppSettings.initial()
+        : AppSettings.fromJson(snapshot.settings);
+
     _savedActivityIds
       ..clear()
       ..addAll(hydratedSavedActivityIds);
@@ -1484,6 +1583,7 @@ class AppController extends ChangeNotifier {
           : hydratedActivities,
       chatMessages: restoredMessages,
       savedActivityIds: hydratedSavedActivityIds,
+      settings: hydratedSettings,
       reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
       errorMessage: null,
