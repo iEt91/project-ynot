@@ -80,6 +80,69 @@ void main() {
       },
     );
 
+    test('joined or confirmed activities can open chat from the list', () {
+      final activity = Activity(
+        id: 'activity_001',
+        creatorId: 'creator_001',
+        creatorLabel: 'Luna',
+        activityType: ActivityType.userActivity,
+        title: 'Cafe Talk',
+        description: 'Charlita suave y tranquila.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        status: ActivityStatus.open,
+        realLat: 37.5563,
+        realLng: 126.9228,
+        displayLat: 37.5569,
+        displayLng: 126.9234,
+        locationPrivacyRadiusM: 180,
+        exactLocationUnlockAt: DateTime(2026, 6, 1, 17, 50),
+        startTime: DateTime(2026, 6, 1, 18, 0),
+        endTime: DateTime(2026, 6, 1, 20, 0),
+        maxPeople: 6,
+        confirmedCount: 2,
+        pendingCount: 0,
+        myStatus: ParticipantStatus.confirmed,
+        isMine: false,
+      );
+
+      expect(activity.isJoinedOrConfirmed, isTrue);
+      expect(
+        activity.copyWith(myStatus: ParticipantStatus.joinedPendingConfirmation)
+            .isJoinedOrConfirmed,
+        isTrue,
+      );
+      expect(
+        Activity(
+          id: 'activity_002',
+          creatorId: 'creator_001',
+          creatorLabel: 'Luna',
+          activityType: ActivityType.userActivity,
+          title: 'Cafe Talk',
+          description: 'Charlita suave y tranquila.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Hongdae',
+          status: ActivityStatus.open,
+          realLat: 37.5563,
+          realLng: 126.9228,
+          displayLat: 37.5569,
+          displayLng: 126.9234,
+          locationPrivacyRadiusM: 180,
+          exactLocationUnlockAt: DateTime(2026, 6, 1, 17, 50),
+          startTime: DateTime(2026, 6, 1, 18, 0),
+          endTime: DateTime(2026, 6, 1, 20, 0),
+          maxPeople: 6,
+          confirmedCount: 0,
+          pendingCount: 0,
+          myStatus: null,
+          isMine: false,
+        ).isJoinedOrConfirmed,
+        isFalse,
+      );
+    });
+
     test('user cannot create a second active activity', () async {
       final controller = await _buildLoggedInController();
 

@@ -56,7 +56,7 @@ class ActivitiesScreen extends ConsumerWidget {
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+                      padding: const EdgeInsets.fromLTRB(18, 4, 18, 132),
                       itemCount: activities.length,
                       separatorBuilder: (context, index) => Divider(
                         height: 1,
@@ -65,9 +65,12 @@ class ActivitiesScreen extends ConsumerWidget {
                       ),
                       itemBuilder: (context, index) {
                         final activity = activities[index];
+                        final route = activity.isJoinedOrConfirmed
+                            ? '/chat/${activity.id}'
+                            : '/activity/${activity.id}';
                         return _ActivityListItem(
                           activity: activity,
-                          onTap: () => context.push('/activity/${activity.id}'),
+                          onTap: () => context.push(route),
                         );
                       },
                     ),

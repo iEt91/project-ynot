@@ -1,3 +1,8 @@
+## v1.0.6.2
+- Activities list opens chat directly when already joined or confirmed
+- Activities list gets safer bottom padding above the dock
+- No extra summary screen when the list already has enough context
+
 ## v1.0.6.1
 - Creator auto-joins and auto-confirms when creating an activity
 - History screen adds a matching back button

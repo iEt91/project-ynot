@@ -136,6 +136,9 @@ class Activity {
   bool get isFinishedOrArchived =>
       status == ActivityStatus.finished || status == ActivityStatus.archived;
   bool get isFull => confirmedCount >= maxPeople;
+  bool get isJoinedOrConfirmed =>
+      myStatus == ParticipantStatus.joinedPendingConfirmation ||
+      myStatus == ParticipantStatus.confirmed;
   String get emoji => switch (category) {
     'Coffee' => '☕',
     'Study' => '📚',
