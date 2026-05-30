@@ -48,7 +48,11 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
 
   @override
   void dispose() {
-    unawaited(ref.read(appControllerProvider).stopWatchingChatMessages(widget.activityId));
+    unawaited(
+      ref
+          .read(appControllerProvider)
+          .stopWatchingChatMessages(widget.activityId),
+    );
     _messageController.dispose();
     super.dispose();
   }
@@ -56,30 +60,39 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appStateProvider);
-    final activity = state.activities.where((item) => item.id == widget.activityId).firstOrNull;
+    final activity = state.activities
+        .where((item) => item.id == widget.activityId)
+        .firstOrNull;
 
     if (activity == null) {
       return Scaffold(
         body: KawaiiScene(
           child: Center(
-            child: KawaiiCard(
-              child: const Text('No encontramos este chat.'),
-            ),
+            child: KawaiiCard(child: const Text('No encontramos este chat.')),
           ),
         ),
       );
     }
 
-    final messages = state.chatMessages[widget.activityId] ?? const <ChatMessage>[];
+    final messages =
+        state.chatMessages[widget.activityId] ?? const <ChatMessage>[];
     final status = activity.myStatus;
     final isConfirmed = status == ParticipantStatus.confirmed;
     final canConfirm = status == ParticipantStatus.joinedPendingConfirmation;
-    final canCancel = status == ParticipantStatus.joinedPendingConfirmation || status == ParticipantStatus.confirmed;
-    final canLeave = status == ParticipantStatus.joinedPendingConfirmation || status == ParticipantStatus.confirmed;
+    final canCancel =
+        status == ParticipantStatus.joinedPendingConfirmation ||
+        status == ParticipantStatus.confirmed;
+    final canLeave =
+        status == ParticipantStatus.joinedPendingConfirmation ||
+        status == ParticipantStatus.confirmed;
+    final isCreator = state.user?.id == activity.creatorId;
     final userStatus = state.user?.status;
-    final isRestricted = userStatus == UserStatus.limited || userStatus == UserStatus.banned;
-    final canAccessChat = !isRestricted &&
-        (status == ParticipantStatus.joinedPendingConfirmation || status == ParticipantStatus.confirmed);
+    final isRestricted =
+        userStatus == UserStatus.limited || userStatus == UserStatus.banned;
+    final canAccessChat =
+        !isRestricted &&
+        (status == ParticipantStatus.joinedPendingConfirmation ||
+            status == ParticipantStatus.confirmed);
 
     if (!canAccessChat) {
       return Scaffold(
@@ -95,9 +108,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     children: [
                       Text(
                         'El chat no está disponible ahora mismo.',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
@@ -105,12 +117,13 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                         'Reúnete desde el detalle de la actividad para volver a entrar al chat.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       FilledButton(
-                        onPressed: () => context.push('/activity/${widget.activityId}'),
+                        onPressed: () =>
+                            context.push('/activity/${widget.activityId}'),
                         child: const Text('Volver al detalle'),
                       ),
                     ],
@@ -145,34 +158,43 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                         children: [
                           Text(
                             activity.title,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '${formatTimeOfDay(activity.startTime)} · ${activity.zone}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
                       ),
                     ),
                     PopupMenuButton<_ChatAction>(
-                      icon: const Icon(Icons.more_horiz_rounded, color: Colors.white),
+                      icon: const Icon(
+                        Icons.more_horiz_rounded,
+                        color: Colors.white,
+                      ),
                       color: YnotTheme.surface2,
                       onSelected: (value) async {
                         switch (value) {
                           case _ChatAction.confirmAttendance:
                             if (canConfirm) {
-                              await ref.read(appControllerProvider).confirmAttendance(activity.id);
+                              await ref
+                                  .read(appControllerProvider)
+                                  .confirmAttendance(activity.id);
                             }
                             break;
                           case _ChatAction.cancelAttendance:
                             if (canCancel) {
                               final router = GoRouter.of(context);
-                              await ref.read(appControllerProvider).cancelAttendance(activity.id);
+                              await ref
+                                  .read(appControllerProvider)
+                                  .cancelAttendance(activity.id);
                               if (!mounted) return;
                               if (router.canPop()) {
                                 router.pop();
@@ -188,12 +210,59 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           case _ChatAction.leaveEvent:
                             if (canLeave) {
                               final router = GoRouter.of(context);
-                              await ref.read(appControllerProvider).leaveActivity(activity.id);
+                              await ref
+                                  .read(appControllerProvider)
+                                  .leaveActivity(activity.id);
                               if (!mounted) return;
                               if (router.canPop()) {
                                 router.pop();
                               }
                             }
+                            break;
+                          case _ChatAction.deleteActivity:
+                            final confirmed =
+                                await showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContext) {
+                                    return AlertDialog(
+                                      title: const Text('¿Eliminar actividad?'),
+                                      content: const Text(
+                                        'Esto eliminará la actividad del mapa, la lista y los chats. Esta acción no se puede deshacer.',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(
+                                            dialogContext,
+                                          ).pop(false),
+                                          child: const Text('Cancelar'),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () => Navigator.of(
+                                            dialogContext,
+                                          ).pop(true),
+                                          child: const Text('Eliminar'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ) ??
+                                false;
+                            if (!confirmed) {
+                              break;
+                            }
+
+                            final deleted = await ref
+                                .read(appControllerProvider)
+                                .deleteActivity(activity.id);
+                            if (!deleted || !context.mounted) return;
+                            final messenger = ScaffoldMessenger.of(context);
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Actividad eliminada.'),
+                              ),
+                            );
+                            if (!context.mounted) return;
+                            context.go('/');
                             break;
                         }
                       },
@@ -201,7 +270,11 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                         PopupMenuItem(
                           value: _ChatAction.confirmAttendance,
                           enabled: canConfirm,
-                          child: Text(isConfirmed ? 'Asistencia confirmada' : 'Confirmar asistencia'),
+                          child: Text(
+                            isConfirmed
+                                ? 'Asistencia confirmada'
+                                : 'Confirmar asistencia',
+                          ),
                         ),
                         PopupMenuItem(
                           value: _ChatAction.cancelAttendance,
@@ -221,6 +294,11 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           enabled: canLeave,
                           child: const Text('Salir del evento'),
                         ),
+                        if (isCreator)
+                          const PopupMenuItem(
+                            value: _ChatAction.deleteActivity,
+                            child: Text('Eliminar actividad'),
+                          ),
                       ],
                     ),
                   ],
@@ -245,11 +323,26 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            Positioned(left: 0, child: _OpaqueAttendeeAvatar(emoji: '☕')),
-                            Positioned(left: 18, child: _OpaqueAttendeeAvatar(emoji: '🌙')),
-                            Positioned(left: 36, child: _OpaqueAttendeeAvatar(emoji: '✨')),
-                            Positioned(left: 54, child: _OpaqueAttendeeAvatar(emoji: '💬')),
-                            Positioned(left: 72, child: _OpaqueAttendeeAvatar(emoji: '🐾')),
+                            Positioned(
+                              left: 0,
+                              child: _OpaqueAttendeeAvatar(emoji: '☕'),
+                            ),
+                            Positioned(
+                              left: 18,
+                              child: _OpaqueAttendeeAvatar(emoji: '🌙'),
+                            ),
+                            Positioned(
+                              left: 36,
+                              child: _OpaqueAttendeeAvatar(emoji: '✨'),
+                            ),
+                            Positioned(
+                              left: 54,
+                              child: _OpaqueAttendeeAvatar(emoji: '💬'),
+                            ),
+                            Positioned(
+                              left: 72,
+                              child: _OpaqueAttendeeAvatar(emoji: '🐾'),
+                            ),
                           ],
                         ),
                       ),
@@ -257,9 +350,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                       Text(
                         '${activity.confirmedCount} asistentes confirmados',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -272,18 +365,29 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                   child: FilledButton(
                     onPressed: canConfirm
                         ? () async {
-                            await ref.read(appControllerProvider).confirmAttendance(activity.id);
+                            await ref
+                                .read(appControllerProvider)
+                                .confirmAttendance(activity.id);
                           }
                         : null,
                     style: FilledButton.styleFrom(
-                      backgroundColor:
-                          isConfirmed ? YnotTheme.mint.withValues(alpha: 0.22) : YnotTheme.mint,
+                      backgroundColor: isConfirmed
+                          ? YnotTheme.mint.withValues(alpha: 0.22)
+                          : YnotTheme.mint,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: YnotTheme.mint.withValues(alpha: 0.18),
-                      disabledForegroundColor: Colors.white.withValues(alpha: 0.82),
+                      disabledBackgroundColor: YnotTheme.mint.withValues(
+                        alpha: 0.18,
+                      ),
+                      disabledForegroundColor: Colors.white.withValues(
+                        alpha: 0.82,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    child: Text(isConfirmed ? 'Asistencia confirmada' : 'Confirmar asistencia'),
+                    child: Text(
+                      isConfirmed
+                          ? 'Asistencia confirmada'
+                          : 'Confirmar asistencia',
+                    ),
                   ),
                 ),
               ),
@@ -292,51 +396,63 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                 child: _loadingMessages && messages.isEmpty
                     ? const Center(child: CircularProgressIndicator())
                     : messages.isEmpty
-                        ? Center(
-                            child: KawaiiCard(
-                              child: Text(
-                                'Todavía no hay mensajes.',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ? Center(
+                        child: KawaiiCard(
+                          child: Text(
+                            'Todavía no hay mensajes.',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
+                        children: [
+                          ...messages.map(
+                            (message) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _ChatMessageBubble(
+                                message: message,
+                                accentColor: _categoryColor(activity.category),
+                                onReportMessage: (reportedMessage) async {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  await ref
+                                      .read(appControllerProvider)
+                                      .reportChatMessage(
+                                        messageId: reportedMessage.id,
+                                        chatId: reportedMessage.chatId,
+                                        activityId: reportedMessage.activityId,
+                                        senderId: reportedMessage.senderId,
+                                        reporterId: reporterId,
+                                        content: reportedMessage.content,
+                                        timestamp: reportedMessage.createdAt,
+                                      );
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Mensaje reportado.'),
                                     ),
+                                  );
+                                },
                               ),
                             ),
-                          )
-                        : ListView(
-                            padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
-                            children: [
-                              ...messages.map(
-                                (message) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _ChatMessageBubble(
-                                    message: message,
-                                    accentColor: _categoryColor(activity.category),
-                                    onReportMessage: (reportedMessage) async {
-                                      final messenger = ScaffoldMessenger.of(context);
-                                      await ref.read(appControllerProvider).reportChatMessage(
-                                            messageId: reportedMessage.id,
-                                            chatId: reportedMessage.chatId,
-                                            activityId: reportedMessage.activityId,
-                                            senderId: reportedMessage.senderId,
-                                            reporterId: reporterId,
-                                            content: reportedMessage.content,
-                                            timestamp: reportedMessage.createdAt,
-                                          );
-                                      if (!mounted) return;
-                                      messenger.showSnackBar(
-                                        const SnackBar(content: Text('Mensaje reportado.')),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
                           ),
+                        ],
+                      ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
                 child: KawaiiCard(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -350,18 +466,25 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           onSubmitted: (_) async {
                             final text = _messageController.text.trim();
                             if (text.isEmpty) return;
-                            await ref.read(appControllerProvider).sendChatMessage(activity.id, text);
+                            await ref
+                                .read(appControllerProvider)
+                                .sendChatMessage(activity.id, text);
                             _messageController.clear();
                           },
                         ),
                       ),
                       IconButton(
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                        constraints: const BoxConstraints(
+                          minWidth: 34,
+                          minHeight: 34,
+                        ),
                         onPressed: () async {
                           final text = _messageController.text.trim();
                           if (text.isEmpty) return;
-                          await ref.read(appControllerProvider).sendChatMessage(activity.id, text);
+                          await ref
+                              .read(appControllerProvider)
+                              .sendChatMessage(activity.id, text);
                           _messageController.clear();
                         },
                         icon: const Icon(Icons.send_rounded),
@@ -422,7 +545,8 @@ class _ChatMessageBubble extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onLongPressStart: (details) async {
-        final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+        final overlay =
+            Overlay.of(context).context.findRenderObject() as RenderBox;
         final selected = await showMenu<_MessageMenuAction>(
           context: context,
           position: RelativeRect.fromRect(
@@ -442,7 +566,9 @@ class _ChatMessageBubble extends StatelessWidget {
         }
       },
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -455,38 +581,45 @@ class _ChatMessageBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
                   child: Text(
                     message.senderName,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     gradient: bubbleColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
                   ),
                   child: Text(
                     message.content,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.white),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   message.timeLabel,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -506,10 +639,7 @@ class _ChatMessageBubble extends StatelessWidget {
 }
 
 class _IconOnlyButton extends StatelessWidget {
-  const _IconOnlyButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _IconOnlyButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -553,7 +683,14 @@ class _OpaqueAttendeeAvatar extends StatelessWidget {
   }
 }
 
-enum _ChatAction { confirmAttendance, cancelAttendance, feedback, report, leaveEvent }
+enum _ChatAction {
+  confirmAttendance,
+  cancelAttendance,
+  feedback,
+  report,
+  leaveEvent,
+  deleteActivity,
+}
 
 enum _MessageMenuAction { report }
 

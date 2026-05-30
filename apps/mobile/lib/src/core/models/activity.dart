@@ -26,11 +26,22 @@ enum ParticipantStatus {
   removedByAdmin,
 }
 
-enum ActivityFilter { all, coffee, study, walks, food, art, music, calm, social }
+enum ActivityFilter {
+  all,
+  coffee,
+  study,
+  walks,
+  food,
+  art,
+  music,
+  calm,
+  social,
+}
 
 class Activity {
   const Activity({
     required this.id,
+    required this.creatorId,
     required this.creatorLabel,
     required this.activityType,
     this.visibility = ActivityVisibility.publicActivity,
@@ -59,6 +70,7 @@ class Activity {
   });
 
   final String id;
+  final String creatorId;
   final String creatorLabel;
   final ActivityType activityType;
   final ActivityVisibility visibility;
@@ -85,19 +97,21 @@ class Activity {
   final DateTime? lastMessageAt;
   final int unreadMessageCount;
 
-  bool get isJoinable => status == ActivityStatus.active && confirmedCount < maxPeople;
+  bool get isJoinable =>
+      status == ActivityStatus.active && confirmedCount < maxPeople;
   bool get isFull => confirmedCount >= maxPeople;
   String get emoji => switch (category) {
-        'Coffee' => '☕',
-        'Study' => '📚',
-        'Walks' => '🌙',
-        'Food' => '🍜',
-        'Art' => '🎨',
-        'Music' => '🎵',
-        _ => '✨',
-      };
+    'Coffee' => '☕',
+    'Study' => '📚',
+    'Walks' => '🌙',
+    'Food' => '🍜',
+    'Art' => '🎨',
+    'Music' => '🎵',
+    _ => '✨',
+  };
 
   Activity copyWith({
+    String? creatorId,
     String? creatorLabel,
     ActivityType? activityType,
     ActivityVisibility? visibility,
@@ -126,6 +140,7 @@ class Activity {
   }) {
     return Activity(
       id: id,
+      creatorId: creatorId ?? this.creatorId,
       creatorLabel: creatorLabel ?? this.creatorLabel,
       activityType: activityType ?? this.activityType,
       visibility: visibility ?? this.visibility,
@@ -139,8 +154,10 @@ class Activity {
       realLng: realLng ?? this.realLng,
       displayLat: displayLat ?? this.displayLat,
       displayLng: displayLng ?? this.displayLng,
-      locationPrivacyRadiusM: locationPrivacyRadiusM ?? this.locationPrivacyRadiusM,
-      exactLocationUnlockAt: exactLocationUnlockAt ?? this.exactLocationUnlockAt,
+      locationPrivacyRadiusM:
+          locationPrivacyRadiusM ?? this.locationPrivacyRadiusM,
+      exactLocationUnlockAt:
+          exactLocationUnlockAt ?? this.exactLocationUnlockAt,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       maxPeople: maxPeople ?? this.maxPeople,
@@ -157,6 +174,7 @@ class Activity {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'creatorId': creatorId,
       'creatorLabel': creatorLabel,
       'activityType': activityType.name,
       'visibility': visibility.name,
@@ -188,9 +206,12 @@ class Activity {
   factory Activity.fromJson(Map<String, dynamic> json) {
     return Activity(
       id: json['id'] as String? ?? '',
+      creatorId:
+          json['creatorId'] as String? ?? json['creator_id'] as String? ?? '',
       creatorLabel: json['creatorLabel'] as String? ?? '',
-      activityType:
-          ActivityType.values.byName(json['activityType'] as String? ?? ActivityType.userActivity.name),
+      activityType: ActivityType.values.byName(
+        json['activityType'] as String? ?? ActivityType.userActivity.name,
+      ),
       visibility: ActivityVisibility.values.byName(
         json['visibility'] as String? ?? ActivityVisibility.publicActivity.name,
       ),
@@ -199,16 +220,22 @@ class Activity {
       category: json['category'] as String? ?? '',
       vibe: json['vibe'] as String? ?? '',
       zone: json['zone'] as String? ?? '',
-      status: ActivityStatus.values.byName(json['status'] as String? ?? ActivityStatus.active.name),
+      status: ActivityStatus.values.byName(
+        json['status'] as String? ?? ActivityStatus.active.name,
+      ),
       realLat: (json['realLat'] as num?)?.toDouble() ?? 0,
       realLng: (json['realLng'] as num?)?.toDouble() ?? 0,
       displayLat: (json['displayLat'] as num?)?.toDouble() ?? 0,
       displayLng: (json['displayLng'] as num?)?.toDouble() ?? 0,
       locationPrivacyRadiusM: json['locationPrivacyRadiusM'] as int? ?? 0,
       exactLocationUnlockAt:
-          DateTime.tryParse(json['exactLocationUnlockAt'] as String? ?? '') ?? DateTime.now(),
-      startTime: DateTime.tryParse(json['startTime'] as String? ?? '') ?? DateTime.now(),
-      endTime: DateTime.tryParse(json['endTime'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['exactLocationUnlockAt'] as String? ?? '') ??
+          DateTime.now(),
+      startTime:
+          DateTime.tryParse(json['startTime'] as String? ?? '') ??
+          DateTime.now(),
+      endTime:
+          DateTime.tryParse(json['endTime'] as String? ?? '') ?? DateTime.now(),
       maxPeople: json['maxPeople'] as int? ?? 0,
       confirmedCount: json['confirmedCount'] as int? ?? 0,
       pendingCount: json['pendingCount'] as int? ?? 0,

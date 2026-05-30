@@ -97,7 +97,9 @@ class ChatMessageReport {
   final DateTime timestamp;
 }
 
-final appControllerProvider = ChangeNotifierProvider<AppController>((ref) => AppController());
+final appControllerProvider = ChangeNotifierProvider<AppController>(
+  (ref) => AppController(),
+);
 
 final appStateProvider = Provider<AppState>(
   (ref) => ref.watch(appControllerProvider).state,
@@ -165,11 +167,15 @@ class AppController extends ChangeNotifier {
 
     final snapshot = await _mockStore.load();
     if (snapshot != null) {
-      final restoredMessages = _restoreMessagesMap(snapshot.messagesByActivityId);
+      final restoredMessages = _restoreMessagesMap(
+        snapshot.messagesByActivityId,
+      );
       _hydrateFromSnapshot(
         snapshot,
         restoredMessages,
-        phoneMasked: restoredPhone == null ? 'Sesión local' : _maskPhone(restoredPhone),
+        phoneMasked: restoredPhone == null
+            ? 'Sesión local'
+            : _maskPhone(restoredPhone),
       );
       AppLogger.log('AUTH', 'session_restored=true');
       return;
@@ -179,7 +185,9 @@ class AppController extends ChangeNotifier {
 
     final user = _buildDemoUser(
       localSession,
-      phoneMasked: restoredPhone == null ? 'Sesión local' : _maskPhone(restoredPhone),
+      phoneMasked: restoredPhone == null
+          ? 'Sesión local'
+          : _maskPhone(restoredPhone),
     );
 
     AppLogger.log('AUTH', 'session_restored=true');
@@ -205,7 +213,9 @@ class AppController extends ChangeNotifier {
   Future<void> sendVerificationCode() async {
     final phone = state.phoneInput.trim();
     if (phone.isEmpty || phone.length < 6) {
-      state = state.copyWith(errorMessage: 'Escribe un número de teléfono válido.');
+      state = state.copyWith(
+        errorMessage: 'Escribe un número de teléfono válido.',
+      );
       return;
     }
 
@@ -223,7 +233,10 @@ class AppController extends ChangeNotifier {
     }
 
     final clientUid = await _ensureClientUid();
-    await _sessionStore.saveClientSession(clientUid: clientUid, phone: state.phoneInput.trim());
+    await _sessionStore.saveClientSession(
+      clientUid: clientUid,
+      phone: state.phoneInput.trim(),
+    );
 
     final user = _buildDemoUser(
       clientUid,
@@ -307,9 +320,25 @@ class AppController extends ChangeNotifier {
     required double realLng,
     ActivityVisibility visibility = ActivityVisibility.publicActivity,
   }) async {
+    if (!canCreateActivity()) {
+      state = state.copyWith(errorMessage: creationRestrictionMessage());
+      return;
+    }
+
+    final currentUser = state.user;
+    if (currentUser == null) {
+      state = state.copyWith(
+        errorMessage: 'Inicia sesión para crear una actividad.',
+      );
+      return;
+    }
+
     final created = _buildActivity(
       id: 'activity_${DateTime.now().millisecondsSinceEpoch}',
-      creatorLabel: state.user?.nickname.isNotEmpty == true ? state.user!.nickname : 'Tú',
+      creatorId: currentUser.id,
+      creatorLabel: state.user?.nickname.isNotEmpty == true
+          ? state.user!.nickname
+          : 'Tú',
       isMine: true,
       title: title,
       description: description,
@@ -325,8 +354,13 @@ class AppController extends ChangeNotifier {
     );
 
     state = state.copyWith(
-      activities: [created, ...state.activities.where((activity) => activity.id != created.id)],
-      user: state.user?.copyWith(createdActivityCount: (state.user?.createdActivityCount ?? 0) + 1),
+      activities: [
+        created,
+        ...state.activities.where((activity) => activity.id != created.id),
+      ],
+      user: state.user?.copyWith(
+        createdActivityCount: (state.user?.createdActivityCount ?? 0) + 1,
+      ),
     );
 
     AppLogger.log('ACTIVITY', 'created id=${created.id}');
@@ -336,7 +370,9 @@ class AppController extends ChangeNotifier {
   Future<void> joinActivity(String activityId) async {
     final updated = _updateActivity(activityId, (activity) {
       final user = state.user;
-      final isRestricted = user?.status == UserStatus.limited || user?.status == UserStatus.banned;
+      final isRestricted =
+          user?.status == UserStatus.limited ||
+          user?.status == UserStatus.banned;
       if (isRestricted || activity.isFull) {
         return activity;
       }
@@ -369,7 +405,9 @@ class AppController extends ChangeNotifier {
         pendingCount: activity.pendingCount > 0 ? activity.pendingCount - 1 : 0,
         confirmedCount: activity.confirmedCount + 1,
         myStatus: ParticipantStatus.confirmed,
-        status: (activity.confirmedCount + 1) >= activity.maxPeople ? ActivityStatus.full : ActivityStatus.active,
+        status: (activity.confirmedCount + 1) >= activity.maxPeople
+            ? ActivityStatus.full
+            : ActivityStatus.active,
       );
     });
 
@@ -388,7 +426,9 @@ class AppController extends ChangeNotifier {
       if (activity.myStatus == ParticipantStatus.joinedPendingConfirmation) {
         _confirmedAttendanceActivityIds.remove(activityId);
         return activity.copyWith(
-          pendingCount: activity.pendingCount > 0 ? activity.pendingCount - 1 : 0,
+          pendingCount: activity.pendingCount > 0
+              ? activity.pendingCount - 1
+              : 0,
           myStatus: ParticipantStatus.cancelled,
           status: ActivityStatus.active,
         );
@@ -398,7 +438,9 @@ class AppController extends ChangeNotifier {
         _confirmedAttendanceActivityIds.remove(activityId);
         shouldDecreaseAttendance = true;
         return activity.copyWith(
-          confirmedCount: activity.confirmedCount > 0 ? activity.confirmedCount - 1 : 0,
+          confirmedCount: activity.confirmedCount > 0
+              ? activity.confirmedCount - 1
+              : 0,
           myStatus: ParticipantStatus.cancelled,
           status: ActivityStatus.active,
         );
@@ -412,7 +454,9 @@ class AppController extends ChangeNotifier {
       user: shouldDecreaseAttendance
           ? state.user?.copyWith(
               attendingActivityCount:
-                  (state.user?.attendingActivityCount ?? 0) > 0 ? (state.user?.attendingActivityCount ?? 0) - 1 : 0,
+                  (state.user?.attendingActivityCount ?? 0) > 0
+                  ? (state.user?.attendingActivityCount ?? 0) - 1
+                  : 0,
             )
           : state.user,
     );
@@ -424,7 +468,9 @@ class AppController extends ChangeNotifier {
       if (activity.myStatus == ParticipantStatus.joinedPendingConfirmation) {
         _joinedActivityIds.remove(activityId);
         return activity.copyWith(
-          pendingCount: activity.pendingCount > 0 ? activity.pendingCount - 1 : 0,
+          pendingCount: activity.pendingCount > 0
+              ? activity.pendingCount - 1
+              : 0,
           myStatus: ParticipantStatus.left,
           status: ActivityStatus.active,
         );
@@ -434,7 +480,9 @@ class AppController extends ChangeNotifier {
         _joinedActivityIds.remove(activityId);
         _confirmedAttendanceActivityIds.remove(activityId);
         return activity.copyWith(
-          confirmedCount: activity.confirmedCount > 0 ? activity.confirmedCount - 1 : 0,
+          confirmedCount: activity.confirmedCount > 0
+              ? activity.confirmedCount - 1
+              : 0,
           myStatus: ParticipantStatus.left,
           status: ActivityStatus.active,
         );
@@ -446,8 +494,9 @@ class AppController extends ChangeNotifier {
     state = state.copyWith(
       activities: updated,
       user: state.user?.copyWith(
-        attendingActivityCount:
-            (state.user?.attendingActivityCount ?? 0) > 0 ? (state.user?.attendingActivityCount ?? 0) - 1 : 0,
+        attendingActivityCount: (state.user?.attendingActivityCount ?? 0) > 0
+            ? (state.user?.attendingActivityCount ?? 0) - 1
+            : 0,
       ),
     );
     unawaited(_persistSnapshot());
@@ -456,7 +505,9 @@ class AppController extends ChangeNotifier {
   Future<void> loadChatMessages(String activityId) async {
     AppLogger.log('CHAT', 'open activityId=$activityId');
     final chatId = _resolveChatId(activityId);
-    final messages = List<ChatMessage>.from(_messagesByActivityId[chatId] ?? const []);
+    final messages = List<ChatMessage>.from(
+      _messagesByActivityId[chatId] ?? const [],
+    );
     AppLogger.log('CHAT', 'load source=mock count=${messages.length}');
     _setChatMessages(activityId, messages, chatId: chatId, source: 'mock');
   }
@@ -490,7 +541,9 @@ class AppController extends ChangeNotifier {
       isMe: true,
     );
 
-    final messages = List<ChatMessage>.from(_messagesByActivityId[chatId] ?? const []);
+    final messages = List<ChatMessage>.from(
+      _messagesByActivityId[chatId] ?? const [],
+    );
     messages.add(message);
     _messagesByActivityId[chatId] = messages;
     _setChatMessages(activityId, messages, chatId: chatId, source: 'mock');
@@ -517,13 +570,76 @@ class AppController extends ChangeNotifier {
       timestamp: timestamp,
     );
 
-    state = state.copyWith(
-      messageReports: [report, ...state.messageReports],
-    );
+    state = state.copyWith(messageReports: [report, ...state.messageReports]);
   }
 
   Future<void> refreshActivity(String activityId) async {
     // In-memory mock keeps the current activity list as source of truth.
+  }
+
+  bool canCreateActivity() {
+    final currentUser = state.user;
+    if (currentUser == null) {
+      return false;
+    }
+
+    return !_hasActiveCreatedActivity(currentUser.id);
+  }
+
+  String? creationRestrictionMessage() {
+    final currentUser = state.user;
+    if (currentUser == null) {
+      return 'Inicia sesión para crear una actividad.';
+    }
+
+    if (_hasActiveCreatedActivity(currentUser.id)) {
+      return 'Ya tienes una actividad activa. Elimínala o espera a que termine para crear otra.';
+    }
+
+    return null;
+  }
+
+  Future<bool> deleteActivity(String activityId) async {
+    final currentUser = state.user;
+    Activity? activity;
+    for (final item in state.activities) {
+      if (item.id == activityId) {
+        activity = item;
+        break;
+      }
+    }
+    if (currentUser == null ||
+        activity == null ||
+        activity.creatorId != currentUser.id) {
+      return false;
+    }
+
+    final nextActivities = state.activities
+        .where((item) => item.id != activityId)
+        .toList(growable: false);
+    _messagesByActivityId.remove(activityId);
+    _chatIdsByActivityId.remove(activityId);
+    _joinedActivityIds.remove(activityId);
+    _confirmedAttendanceActivityIds.remove(activityId);
+
+    final nextChatMessages = Map<String, List<ChatMessage>>.from(
+      state.chatMessages,
+    )..remove(activityId);
+    final nextReports = state.messageReports
+        .where((report) => report.activityId != activityId)
+        .toList(growable: false);
+    final createdCount = currentUser.createdActivityCount > 0
+        ? currentUser.createdActivityCount - 1
+        : 0;
+
+    state = state.copyWith(
+      activities: nextActivities,
+      chatMessages: nextChatMessages,
+      messageReports: nextReports,
+      user: currentUser.copyWith(createdActivityCount: createdCount),
+    );
+    unawaited(_persistSnapshot());
+    return true;
   }
 
   List<Activity> filteredActivities() {
@@ -531,20 +647,22 @@ class AppController extends ChangeNotifier {
       return state.activities;
     }
 
-    return state.activities.where((activity) {
-      final query = state.filter;
-      return switch (query) {
-        ActivityFilter.coffee => activity.category == 'Coffee',
-        ActivityFilter.study => activity.category == 'Study',
-        ActivityFilter.walks => activity.category == 'Walks',
-        ActivityFilter.food => activity.category == 'Food',
-        ActivityFilter.art => activity.category == 'Art',
-        ActivityFilter.music => activity.category == 'Music',
-        ActivityFilter.calm => activity.vibe == 'Calm',
-        ActivityFilter.social => activity.vibe == 'Social',
-        ActivityFilter.all => true,
-      };
-    }).toList(growable: false);
+    return state.activities
+        .where((activity) {
+          final query = state.filter;
+          return switch (query) {
+            ActivityFilter.coffee => activity.category == 'Coffee',
+            ActivityFilter.study => activity.category == 'Study',
+            ActivityFilter.walks => activity.category == 'Walks',
+            ActivityFilter.food => activity.category == 'Food',
+            ActivityFilter.art => activity.category == 'Art',
+            ActivityFilter.music => activity.category == 'Music',
+            ActivityFilter.calm => activity.vibe == 'Calm',
+            ActivityFilter.social => activity.vibe == 'Social',
+            ActivityFilter.all => true,
+          };
+        })
+        .toList(growable: false);
   }
 
   Future<String?> ensureChatId(String activityId) async {
@@ -570,6 +688,7 @@ class AppController extends ChangeNotifier {
 
   Activity _buildActivity({
     required String id,
+    required String creatorId,
     required String creatorLabel,
     required bool isMine,
     required String title,
@@ -589,11 +708,13 @@ class AppController extends ChangeNotifier {
     final signLat = _random.nextBool() ? 1 : -1;
     final signLng = _random.nextBool() ? 1 : -1;
     final displayLat = realLat + signLat * (offset / 111320.0);
-    final displayLng = realLng + signLng * (offset / (111320.0 * cos(realLat * pi / 180.0)));
+    final displayLng =
+        realLng + signLng * (offset / (111320.0 * cos(realLat * pi / 180.0)));
     final endTime = startTime.add(duration);
 
     return Activity(
       id: id,
+      creatorId: creatorId,
       creatorLabel: creatorLabel,
       activityType: ActivityType.userActivity,
       visibility: visibility,
@@ -624,11 +745,13 @@ class AppController extends ChangeNotifier {
     return [
       Activity(
         id: 'seed_1',
+        creatorId: 'seed_creator_mina',
         creatorLabel: 'Mina',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
         title: '☕ Café & Talk',
-        description: 'Un rato suave para charlar sin presión y compartir una taza.',
+        description:
+            'Un rato suave para charlar sin presión y compartir una taza.',
         category: 'Coffee',
         vibe: 'Calm',
         zone: 'Hongdae',
@@ -650,6 +773,7 @@ class AppController extends ChangeNotifier {
       ),
       Activity(
         id: 'seed_2',
+        creatorId: 'seed_creator_jisoo',
         creatorLabel: 'Jisoo',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
@@ -676,6 +800,7 @@ class AppController extends ChangeNotifier {
       ),
       Activity(
         id: 'seed_3',
+        creatorId: 'seed_creator_aria',
         creatorLabel: 'Aria',
         activityType: ActivityType.publicEvent,
         visibility: ActivityVisibility.publicActivity,
@@ -702,6 +827,7 @@ class AppController extends ChangeNotifier {
       ),
       Activity(
         id: 'seed_4',
+        creatorId: 'seed_creator_nari',
         creatorLabel: 'Nari',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
@@ -727,6 +853,7 @@ class AppController extends ChangeNotifier {
       ),
       Activity(
         id: 'seed_5',
+        creatorId: 'seed_creator_sora',
         creatorLabel: 'Sora',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
@@ -757,15 +884,22 @@ class AppController extends ChangeNotifier {
     String activityId,
     Activity Function(Activity activity) update,
   ) {
-    return state.activities.map((activity) {
-      if (activity.id != activityId) {
-        return activity;
-      }
-      return update(activity);
-    }).toList(growable: false);
+    return state.activities
+        .map((activity) {
+          if (activity.id != activityId) {
+            return activity;
+          }
+          return update(activity);
+        })
+        .toList(growable: false);
   }
 
-  void _setChatMessages(String activityId, List<ChatMessage> messages, {String? chatId, String source = 'mock'}) {
+  void _setChatMessages(
+    String activityId,
+    List<ChatMessage> messages, {
+    String? chatId,
+    String source = 'mock',
+  }) {
     final resolvedChatId = chatId ?? _resolveChatId(activityId);
     _messagesByActivityId[resolvedChatId] = messages;
 
@@ -775,18 +909,23 @@ class AppController extends ChangeNotifier {
     final preview = messages.isNotEmpty ? messages.last.content : '';
     final lastAt = messages.isNotEmpty ? messages.last.createdAt : null;
 
-    AppLogger.log('CHAT', 'preview source=$source chatId=$resolvedChatId lastMessage=$preview');
+    AppLogger.log(
+      'CHAT',
+      'preview source=$source chatId=$resolvedChatId lastMessage=$preview',
+    );
 
-    final activities = state.activities.map((activity) {
-      if (activity.id != activityId) {
-        return activity;
-      }
-      return activity.copyWith(
-        lastMessagePreview: preview,
-        lastMessageAt: lastAt,
-        unreadMessageCount: 0,
-      );
-    }).toList(growable: false);
+    final activities = state.activities
+        .map((activity) {
+          if (activity.id != activityId) {
+            return activity;
+          }
+          return activity.copyWith(
+            lastMessagePreview: preview,
+            lastMessageAt: lastAt,
+            unreadMessageCount: 0,
+          );
+        })
+        .toList(growable: false);
 
     state = state.copyWith(chatMessages: next, activities: activities);
   }
@@ -810,7 +949,9 @@ class AppController extends ChangeNotifier {
       LocalMockSnapshot(
         user: state.user,
         activities: state.activities,
-        messagesByActivityId: Map<String, List<ChatMessage>>.from(_messagesByActivityId),
+        messagesByActivityId: Map<String, List<ChatMessage>>.from(
+          _messagesByActivityId,
+        ),
       ),
     );
   }
@@ -826,25 +967,45 @@ class AppController extends ChangeNotifier {
 
     _chatIdsByActivityId
       ..clear()
-      ..addEntries(snapshot.activities.map((activity) => MapEntry(activity.id, activity.id)));
+      ..addEntries(
+        snapshot.activities.map(
+          (activity) => MapEntry(activity.id, activity.id),
+        ),
+      );
 
-    final user = snapshot.user ??
-        _buildDemoUser(
-          _clientUid ?? 'user_demo',
-          phoneMasked: phoneMasked,
-        );
+    final user =
+        snapshot.user ??
+        _buildDemoUser(_clientUid ?? 'user_demo', phoneMasked: phoneMasked);
+
+    final hydratedActivities = snapshot.activities
+        .map((activity) {
+          if (activity.creatorId.isNotEmpty) {
+            return activity;
+          }
+
+          if (activity.isMine) {
+            return activity.copyWith(creatorId: user.id);
+          }
+
+          return activity.copyWith(creatorId: 'legacy_seed_${activity.id}');
+        })
+        .toList(growable: false);
 
     state = state.copyWith(
       stage: AppStage.ready,
       user: user,
-      activities: snapshot.activities.isEmpty ? _seedActivities() : snapshot.activities,
+      activities: snapshot.activities.isEmpty
+          ? _seedActivities()
+          : hydratedActivities,
       chatMessages: restoredMessages,
       messageReports: const [],
       errorMessage: null,
     );
   }
 
-  Map<String, List<ChatMessage>> _restoreMessagesMap(Map<String, List<ChatMessage>> raw) {
+  Map<String, List<ChatMessage>> _restoreMessagesMap(
+    Map<String, List<ChatMessage>> raw,
+  ) {
     return raw.map(
       (key, value) => MapEntry(
         key,
@@ -852,7 +1013,9 @@ class AppController extends ChangeNotifier {
             .map(
               (message) => message.copyWith(
                 chatId: message.chatId.isEmpty ? key : message.chatId,
-                activityId: message.activityId.isEmpty ? key : message.activityId,
+                activityId: message.activityId.isEmpty
+                    ? key
+                    : message.activityId,
               ),
             )
             .toList(growable: false),
@@ -877,5 +1040,15 @@ class AppController extends ChangeNotifier {
 
     final last4 = digits.substring(digits.length - 4);
     return '•••• $last4';
+  }
+
+  bool _hasActiveCreatedActivity(String userId) {
+    return state.activities.any((activity) {
+      final isInactive =
+          activity.status == ActivityStatus.finished ||
+          activity.status == ActivityStatus.removed ||
+          activity.status == ActivityStatus.rejectedHidden;
+      return activity.creatorId == userId && !isInactive;
+    });
   }
 }

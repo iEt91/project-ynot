@@ -101,20 +101,30 @@ abstract class ActivityRepository {
 }
 
 class AppRepository implements ActivityRepository {
-  AppRepository({SupabaseClient? client}) : _client = client ?? Supabase.instance.client;
+  AppRepository({SupabaseClient? client})
+    : _client = client ?? Supabase.instance.client;
 
   final SupabaseClient _client;
 
   @override
   Future<AppUser> getProfile(String clientUid) async {
-    AppLogger.log('PROFILE', 'rpc=app_get_profile table=profiles clientUid=$clientUid');
+    AppLogger.log(
+      'PROFILE',
+      'rpc=app_get_profile table=profiles clientUid=$clientUid',
+    );
     final data = await _rpcList('app_get_profile', {'p_client_uid': clientUid});
     if (data.isEmpty) {
-      AppLogger.log('PROFILE', 'rpc=app_get_profile empty_response clientUid=$clientUid');
+      AppLogger.log(
+        'PROFILE',
+        'rpc=app_get_profile empty_response clientUid=$clientUid',
+      );
       throw StateError('No profile returned.');
     }
 
-    AppLogger.log('PROFILE', 'rpc=app_get_profile response_count=${data.length}');
+    AppLogger.log(
+      'PROFILE',
+      'rpc=app_get_profile response_count=${data.length}',
+    );
     return _mapUser(data.first as Map<String, dynamic>);
   }
 
@@ -130,20 +140,17 @@ class AppRepository implements ActivityRepository {
     required List<String> vibes,
     required List<String> interests,
   }) async {
-    final data = await _rpcList(
-      'app_upsert_profile',
-      {
-        'p_client_uid': clientUid,
-        'p_phone_last4': phoneLast4,
-        'p_nickname': nickname,
-        'p_avatar_emoji': avatarEmoji,
-        'p_avatar_url': avatarUrl,
-        'p_bio': bio,
-        'p_languages': languages,
-        'p_vibes': vibes,
-        'p_interests': interests,
-      },
-    );
+    final data = await _rpcList('app_upsert_profile', {
+      'p_client_uid': clientUid,
+      'p_phone_last4': phoneLast4,
+      'p_nickname': nickname,
+      'p_avatar_emoji': avatarEmoji,
+      'p_avatar_url': avatarUrl,
+      'p_bio': bio,
+      'p_languages': languages,
+      'p_vibes': vibes,
+      'p_interests': interests,
+    });
 
     if (data.isEmpty) {
       throw StateError('No profile returned.');
@@ -154,10 +161,20 @@ class AppRepository implements ActivityRepository {
 
   @override
   Future<List<Activity>> listActivities(String clientUid) async {
-    AppLogger.log('EVENTS', 'rpc=app_list_activities table=activities clientUid=$clientUid');
-    final data = await _rpcList('app_list_activities', {'p_client_uid': clientUid});
-    AppLogger.log('EVENTS', 'rpc=app_list_activities response_count=${data.length}');
-    return data.map((row) => _mapActivity(row as Map<String, dynamic>)).toList(growable: false);
+    AppLogger.log(
+      'EVENTS',
+      'rpc=app_list_activities table=activities clientUid=$clientUid',
+    );
+    final data = await _rpcList('app_list_activities', {
+      'p_client_uid': clientUid,
+    });
+    AppLogger.log(
+      'EVENTS',
+      'rpc=app_list_activities response_count=${data.length}',
+    );
+    return data
+        .map((row) => _mapActivity(row as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   @override
@@ -165,13 +182,10 @@ class AppRepository implements ActivityRepository {
     required String clientUid,
     required String activityId,
   }) async {
-    final data = await _rpcList(
-      'app_get_activity',
-      {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-      },
-    );
+    final data = await _rpcList('app_get_activity', {
+      'p_client_uid': clientUid,
+      'p_activity_id': activityId,
+    });
 
     if (data.isEmpty) {
       return null;
@@ -197,25 +211,22 @@ class AppRepository implements ActivityRepository {
     required double displayLng,
     required String visibility,
   }) async {
-    final data = await _rpcList(
-      'app_create_activity',
-      {
-        'p_client_uid': clientUid,
-        'p_title': title,
-        'p_description': description,
-        'p_category': category,
-        'p_vibe': vibe,
-        'p_zone': zone,
-        'p_start_time': startTime.toIso8601String(),
-        'p_duration_minutes': duration.inMinutes,
-        'p_max_people': maxPeople,
-        'p_real_lat': realLat,
-        'p_real_lng': realLng,
-        'p_display_lat': displayLat,
-        'p_display_lng': displayLng,
-        'p_visibility': visibility,
-      },
-    );
+    final data = await _rpcList('app_create_activity', {
+      'p_client_uid': clientUid,
+      'p_title': title,
+      'p_description': description,
+      'p_category': category,
+      'p_vibe': vibe,
+      'p_zone': zone,
+      'p_start_time': startTime.toIso8601String(),
+      'p_duration_minutes': duration.inMinutes,
+      'p_max_people': maxPeople,
+      'p_real_lat': realLat,
+      'p_real_lng': realLng,
+      'p_display_lat': displayLat,
+      'p_display_lng': displayLng,
+      'p_visibility': visibility,
+    });
 
     if (data.isEmpty) {
       throw StateError('No activity returned.');
@@ -229,13 +240,10 @@ class AppRepository implements ActivityRepository {
     required String clientUid,
     required String activityId,
   }) async {
-    final data = await _rpcList(
-      'app_join_activity',
-      {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-      },
-    );
+    final data = await _rpcList('app_join_activity', {
+      'p_client_uid': clientUid,
+      'p_activity_id': activityId,
+    });
 
     if (data.isEmpty) {
       return null;
@@ -249,13 +257,10 @@ class AppRepository implements ActivityRepository {
     required String clientUid,
     required String activityId,
   }) async {
-    final data = await _rpcList(
-      'app_confirm_attendance',
-      {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-      },
-    );
+    final data = await _rpcList('app_confirm_attendance', {
+      'p_client_uid': clientUid,
+      'p_activity_id': activityId,
+    });
 
     if (data.isEmpty) {
       return null;
@@ -269,13 +274,10 @@ class AppRepository implements ActivityRepository {
     required String clientUid,
     required String activityId,
   }) async {
-    final data = await _rpcList(
-      'app_cancel_attendance',
-      {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-      },
-    );
+    final data = await _rpcList('app_cancel_attendance', {
+      'p_client_uid': clientUid,
+      'p_activity_id': activityId,
+    });
 
     if (data.isEmpty) {
       return null;
@@ -289,13 +291,10 @@ class AppRepository implements ActivityRepository {
     required String clientUid,
     required String activityId,
   }) async {
-    final data = await _rpcList(
-      'app_leave_activity',
-      {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-      },
-    );
+    final data = await _rpcList('app_leave_activity', {
+      'p_client_uid': clientUid,
+      'p_activity_id': activityId,
+    });
 
     if (data.isEmpty) {
       return null;
@@ -309,15 +308,14 @@ class AppRepository implements ActivityRepository {
     required String clientUid,
     required String activityId,
   }) async {
-    final data = await _rpcList(
-      'app_get_messages',
-      {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-      },
-    );
+    final data = await _rpcList('app_get_messages', {
+      'p_client_uid': clientUid,
+      'p_activity_id': activityId,
+    });
 
-    return data.map((row) => _mapMessage(row as Map<String, dynamic>, clientUid)).toList(growable: false);
+    return data
+        .map((row) => _mapMessage(row as Map<String, dynamic>, clientUid))
+        .toList(growable: false);
   }
 
   @override
@@ -327,10 +325,7 @@ class AppRepository implements ActivityRepository {
   }) async {
     final response = await _client.rpc(
       'app_ensure_chat',
-      params: {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-      },
+      params: {'p_client_uid': clientUid, 'p_activity_id': activityId},
     );
 
     if (response == null) {
@@ -369,10 +364,11 @@ class AppRepository implements ActivityRepository {
         .stream(primaryKey: ['id'])
         .eq('chat_id', chatId)
         .map((rows) {
-          final messages = rows
-              .map((row) => _mapMessage(row, clientUid))
-              .toList(growable: false)
-            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          final messages =
+              rows
+                  .map((row) => _mapMessage(row, clientUid))
+                  .toList(growable: false)
+                ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
           return messages;
         });
   }
@@ -383,14 +379,11 @@ class AppRepository implements ActivityRepository {
     required String activityId,
     required String content,
   }) async {
-    final data = await _rpcList(
-      'app_send_message',
-      {
-        'p_client_uid': clientUid,
-        'p_activity_id': activityId,
-        'p_content': content,
-      },
-    );
+    final data = await _rpcList('app_send_message', {
+      'p_client_uid': clientUid,
+      'p_activity_id': activityId,
+      'p_content': content,
+    });
 
     if (data.isEmpty) {
       return null;
@@ -429,7 +422,10 @@ class AppRepository implements ActivityRepository {
     return response.toString();
   }
 
-  Future<List<dynamic>> _rpcList(String function, Map<String, dynamic> params) async {
+  Future<List<dynamic>> _rpcList(
+    String function,
+    Map<String, dynamic> params,
+  ) async {
     try {
       final response = await _client.rpc(function, params: params);
       if (response == null) {
@@ -471,6 +467,7 @@ class AppRepository implements ActivityRepository {
   Activity _mapActivity(Map<String, dynamic> row) {
     return Activity(
       id: row['id'] as String,
+      creatorId: row['creator_id'] as String? ?? '',
       creatorLabel: (row['creator_label'] as String?)?.trim().isNotEmpty == true
           ? row['creator_label'] as String
           : 'Anónimo',
@@ -486,7 +483,8 @@ class AppRepository implements ActivityRepository {
       realLng: _asDouble(row['real_lng']),
       displayLat: _asDouble(row['display_lat']),
       displayLng: _asDouble(row['display_lng']),
-      locationPrivacyRadiusM: (row['location_privacy_radius_m'] as num?)?.toInt() ?? 100,
+      locationPrivacyRadiusM:
+          (row['location_privacy_radius_m'] as num?)?.toInt() ?? 100,
       exactLocationUnlockAt: _parseDateTime(row['exact_location_unlock_at']),
       startTime: _parseDateTime(row['start_time']),
       endTime: _parseDateTime(row['end_time']),
@@ -496,14 +494,18 @@ class AppRepository implements ActivityRepository {
       myStatus: _mapParticipantStatus(row['my_status'] as String?),
       isMine: row['is_mine'] as bool? ?? false,
       lastMessagePreview: row['last_message_preview'] as String? ?? '',
-      lastMessageAt: row['last_message_at'] == null ? null : _parseDateTime(row['last_message_at']),
+      lastMessageAt: row['last_message_at'] == null
+          ? null
+          : _parseDateTime(row['last_message_at']),
     );
   }
 
   AppUser _mapUser(Map<String, dynamic> row) {
-    final languages = (row['languages'] as List<dynamic>? ?? const []).cast<String>();
+    final languages = (row['languages'] as List<dynamic>? ?? const [])
+        .cast<String>();
     final vibes = (row['vibes'] as List<dynamic>? ?? const []).cast<String>();
-    final interests = (row['interests'] as List<dynamic>? ?? const []).cast<String>();
+    final interests = (row['interests'] as List<dynamic>? ?? const [])
+        .cast<String>();
 
     return AppUser(
       id: row['auth_uid'] as String? ?? row['id'] as String,
@@ -517,8 +519,10 @@ class AppRepository implements ActivityRepository {
       interests: interests,
       status: _mapUserStatus(row['status'] as String?),
       profileComplete: (row['profile_complete'] as bool?) ?? false,
-      createdActivityCount: (row['created_activity_count'] as num?)?.toInt() ?? 0,
-      attendingActivityCount: (row['attending_activity_count'] as num?)?.toInt() ?? 0,
+      createdActivityCount:
+          (row['created_activity_count'] as num?)?.toInt() ?? 0,
+      attendingActivityCount:
+          (row['attending_activity_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -554,7 +558,8 @@ class AppRepository implements ActivityRepository {
 
   ParticipantStatus? _mapParticipantStatus(String? value) {
     return switch (value) {
-      'JOINED_PENDING_CONFIRMATION' => ParticipantStatus.joinedPendingConfirmation,
+      'JOINED_PENDING_CONFIRMATION' =>
+        ParticipantStatus.joinedPendingConfirmation,
       'CONFIRMED' => ParticipantStatus.confirmed,
       'LEFT' => ParticipantStatus.left,
       'CANCELLED' => ParticipantStatus.cancelled,

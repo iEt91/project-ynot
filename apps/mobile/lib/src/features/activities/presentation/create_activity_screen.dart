@@ -19,7 +19,8 @@ class CreateActivityScreen extends ConsumerStatefulWidget {
   final LatLng? initialLocation;
 
   @override
-  ConsumerState<CreateActivityScreen> createState() => _CreateActivityScreenState();
+  ConsumerState<CreateActivityScreen> createState() =>
+      _CreateActivityScreenState();
 }
 
 class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
@@ -60,6 +61,8 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.read(appControllerProvider);
+    final canCreateActivity = controller.canCreateActivity();
+    final creationBlockMessage = controller.creationRestrictionMessage();
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -180,13 +183,23 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         children: [
                           _VibeChip(
                             label: 'Pública',
-                            selected: _visibility == ActivityVisibility.publicActivity,
-                            onTap: () => setState(() => _visibility = ActivityVisibility.publicActivity),
+                            selected:
+                                _visibility ==
+                                ActivityVisibility.publicActivity,
+                            onTap: () => setState(
+                              () => _visibility =
+                                  ActivityVisibility.publicActivity,
+                            ),
                           ),
                           _VibeChip(
                             label: 'Privada',
-                            selected: _visibility == ActivityVisibility.privateActivity,
-                            onTap: () => setState(() => _visibility = ActivityVisibility.privateActivity),
+                            selected:
+                                _visibility ==
+                                ActivityVisibility.privateActivity,
+                            onTap: () => setState(
+                              () => _visibility =
+                                  ActivityVisibility.privateActivity,
+                            ),
                           ),
                         ],
                       ),
@@ -231,7 +244,9 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         children: [
                           _RoundStepButton(
                             icon: Icons.remove_rounded,
-                            onTap: _maxPeople > 2 ? () => setState(() => _maxPeople -= 1) : null,
+                            onTap: _maxPeople > 2
+                                ? () => setState(() => _maxPeople -= 1)
+                                : null,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -239,29 +254,43 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                               builder: (context, constraints) {
                                 final compact = constraints.maxWidth < 220;
                                 return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 14,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.55),
+                                    color: Theme.of(context).colorScheme.surface
+                                        .withValues(alpha: 0.55),
                                     borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                    ),
                                   ),
                                   child: compact
                                       ? Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               'Hasta $_maxPeople personas',
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: theme.textTheme.titleSmall?.copyWith(
-                                                fontWeight: FontWeight.w800,
-                                              ),
+                                              style: theme.textTheme.titleSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
                                             ),
                                             const SizedBox(height: 8),
                                             Align(
                                               alignment: Alignment.centerRight,
                                               child: StatusPill(
-                                                label: _maxPeople <= 4 ? 'Íntimo' : _maxPeople <= 6 ? 'Suave' : 'Social',
+                                                label: _maxPeople <= 4
+                                                    ? 'Íntimo'
+                                                    : _maxPeople <= 6
+                                                    ? 'Suave'
+                                                    : 'Social',
                                                 icon: '👥',
                                                 color: Colors.pinkAccent,
                                               ),
@@ -275,9 +304,13 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                                 'Hasta $_maxPeople personas',
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: theme.textTheme.titleSmall?.copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
+                                                style: theme
+                                                    .textTheme
+                                                    .titleSmall
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
                                               ),
                                             ),
                                             const SizedBox(width: 8),
@@ -285,9 +318,14 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                               fit: FlexFit.loose,
                                               child: FittedBox(
                                                 fit: BoxFit.scaleDown,
-                                                alignment: Alignment.centerRight,
+                                                alignment:
+                                                    Alignment.centerRight,
                                                 child: StatusPill(
-                                                  label: _maxPeople <= 4 ? 'Íntimo' : _maxPeople <= 6 ? 'Suave' : 'Social',
+                                                  label: _maxPeople <= 4
+                                                      ? 'Íntimo'
+                                                      : _maxPeople <= 6
+                                                      ? 'Suave'
+                                                      : 'Social',
                                                   icon: '👥',
                                                   color: Colors.pinkAccent,
                                                 ),
@@ -302,7 +340,9 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                           const SizedBox(width: 10),
                           _RoundStepButton(
                             icon: Icons.add_rounded,
-                            onTap: _maxPeople < 10 ? () => setState(() => _maxPeople += 1) : null,
+                            onTap: _maxPeople < 10
+                                ? () => setState(() => _maxPeople += 1)
+                                : null,
                           ),
                         ],
                       ),
@@ -315,7 +355,9 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                             context: context,
                             initialDate: _startTime,
                             firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 30)),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 30),
+                            ),
                           );
                           if (date == null || !context.mounted) return;
 
@@ -335,7 +377,12 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                             );
                           });
                         },
-                        child: Text(formatTimeRange(_startTime, _startTime.add(_duration))),
+                        child: Text(
+                          formatTimeRange(
+                            _startTime,
+                            _startTime.add(_duration),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Wrap(
@@ -345,27 +392,37 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                           _DurationChip(
                             label: '30 min',
                             selected: _duration.inMinutes == 30,
-                            onTap: () => setState(() => _duration = const Duration(minutes: 30)),
+                            onTap: () => setState(
+                              () => _duration = const Duration(minutes: 30),
+                            ),
                           ),
                           _DurationChip(
                             label: '1 h',
                             selected: _duration.inMinutes == 60,
-                            onTap: () => setState(() => _duration = const Duration(hours: 1)),
+                            onTap: () => setState(
+                              () => _duration = const Duration(hours: 1),
+                            ),
                           ),
                           _DurationChip(
                             label: '1.5 h',
                             selected: _duration.inMinutes == 90,
-                            onTap: () => setState(() => _duration = const Duration(minutes: 90)),
+                            onTap: () => setState(
+                              () => _duration = const Duration(minutes: 90),
+                            ),
                           ),
                           _DurationChip(
                             label: '2 h',
                             selected: _duration.inMinutes == 120,
-                            onTap: () => setState(() => _duration = const Duration(hours: 2)),
+                            onTap: () => setState(
+                              () => _duration = const Duration(hours: 2),
+                            ),
                           ),
                           _DurationChip(
                             label: '3 h',
                             selected: _duration.inMinutes == 180,
-                            onTap: () => setState(() => _duration = const Duration(hours: 3)),
+                            onTap: () => setState(
+                              () => _duration = const Duration(hours: 3),
+                            ),
                           ),
                         ],
                       ),
@@ -382,9 +439,12 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         value: _useMapSelection,
-                        onChanged: (value) => setState(() => _useMapSelection = value),
+                        onChanged: (value) =>
+                            setState(() => _useMapSelection = value),
                         title: const Text('Elegir en mapa'),
-                        subtitle: const Text('Mantén presionado para mover el punto.'),
+                        subtitle: const Text(
+                          'Mantén presionado para mover el punto.',
+                        ),
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
@@ -424,30 +484,46 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
+                      if (creationBlockMessage != null) ...[
+                        const SizedBox(height: 12),
+                        KawaiiCard(
+                          padding: const EdgeInsets.all(14),
+                          child: Text(
+                            creationBlockMessage,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       FilledButton(
-                        onPressed: () async {
-                          if (!_formKey.currentState!.validate()) {
-                            return;
-                          }
+                        onPressed: canCreateActivity
+                            ? () async {
+                                if (!_formKey.currentState!.validate()) {
+                                  return;
+                                }
 
-                          await controller.createActivity(
-                            title: _titleController.text.trim(),
-                            description: _descriptionController.text.trim(),
-                            category: _category,
-                            vibe: _vibe,
-                            zone: _zone,
-                            startTime: _startTime,
-                            duration: _duration,
-                            maxPeople: _maxPeople,
-                            realLat: _lat,
-                            realLng: _lng,
-                            visibility: _visibility,
-                          );
+                                await controller.createActivity(
+                                  title: _titleController.text.trim(),
+                                  description: _descriptionController.text
+                                      .trim(),
+                                  category: _category,
+                                  vibe: _vibe,
+                                  zone: _zone,
+                                  startTime: _startTime,
+                                  duration: _duration,
+                                  maxPeople: _maxPeople,
+                                  realLat: _lat,
+                                  realLng: _lng,
+                                  visibility: _visibility,
+                                );
 
-                          if (!context.mounted) return;
-                          context.pop();
-                        },
+                                if (!context.mounted) return;
+                                context.pop();
+                              }
+                            : null,
                         child: const Text('Publicar actividad'),
                       ),
                     ],
@@ -487,9 +563,9 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
     );
   }
 }
@@ -561,10 +637,7 @@ class _DurationChip extends StatelessWidget {
 }
 
 class _RoundStepButton extends StatelessWidget {
-  const _RoundStepButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _RoundStepButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback? onTap;
@@ -578,14 +651,18 @@ class _RoundStepButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: onTap == null ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.08),
+          color: onTap == null
+              ? Colors.white.withValues(alpha: 0.04)
+              : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: Icon(
           icon,
           size: 18,
-          color: onTap == null ? Colors.white.withValues(alpha: 0.3) : Colors.white,
+          color: onTap == null
+              ? Colors.white.withValues(alpha: 0.3)
+              : Colors.white,
         ),
       ),
     );
@@ -593,10 +670,7 @@ class _RoundStepButton extends StatelessWidget {
 }
 
 class _StaticZonePicker extends StatelessWidget {
-  const _StaticZonePicker({
-    required this.zone,
-    required this.onSelected,
-  });
+  const _StaticZonePicker({required this.zone, required this.onSelected});
 
   final String zone;
   final void Function(String zone, double lat, double lng) onSelected;
@@ -631,16 +705,22 @@ class _StaticZonePicker extends StatelessWidget {
                 left: left,
                 top: top,
                 child: GestureDetector(
-                  onTap: () => onSelected(entry.key, entry.value.lat, entry.value.lng),
+                  onTap: () =>
+                      onSelected(entry.key, entry.value.lat, entry.value.lng),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: selectedZone
                           ? Colors.pinkAccent.withValues(alpha: 0.26)
                           : Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: selectedZone ? Colors.pinkAccent : Colors.white.withValues(alpha: 0.12),
+                        color: selectedZone
+                            ? Colors.pinkAccent
+                            : Colors.white.withValues(alpha: 0.12),
                       ),
                     ),
                     child: Row(
@@ -694,10 +774,7 @@ class _MapPicker extends StatelessWidget {
 }
 
 class _RoundIcon extends StatelessWidget {
-  const _RoundIcon({
-    required this.icon,
-    required this.onTap,
-  });
+  const _RoundIcon({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
