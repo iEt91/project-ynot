@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/activity.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/geo.dart';
+import 'kawaii_avatar.dart';
 import 'kawaii_card.dart';
 import 'status_pill.dart';
 
@@ -24,7 +25,8 @@ class ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final distance = distanceKm(
       lat1: 37.5666,
       lng1: 126.9780,
@@ -33,16 +35,16 @@ class ActivityCard extends StatelessWidget {
     );
 
     final statusLabel = switch (activity.status) {
-      ActivityStatus.pendingModeration => 'Pending',
-      ActivityStatus.active => 'Open',
-      ActivityStatus.full => 'Full',
-      ActivityStatus.ongoing => 'Ongoing',
-      ActivityStatus.finished => 'Finished',
-      ActivityStatus.cancelled => 'Cancelled',
-      ActivityStatus.flagged => 'Flagged',
-      ActivityStatus.removed => 'Removed',
-      ActivityStatus.rejectedHidden => 'Hidden',
-      ActivityStatus.draft => 'Draft',
+      ActivityStatus.pendingModeration => 'En revisión',
+      ActivityStatus.active => 'Abierta',
+      ActivityStatus.full => 'Llena',
+      ActivityStatus.ongoing => 'En curso',
+      ActivityStatus.finished => 'Terminada',
+      ActivityStatus.cancelled => 'Cancelada',
+      ActivityStatus.flagged => 'Atenta',
+      ActivityStatus.removed => 'Oculta',
+      ActivityStatus.rejectedHidden => 'Oculta',
+      ActivityStatus.draft => 'Borrador',
     };
 
     return GestureDetector(
@@ -50,9 +52,9 @@ class ActivityCard extends StatelessWidget {
       child: KawaiiCard(
         gradient: LinearGradient(
           colors: [
-            colors.surface,
-            colors.surface.withValues(alpha: 0.86),
-            colors.primary.withValues(alpha: 0.08),
+            colors.surface.withValues(alpha: 0.96),
+            colors.surface.withValues(alpha: 0.84),
+            colors.primary.withValues(alpha: 0.07),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -63,36 +65,52 @@ class ActivityCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                KawaiiAvatar(
+                  emoji: activity.emoji,
+                  size: 58,
+                  accentColor: _categoryColor(colors, activity.category),
+                ),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        activity.title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              activity.title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
                             ),
+                          ),
+                          StatusPill(
+                            label: statusLabel,
+                            color: _categoryColor(colors, activity.category),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         '${activity.zone} · ${formatTimeRange(activity.startTime, activity.endTime)}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: colors.onSurfaceVariant,
-                            ),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                StatusPill(label: statusLabel),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 StatusPill(
-                  label: '${activity.confirmedCount}/${activity.maxPeople}',
+                  label: '${activity.confirmedCount}/${activity.maxPeople} asistentes',
                   color: colors.secondary,
                 ),
                 StatusPill(
@@ -101,7 +119,7 @@ class ActivityCard extends StatelessWidget {
                 ),
                 StatusPill(
                   label: '${distance.toStringAsFixed(1)} km',
-                  color: Colors.pinkAccent,
+                  color: colors.primary,
                 ),
               ],
             ),
@@ -109,9 +127,9 @@ class ActivityCard extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 activity.description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ],
             if (showActions) ...[
@@ -121,7 +139,7 @@ class ActivityCard extends StatelessWidget {
                   Expanded(
                     child: FilledButton(
                       onPressed: activity.isJoinable ? onJoin : null,
-                      child: const Text('Join'),
+                      child: Text(activity.isJoinable ? 'Me apunto' : 'Llena'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -132,8 +150,8 @@ class ActivityCard extends StatelessWidget {
                           : onTap,
                       child: Text(
                         activity.myStatus == ParticipantStatus.joinedPendingConfirmation
-                            ? 'Confirm'
-                            : 'Details',
+                            ? 'Confirmar'
+                            : 'Ver detalle',
                       ),
                     ),
                   ),
@@ -144,5 +162,17 @@ class ActivityCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _categoryColor(ColorScheme colors, String category) {
+    return switch (category) {
+      'Coffee' => colors.primary,
+      'Study' => colors.secondary,
+      'Walks' => colors.tertiary,
+      'Food' => const Color(0xFFFFB86B),
+      'Art' => const Color(0xFFB18CFF),
+      'Music' => const Color(0xFF63D2FF),
+      _ => colors.primary,
+    };
   }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "146081354281",
+    "project_id": "project-ynot",
+    "storage_bucket": "project-ynot.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:146081354281:android:9c6a4f12bc026253278238",
+        "android_client_info": {
+          "package_name": "com.ynot.ynot_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0ghOT1cn9LipdGUNORflSdYZsSM1NgV8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

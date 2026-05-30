@@ -1,0 +1,7 @@
+C:\Users\Ismael\Desktop\Proyectos\project-ynot\apps\mobile
+
+
+flutter devices
+flutter run -d M2103K19G
+flutter run
+

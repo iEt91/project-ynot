@@ -13,6 +13,8 @@ enum ActivityStatus {
 
 enum ActivityType { userActivity, publicEvent }
 
+enum ActivityVisibility { publicActivity, privateActivity }
+
 enum ParticipantStatus {
   joinedPendingConfirmation,
   confirmed,
@@ -31,6 +33,7 @@ class Activity {
     required this.id,
     required this.creatorLabel,
     required this.activityType,
+    this.visibility = ActivityVisibility.publicActivity,
     required this.title,
     required this.description,
     required this.category,
@@ -50,11 +53,15 @@ class Activity {
     required this.pendingCount,
     required this.myStatus,
     required this.isMine,
+    this.lastMessagePreview = '',
+    this.lastMessageAt,
+    this.unreadMessageCount = 0,
   });
 
   final String id;
   final String creatorLabel;
   final ActivityType activityType;
+  final ActivityVisibility visibility;
   final String title;
   final String description;
   final String category;
@@ -74,13 +81,26 @@ class Activity {
   final int pendingCount;
   final ParticipantStatus? myStatus;
   final bool isMine;
+  final String lastMessagePreview;
+  final DateTime? lastMessageAt;
+  final int unreadMessageCount;
 
   bool get isJoinable => status == ActivityStatus.active && confirmedCount < maxPeople;
   bool get isFull => confirmedCount >= maxPeople;
+  String get emoji => switch (category) {
+        'Coffee' => '☕',
+        'Study' => '📚',
+        'Walks' => '🌙',
+        'Food' => '🍜',
+        'Art' => '🎨',
+        'Music' => '🎵',
+        _ => '✨',
+      };
 
   Activity copyWith({
     String? creatorLabel,
     ActivityType? activityType,
+    ActivityVisibility? visibility,
     String? title,
     String? description,
     String? category,
@@ -100,11 +120,15 @@ class Activity {
     int? pendingCount,
     ParticipantStatus? myStatus,
     bool? isMine,
+    String? lastMessagePreview,
+    DateTime? lastMessageAt,
+    int? unreadMessageCount,
   }) {
     return Activity(
       id: id,
       creatorLabel: creatorLabel ?? this.creatorLabel,
       activityType: activityType ?? this.activityType,
+      visibility: visibility ?? this.visibility,
       title: title ?? this.title,
       description: description ?? this.description,
       category: category ?? this.category,
@@ -124,6 +148,9 @@ class Activity {
       pendingCount: pendingCount ?? this.pendingCount,
       myStatus: myStatus ?? this.myStatus,
       isMine: isMine ?? this.isMine,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      unreadMessageCount: unreadMessageCount ?? this.unreadMessageCount,
     );
   }
 }

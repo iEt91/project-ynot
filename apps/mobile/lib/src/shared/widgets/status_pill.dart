@@ -5,10 +5,12 @@ class StatusPill extends StatelessWidget {
     super.key,
     required this.label,
     this.color,
+    this.icon,
   });
 
   final String label;
   final Color? color;
+  final String? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -16,16 +18,25 @@ class StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: pillColor.withValues(alpha: 0.2),
+        color: pillColor.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: pillColor.withValues(alpha: 0.3)),
+        border: Border.all(color: pillColor.withValues(alpha: 0.24)),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: pillColor,
-              fontWeight: FontWeight.w800,
-            ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Text(icon!, style: const TextStyle(fontSize: 11)),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: pillColor,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
       ),
     );
   }

@@ -1,10 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class KawaiiCard extends StatelessWidget {
   const KawaiiCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(20),
+    this.padding = const EdgeInsets.all(16),
     this.margin = EdgeInsets.zero,
     this.gradient,
   });
@@ -23,23 +25,29 @@ class KawaiiCard extends StatelessWidget {
         gradient: gradient ??
             LinearGradient(
               colors: [
-                colors.surface.withValues(alpha: 0.96),
-                colors.surface.withValues(alpha: 0.78),
+                colors.surface.withValues(alpha: 0.9),
+                colors.surface.withValues(alpha: 0.72),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 24,
-            offset: const Offset(0, 16),
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: Padding(padding: padding, child: child),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Padding(padding: padding, child: child),
+        ),
+      ),
     );
   }
 }

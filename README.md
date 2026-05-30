@@ -5,7 +5,7 @@ Micro-companionship app for nearby activities, built with:
 - Flutter for the mobile app
 - Supabase for backend data
 - Firebase Phone Auth for sign-in
-- Naver Maps for the Korean map experience
+- Google Maps Flutter SDK for the Korean map experience
 - Next.js for the private admin panel
 
 ## Current status
@@ -15,7 +15,7 @@ Sprint 1 base is in place:
 - mobile app structure
 - dark kawaii theme
 - auth flow screens
-- map screen with Naver Maps integration and desktop fallback
+- map screen with Google Maps integration and desktop fallback
 - activities list and creation flow
 - activity detail screen
 - admin panel dashboard scaffold
@@ -35,7 +35,7 @@ Create `apps/mobile/.env` from `apps/mobile/.env.example` and fill:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `NAVER_MAP_CLIENT_ID`
+- `GOOGLE_MAPS_API_KEY`
 
 If those values are missing, the app runs in demo mode.
 
@@ -69,5 +69,25 @@ npm run dev
 ## Notes
 
 - The mobile app currently uses demo auth if env keys are missing.
-- The map uses the real Naver plugin on Android/iOS when the client id is present.
+- The map uses the real Google Maps SDK on Android/iOS when `GOOGLE_MAPS_API_KEY` is present.
 - Desktop/web show a stylized fallback map so the project stays previewable locally.
+
+### Debug logs
+
+To see only YNOT app logs in the console while running Flutter, use:
+
+```powershell
+flutter run | findstr "[YNOT]"
+```
+
+Windows CMD:
+
+```cmd
+flutter run -d M2103K19G | findstr "[YNOT]"
+```
+
+PowerShell:
+
+```powershell
+flutter run -d M2103K19G | Select-String "\[YNOT\]"
+```

@@ -39,9 +39,10 @@ dependencies:
   supabase_flutter: ^2.12.4
   firebase_core: ^4.9.0
   firebase_auth: ^6.5.1
-  flutter_naver_map: ^1.4.4
+  google_maps_flutter: ^2.17.0
   google_fonts: ^8.1.0
   flutter_dotenv: ^6.0.1
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
