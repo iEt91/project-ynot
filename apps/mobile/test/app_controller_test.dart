@@ -292,6 +292,39 @@ void main() {
     });
 
     test(
+      'feedback targets expand to all confirmed attendees except the current user',
+      () async {
+        final controller = await _buildLoggedInController();
+        final userId = controller.state.user!.id;
+        final activity = controller.state.activities.first.copyWith(
+          confirmedCount: 8,
+          feedbackTargets: [
+            ActivityFeedbackTarget(
+              userId: userId,
+              label: 'Tú',
+              emoji: '🌙',
+            ),
+            const ActivityFeedbackTarget(
+              userId: 'participant_001',
+              label: 'Mina',
+              emoji: '🌸',
+            ),
+            const ActivityFeedbackTarget(
+              userId: 'participant_002',
+              label: 'Jisoo',
+              emoji: '✨',
+            ),
+          ],
+        );
+
+        final targets = controller.feedbackTargetsForActivity(activity, userId);
+
+        expect(targets, hasLength(7));
+        expect(targets.any((target) => target.userId == userId), isFalse);
+      },
+    );
+
+    test(
       'deleting activity removes related state and allows a new activity',
       () async {
         final controller = await _buildLoggedInController();

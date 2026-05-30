@@ -600,6 +600,45 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  List<ActivityFeedbackTarget> feedbackTargetsForActivity(
+    Activity activity,
+    String currentUserId,
+  ) {
+    final baseTargets = activity.feedbackTargets.isEmpty
+        ? [
+            ActivityFeedbackTarget(
+              userId: activity.creatorId,
+              label: activity.creatorLabel,
+              emoji: activity.emoji,
+            ),
+          ]
+        : activity.feedbackTargets;
+
+    final targets = baseTargets
+        .where((target) => target.userId != currentUserId)
+        .toList(growable: true);
+    final currentUserIncluded = baseTargets.any(
+      (target) => target.userId == currentUserId,
+    );
+    final desiredCount = currentUserIncluded
+        ? max(0, activity.confirmedCount - 1)
+        : max(0, activity.confirmedCount);
+    final totalCount = max(targets.length, desiredCount);
+
+    for (var index = targets.length; index < totalCount; index++) {
+      final number = index + 1;
+      targets.add(
+        ActivityFeedbackTarget(
+          userId: '${activity.id}_feedback_$number',
+          label: 'Asistente $number',
+          emoji: _feedbackPlaceholderEmoji(index),
+        ),
+      );
+    }
+
+    return targets;
+  }
+
   Future<bool> submitPrivateFeedback({
     required String activityId,
     required String reviewerUserId,
@@ -1047,6 +1086,11 @@ class AppController extends ChangeNotifier {
         isMine: false,
       ),
     ];
+  }
+
+  String _feedbackPlaceholderEmoji(int index) {
+    const emojis = ['🌸', '✨', '🙂', '🫧', '🌙', '💫'];
+    return emojis[index % emojis.length];
   }
 
   List<Activity> _updateActivity(

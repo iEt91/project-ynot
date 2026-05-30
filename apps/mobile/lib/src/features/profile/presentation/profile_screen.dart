@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/state/app_controller.dart';
-import '../../../core/models/private_feedback.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -20,21 +19,6 @@ class ProfileScreen extends ConsumerWidget {
     final user = state.user;
     final createdCount = user?.createdActivityCount ?? 0;
     final attendingCount = user?.attendingActivityCount ?? 0;
-    final feedbackReceivedCount = user == null
-        ? 0
-        : state.feedbackEntries
-              .where((entry) => entry.reviewedUserId == user.id)
-              .length;
-    final noParticipatedCount = user == null
-        ? 0
-        : state.feedbackEntries
-              .where(
-                (entry) =>
-                    entry.reviewedUserId == user.id &&
-                    entry.selectedFeedback ==
-                        PrivateFeedbackOption.noParticipated,
-              )
-              .length;
 
     return KawaiiScene(
       child: ListView(
@@ -79,31 +63,24 @@ class ProfileScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user.nickname.isEmpty
-                              ? 'Tu nombre mágico'
-                              : user.nickname,
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                          user.nickname.isEmpty ? 'Tu nombre mágico' : user.nickname,
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           user.phoneMasked,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                         ),
                         if (user.bio.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Text(
                             user.bio,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -113,10 +90,7 @@ class ProfileScreen extends ConsumerWidget {
                           runSpacing: 8,
                           children: [
                             StatusPill(label: 'Calm', color: YnotTheme.primary),
-                            StatusPill(
-                              label: 'Social',
-                              color: YnotTheme.purple,
-                            ),
+                            StatusPill(label: 'Social', color: YnotTheme.purple),
                             StatusPill(
                               label: '$createdCount creadas',
                               color: YnotTheme.mint,
@@ -134,32 +108,11 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 14),
-            _ChipSection(
-              title: 'Idiomas',
-              chips: user.languages.isEmpty
-                  ? const ['Korean', 'English']
-                  : user.languages,
-            ),
-            const SizedBox(height: 14),
-            _ChipSection(
-              title: 'Vibes',
-              chips: user.vibes.isEmpty
-                  ? const ['Calm', 'Creative']
-                  : user.vibes,
-            ),
-            const SizedBox(height: 14),
-            _ChipSection(
-              title: 'Intereses',
-              chips: user.interests.isEmpty
-                  ? const ['Coffee', 'Study', 'Walks']
-                  : user.interests,
-            ),
-            const SizedBox(height: 14),
             KawaiiCard(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withValues(alpha: 0.06),
+                  Colors.white.withValues(alpha: 0.05),
                   YnotTheme.surface.withValues(alpha: 0.88),
                 ],
               ),
@@ -169,40 +122,35 @@ class ProfileScreen extends ConsumerWidget {
                   Text(
                     'Privado e interno',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Sólo tú ves estos números.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      _PrivateStatTile(
-                        label: 'Actividades creadas',
-                        value: '$createdCount',
-                        emoji: '🗂️',
+                      Expanded(
+                        child: _PrivateStatTile(
+                          label: 'Actividades creadas',
+                          value: '$createdCount',
+                          emoji: '🗂️',
+                          accent: YnotTheme.mint,
+                        ),
                       ),
-                      _PrivateStatTile(
-                        label: 'Actividades asistidas',
-                        value: '$attendingCount',
-                        emoji: '👣',
-                      ),
-                      _PrivateStatTile(
-                        label: 'Feedback recibido',
-                        value: '$feedbackReceivedCount',
-                        emoji: '🔒',
-                      ),
-                      _PrivateStatTile(
-                        label: 'No participó',
-                        value: '$noParticipatedCount',
-                        emoji: '🫠',
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _PrivateStatTile(
+                          label: 'Actividades asistidas',
+                          value: '$attendingCount',
+                          emoji: '👣',
+                          accent: YnotTheme.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -250,70 +198,60 @@ class _PrivateStatTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.emoji,
+    required this.accent,
   });
 
   final String label;
   final String value;
   final String emoji;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 155,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: accent.withValues(alpha: 0.22)),
             ),
+            alignment: Alignment.center,
+            child: Text(emoji, style: const TextStyle(fontSize: 18)),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChipSection extends StatelessWidget {
-  const _ChipSection({required this.title, required this.chips});
-
-  final String title;
-  final List<String> chips;
-
-  @override
-  Widget build(BuildContext context) {
-    return KawaiiCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: chips.map((label) => StatusPill(label: label)).toList(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -346,9 +284,9 @@ class _ProfileAction extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ),
             const Text(
