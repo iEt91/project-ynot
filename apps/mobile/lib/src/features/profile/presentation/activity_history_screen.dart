@@ -26,6 +26,15 @@ class ActivityHistoryScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
             children: [
+              Row(
+                children: [
+                  _RoundBubble(
+                    icon: Icons.arrow_back_rounded,
+                    onTap: () => context.pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
               const SectionHeader(
                 title: 'Historial',
                 subtitle: 'Actividades terminadas y archivadas.',
@@ -54,6 +63,34 @@ class ActivityHistoryScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RoundBubble extends StatelessWidget {
+  const _RoundBubble({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Icon(icon, size: 18, color: Colors.white),
       ),
     );
   }

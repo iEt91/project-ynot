@@ -71,8 +71,11 @@ void main() {
         expect(created.title, 'Cafe Talk');
         expect(created.visibility, ActivityVisibility.privateActivity);
         expect(created.status, ActivityStatus.open);
+        expect(created.myStatus, ParticipantStatus.confirmed);
+        expect(created.confirmedCount, 1);
         expect(created.isMine, isTrue);
         expect(created.creatorId, controller.state.user!.id);
+        expect(controller.state.user!.attendingActivityCount, 1);
         expect(controller.filteredActivities().first.title, 'Cafe Talk');
       },
     );

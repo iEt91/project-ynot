@@ -1,3 +1,8 @@
+## v1.0.6.1
+- Creator auto-joins and auto-confirms when creating an activity
+- History screen adds a matching back button
+- Creator counters stay consistent with activity deletion
+
 ## v1.0.6.0
 - Activity lifecycle with open, ongoing, finished and archived states
 - Creator actions to start and finish activities

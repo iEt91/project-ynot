@@ -78,13 +78,6 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
         state.chatMessages[widget.activityId] ?? const <ChatMessage>[];
     final status = activity.myStatus;
     final isConfirmed = status == ParticipantStatus.confirmed;
-    final canConfirm = status == ParticipantStatus.joinedPendingConfirmation;
-    final canCancel =
-        status == ParticipantStatus.joinedPendingConfirmation ||
-        status == ParticipantStatus.confirmed;
-    final canLeave =
-        status == ParticipantStatus.joinedPendingConfirmation ||
-        status == ParticipantStatus.confirmed;
     final isCreator = state.user?.id == activity.creatorId;
     final canStart = isCreator &&
         (activity.status == ActivityStatus.open ||
@@ -92,6 +85,14 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     final canFinish = isCreator && activity.status == ActivityStatus.ongoing;
     final isFinishedOrArchived = activity.isFinishedOrArchived;
     final canSendMessage = !isFinishedOrArchived;
+    final canConfirm = !isCreator &&
+        status == ParticipantStatus.joinedPendingConfirmation;
+    final canCancel = !isCreator &&
+        (status == ParticipantStatus.joinedPendingConfirmation ||
+            status == ParticipantStatus.confirmed);
+    final canLeave = !isCreator &&
+        (status == ParticipantStatus.joinedPendingConfirmation ||
+            status == ParticipantStatus.confirmed);
     final userStatus = state.user?.status;
     final isRestricted =
         userStatus == UserStatus.limited || userStatus == UserStatus.banned;
@@ -297,7 +298,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                             value: _ChatAction.finishActivity,
                             child: Text('Finalizar actividad'),
                           ),
-                        if (!isFinishedOrArchived)
+                        if (!isFinishedOrArchived && !isCreator)
                           PopupMenuItem(
                             value: _ChatAction.confirmAttendance,
                             enabled: canConfirm,
@@ -307,7 +308,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                   : 'Confirmar asistencia',
                             ),
                           ),
-                        if (!isFinishedOrArchived)
+                        if (!isFinishedOrArchived && !isCreator)
                           PopupMenuItem(
                             value: _ChatAction.cancelAttendance,
                             enabled: canCancel,
@@ -321,7 +322,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           value: _ChatAction.report,
                           child: Text('Reportar'),
                         ),
-                        if (!isFinishedOrArchived)
+                        if (!isFinishedOrArchived && !isCreator)
                           PopupMenuItem(
                             value: _ChatAction.leaveEvent,
                             enabled: canLeave,
@@ -391,7 +392,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                   ),
                 ),
               ),
-              if (!isFinishedOrArchived) ...[
+              if (!isFinishedOrArchived && !isCreator) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
                   child: SizedBox(

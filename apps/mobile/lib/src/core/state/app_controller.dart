@@ -361,6 +361,9 @@ class AppController extends ChangeNotifier {
       realLat: realLat,
       realLng: realLng,
       visibility: visibility,
+    ).copyWith(
+      confirmedCount: 1,
+      myStatus: ParticipantStatus.confirmed,
     );
 
     state = state.copyWith(
@@ -370,8 +373,13 @@ class AppController extends ChangeNotifier {
       ],
       user: state.user?.copyWith(
         createdActivityCount: (state.user?.createdActivityCount ?? 0) + 1,
+        attendingActivityCount:
+            (state.user?.attendingActivityCount ?? 0) + 1,
       ),
     );
+
+    _joinedActivityIds.add(created.id);
+    _confirmedAttendanceActivityIds.add(created.id);
 
     AppLogger.log('ACTIVITY', 'created id=${created.id}');
     unawaited(_persistSnapshot());
@@ -822,6 +830,9 @@ class AppController extends ChangeNotifier {
     final createdCount = currentUser.createdActivityCount > 0
         ? currentUser.createdActivityCount - 1
         : 0;
+    final attendingCount = currentUser.attendingActivityCount > 0
+        ? currentUser.attendingActivityCount - 1
+        : 0;
 
     state = state.copyWith(
       activities: nextActivities,
@@ -830,7 +841,10 @@ class AppController extends ChangeNotifier {
       feedbackEntries: state.feedbackEntries
           .where((entry) => entry.activityId != activityId)
           .toList(growable: false),
-      user: currentUser.copyWith(createdActivityCount: createdCount),
+      user: currentUser.copyWith(
+        createdActivityCount: createdCount,
+        attendingActivityCount: attendingCount,
+      ),
     );
     unawaited(_persistSnapshot());
     return true;

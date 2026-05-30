@@ -44,13 +44,13 @@ class ActivityDetailScreen extends ConsumerWidget {
         activity.status != ActivityStatus.removed &&
         activity.status != ActivityStatus.rejectedHidden &&
         status != ParticipantStatus.removedByAdmin;
-    final canManageAttendance = !activity.isFinishedOrArchived;
+    final isCreator = state.user?.id == activity.creatorId;
+    final canManageAttendance = !activity.isFinishedOrArchived && !isCreator;
     final canConfirm =
         canManageAttendance &&
         status == ParticipantStatus.joinedPendingConfirmation;
     final canCancel = canManageAttendance && isActiveMember;
     final canLeave = canManageAttendance && isActiveMember;
-    final isCreator = state.user?.id == activity.creatorId;
     final canStart = isCreator &&
         (activity.status == ActivityStatus.open ||
             activity.status == ActivityStatus.active);
@@ -139,16 +139,22 @@ class ActivityDetailScreen extends ConsumerWidget {
                           value: _DetailAction.finishActivity,
                           child: Text('Finalizar actividad'),
                         ),
-                      PopupMenuItem(
-                        value: _DetailAction.confirmAttendance,
-                        enabled: canConfirm,
-                        child: Text(canConfirm ? 'Confirmar asistencia' : 'Asistencia confirmada'),
-                      ),
-                      PopupMenuItem(
-                        value: _DetailAction.cancelAttendance,
-                        enabled: canCancel,
-                        child: const Text('Cancelar asistencia'),
-                      ),
+                      if (!isCreator && !activity.isFinishedOrArchived)
+                        PopupMenuItem(
+                          value: _DetailAction.confirmAttendance,
+                          enabled: canConfirm,
+                          child: Text(
+                            canConfirm
+                                ? 'Confirmar asistencia'
+                                : 'Asistencia confirmada',
+                          ),
+                        ),
+                      if (!isCreator && !activity.isFinishedOrArchived)
+                        PopupMenuItem(
+                          value: _DetailAction.cancelAttendance,
+                          enabled: canCancel,
+                          child: const Text('Cancelar asistencia'),
+                        ),
                       const PopupMenuItem(
                         value: _DetailAction.feedback,
                         child: Text('Feedback'),
@@ -157,11 +163,12 @@ class ActivityDetailScreen extends ConsumerWidget {
                         value: _DetailAction.report,
                         child: Text('Reportar'),
                       ),
-                      PopupMenuItem(
-                        value: _DetailAction.leaveEvent,
-                        enabled: canLeave,
-                        child: const Text('Salir del evento'),
-                      ),
+                      if (!isCreator && !activity.isFinishedOrArchived)
+                        PopupMenuItem(
+                          value: _DetailAction.leaveEvent,
+                          enabled: canLeave,
+                          child: const Text('Salir del evento'),
+                        ),
                     ],
                   ),
                 ],
