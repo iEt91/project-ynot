@@ -17,8 +17,6 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
     final user = state.user;
-    final createdCount = user?.createdActivityCount ?? 0;
-    final attendingCount = user?.attendingActivityCount ?? 0;
 
     return KawaiiScene(
       child: ListView(
@@ -81,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
                             user.bio,
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
+                            ),
                           ),
                         ],
                         const SizedBox(height: 10),
@@ -91,68 +89,10 @@ class ProfileScreen extends ConsumerWidget {
                           children: [
                             StatusPill(label: 'Calm', color: YnotTheme.primary),
                             StatusPill(label: 'Social', color: YnotTheme.purple),
-                            StatusPill(
-                              label: '$createdCount creadas',
-                              color: YnotTheme.mint,
-                            ),
-                            StatusPill(
-                              label: '$attendingCount asistiendo',
-                              color: Colors.white24,
-                            ),
                           ],
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            KawaiiCard(
-              padding: const EdgeInsets.all(16),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withValues(alpha: 0.05),
-                  YnotTheme.surface.withValues(alpha: 0.88),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Privado e interno',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Sólo tú ves estos números.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PrivateStatTile(
-                          label: 'Actividades creadas',
-                          value: '$createdCount',
-                          emoji: '🗂️',
-                          accent: YnotTheme.mint,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _PrivateStatTile(
-                          label: 'Actividades asistidas',
-                          value: '$attendingCount',
-                          emoji: '👣',
-                          accent: YnotTheme.primary,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -185,72 +125,6 @@ class ProfileScreen extends ConsumerWidget {
             child: FilledButton.tonal(
               onPressed: () => ref.read(appControllerProvider).signOut(),
               child: const Text('Cerrar sesión'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PrivateStatTile extends StatelessWidget {
-  const _PrivateStatTile({
-    required this.label,
-    required this.value,
-    required this.emoji,
-    required this.accent,
-  });
-
-  final String label;
-  final String value;
-  final String emoji;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: accent.withValues(alpha: 0.22)),
-            ),
-            alignment: Alignment.center,
-            child: Text(emoji, style: const TextStyle(fontSize: 18)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ],
             ),
           ),
         ],

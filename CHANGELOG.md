@@ -1,3 +1,8 @@
+## v1.0.5.3
+- Map create activity FAB is larger and closer to the dock
+- Profile visuals cleaned up to flow directly into actions
+- Activity history data remains intact
+
 ## v1.0.5.2
 - Mint create activity button on the map
 - Cleaner compact private feedback cards

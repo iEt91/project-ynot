@@ -32,8 +32,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final activities = ref.read(appControllerProvider).filteredActivities();
     final bottomPadding =
         MediaQuery.of(context).padding.bottom + KawaiiBottomNav.dockHeight + 12.0;
-    final fabBottom = bottomPadding +
-        (_selectedActivity == null ? 24.0 : 146.0);
+    final fabBottom = bottomPadding + (_selectedActivity == null ? 12.0 : 126.0);
 
     return KawaiiScene(
       child: SafeArea(
@@ -120,15 +119,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   Positioned(
                     right: 16,
                     bottom: fabBottom,
-                    child: FloatingActionButton.small(
-                      heroTag: 'create_activity_fab',
-                      onPressed: () => context.push(
-                        '/create-activity',
-                        extra: _cameraTarget,
+                    child: Transform.scale(
+                      scale: 1.18,
+                      child: FloatingActionButton.small(
+                        heroTag: 'create_activity_fab',
+                        onPressed: () => context.push(
+                          '/create-activity',
+                          extra: _cameraTarget,
+                        ),
+                        backgroundColor: YnotTheme.mint,
+                        foregroundColor: YnotTheme.bg,
+                        child: const Icon(Icons.add_rounded),
                       ),
-                      backgroundColor: YnotTheme.mint,
-                      foregroundColor: YnotTheme.bg,
-                      child: const Icon(Icons.add_rounded),
                     ),
                   ),
                 ],
