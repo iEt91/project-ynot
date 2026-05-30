@@ -23,6 +23,7 @@ class AppState {
     required this.demoMode,
     required this.activities,
     required this.chatMessages,
+    required this.savedActivityIds,
     required this.reports,
     required this.feedbackEntries,
     this.user,
@@ -38,6 +39,7 @@ class AppState {
       demoMode: AppEnvironment.isDemoMode,
       activities: const [],
       chatMessages: const {},
+      savedActivityIds: const {},
       reports: const [],
       feedbackEntries: const [],
     );
@@ -48,6 +50,7 @@ class AppState {
   final AppUser? user;
   final List<Activity> activities;
   final Map<String, List<ChatMessage>> chatMessages;
+  final Set<String> savedActivityIds;
   final List<ModerationReport> reports;
   final List<PrivateFeedbackEntry> feedbackEntries;
   final String phoneInput;
@@ -61,6 +64,7 @@ class AppState {
     AppUser? user,
     List<Activity>? activities,
     Map<String, List<ChatMessage>>? chatMessages,
+    Set<String>? savedActivityIds,
     List<ModerationReport>? reports,
     List<PrivateFeedbackEntry>? feedbackEntries,
     String? phoneInput,
@@ -74,6 +78,7 @@ class AppState {
       user: user ?? this.user,
       activities: activities ?? this.activities,
       chatMessages: chatMessages ?? this.chatMessages,
+      savedActivityIds: savedActivityIds ?? this.savedActivityIds,
       reports: reports ?? this.reports,
       feedbackEntries: feedbackEntries ?? this.feedbackEntries,
       phoneInput: phoneInput ?? this.phoneInput,
@@ -124,6 +129,7 @@ class AppController extends ChangeNotifier {
   final Map<String, String> _chatIdsByActivityId = {};
   final Set<String> _joinedActivityIds = {};
   final Set<String> _confirmedAttendanceActivityIds = {};
+  final Set<String> _savedActivityIds = {};
 
   AppState get state => _state;
 
@@ -139,14 +145,15 @@ class AppController extends ChangeNotifier {
 
     if (localSession == null || localSession.isEmpty) {
       AppLogger.log('AUTH', 'session_restored=false');
-      state = state.copyWith(
-        stage: AppStage.phoneAuth,
-        user: null,
-        activities: const [],
-        chatMessages: const {},
-        reports: const [],
-        feedbackEntries: const [],
-        errorMessage: null,
+    state = state.copyWith(
+      stage: AppStage.phoneAuth,
+      user: null,
+      activities: const [],
+      chatMessages: const {},
+      savedActivityIds: const {},
+      reports: const [],
+      feedbackEntries: const [],
+      errorMessage: null,
       );
       return;
     }
@@ -184,6 +191,7 @@ class AppController extends ChangeNotifier {
       user: user,
       activities: _seedActivities(),
       chatMessages: const {},
+      savedActivityIds: const {},
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -283,6 +291,7 @@ class AppController extends ChangeNotifier {
     _chatIdsByActivityId.clear();
     _joinedActivityIds.clear();
     _confirmedAttendanceActivityIds.clear();
+    _savedActivityIds.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
@@ -655,7 +664,9 @@ class AppController extends ChangeNotifier {
     final changed = _activityChanged(activityId, updated);
     if (!changed) return false;
 
-    state = state.copyWith(activities: updated);
+    state = state.copyWith(
+      activities: updated,
+    );
     unawaited(_persistSnapshot());
     return true;
   }
@@ -675,7 +686,11 @@ class AppController extends ChangeNotifier {
     final changed = _activityChanged(activityId, updated);
     if (!changed) return false;
 
-    state = state.copyWith(activities: updated);
+    _savedActivityIds.remove(activityId);
+    state = state.copyWith(
+      activities: updated,
+      savedActivityIds: Set<String>.from(_savedActivityIds),
+    );
     unawaited(_persistSnapshot());
     return true;
   }
@@ -695,7 +710,11 @@ class AppController extends ChangeNotifier {
     final changed = _activityChanged(activityId, updated);
     if (!changed) return false;
 
-    state = state.copyWith(activities: updated);
+    _savedActivityIds.remove(activityId);
+    state = state.copyWith(
+      activities: updated,
+      savedActivityIds: Set<String>.from(_savedActivityIds),
+    );
     unawaited(_persistSnapshot());
     return true;
   }
@@ -844,6 +863,7 @@ class AppController extends ChangeNotifier {
     _chatIdsByActivityId.remove(activityId);
     _joinedActivityIds.remove(activityId);
     _confirmedAttendanceActivityIds.remove(activityId);
+    _savedActivityIds.remove(activityId);
 
     final nextChatMessages = Map<String, List<ChatMessage>>.from(
       state.chatMessages,
@@ -861,6 +881,7 @@ class AppController extends ChangeNotifier {
     state = state.copyWith(
       activities: nextActivities,
       chatMessages: nextChatMessages,
+      savedActivityIds: Set<String>.from(_savedActivityIds),
       reports: nextReports,
       feedbackEntries: state.feedbackEntries
           .where((entry) => entry.activityId != activityId)
@@ -872,6 +893,37 @@ class AppController extends ChangeNotifier {
     );
     unawaited(_persistSnapshot());
     return true;
+  }
+
+  bool isActivitySaved(String activityId) {
+    return _savedActivityIds.contains(activityId);
+  }
+
+  Future<bool> toggleSavedActivity(String activityId) async {
+    final activity = _findActivity(activityId);
+    if (activity == null || !activity.isActiveLifecycle) {
+      return false;
+    }
+
+    if (_savedActivityIds.contains(activityId)) {
+      _savedActivityIds.remove(activityId);
+    } else {
+      _savedActivityIds.add(activityId);
+    }
+
+    state = state.copyWith(savedActivityIds: Set<String>.from(_savedActivityIds));
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
+  List<Activity> savedActivities() {
+    final savedIds = _savedActivityIds;
+    return state.activities
+        .where(
+          (activity) => savedIds.contains(activity.id) && activity.isActiveLifecycle,
+        )
+        .toList(growable: false)
+      ..sort((left, right) => left.startTime.compareTo(right.startTime));
   }
 
   List<Activity> filteredActivities() {
@@ -1369,6 +1421,7 @@ class AppController extends ChangeNotifier {
         messagesByActivityId: Map<String, List<ChatMessage>>.from(
           _messagesByActivityId,
         ),
+        savedActivityIds: _savedActivityIds.toList(growable: false),
         reports: state.reports,
         feedbackEntries: state.feedbackEntries,
       ),
@@ -1410,6 +1463,19 @@ class AppController extends ChangeNotifier {
         })
         .toList(growable: false);
 
+    final hydratedSavedActivityIds = snapshot.savedActivityIds
+        .where(
+          (activityId) => hydratedActivities.any(
+            (activity) =>
+                activity.id == activityId && activity.isActiveLifecycle,
+          ),
+        )
+        .toSet();
+
+    _savedActivityIds
+      ..clear()
+      ..addAll(hydratedSavedActivityIds);
+
     state = state.copyWith(
       stage: AppStage.ready,
       user: user,
@@ -1417,6 +1483,7 @@ class AppController extends ChangeNotifier {
           ? _seedActivities()
           : hydratedActivities,
       chatMessages: restoredMessages,
+      savedActivityIds: hydratedSavedActivityIds,
       reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
       errorMessage: null,

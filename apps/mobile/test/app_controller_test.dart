@@ -81,6 +81,40 @@ void main() {
       },
     );
 
+    test('saved activities persist and can be unsaved', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activityId = firstController.state.activities.first.id;
+      expect(firstController.isActivitySaved(activityId), isFalse);
+
+      expect(await firstController.toggleSavedActivity(activityId), isTrue);
+      expect(firstController.isActivitySaved(activityId), isTrue);
+      expect(firstController.savedActivities(), hasLength(1));
+      expect(firstController.savedActivities().first.id, activityId);
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.isActivitySaved(activityId), isTrue);
+      expect(secondController.savedActivities(), hasLength(1));
+      expect(secondController.savedActivities().first.id, activityId);
+
+      expect(await secondController.toggleSavedActivity(activityId), isTrue);
+      expect(secondController.isActivitySaved(activityId), isFalse);
+      expect(secondController.savedActivities(), isEmpty);
+    });
+
     test('joined or confirmed activities can open chat from the list', () {
       final activity = Activity(
         id: 'activity_001',
@@ -203,11 +237,14 @@ void main() {
       );
 
       final createdId = controller.state.activities.first.id;
+      expect(await controller.toggleSavedActivity(createdId), isTrue);
+      expect(controller.isActivitySaved(createdId), isTrue);
       expect(await controller.deleteActivity(createdId), isTrue);
       expect(
         controller.state.activities.any((activity) => activity.id == createdId),
         isFalse,
       );
+      expect(controller.isActivitySaved(createdId), isFalse);
       expect(controller.canCreateActivity(), isTrue);
     });
 
@@ -347,6 +384,7 @@ void main() {
               .any((item) => item.id == activityId),
           isTrue,
         );
+        expect(controller.isActivitySaved(activityId), isFalse);
       },
     );
 
@@ -655,6 +693,7 @@ void main() {
       );
       await firstController.joinActivity(createdActivity.id);
       await firstController.confirmAttendance(createdActivity.id);
+      await firstController.toggleSavedActivity(createdActivity.id);
       await firstController.sendChatMessage(createdActivity.id, 'Persisted');
       final reviewedId = createdActivity.feedbackTargets.first.userId;
       await firstController.submitPrivateFeedback(
@@ -674,6 +713,8 @@ void main() {
         (item) => item.id == createdActivity.id,
       );
       expect(restored.myStatus, ParticipantStatus.confirmed);
+      expect(secondController.isActivitySaved(createdActivity.id), isTrue);
+      expect(secondController.savedActivities(), hasLength(1));
       await secondController.loadChatMessages(createdActivity.id);
       expect(
         secondController.state.chatMessages[createdActivity.id],

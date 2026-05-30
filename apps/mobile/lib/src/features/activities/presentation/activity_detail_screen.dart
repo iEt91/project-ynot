@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +23,7 @@ class ActivityDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
+    final controller = ref.read(appControllerProvider);
     final activity = state.activities.where((item) => item.id == activityId).firstOrNull;
 
     if (activity == null) {
@@ -39,6 +42,7 @@ class ActivityDetailScreen extends ConsumerWidget {
     final isActiveMember = status == ParticipantStatus.joinedPendingConfirmation || status == ParticipantStatus.confirmed;
     final userStatus = state.user?.status;
     final isRestricted = userStatus == UserStatus.limited || userStatus == UserStatus.banned;
+    final isSaved = state.savedActivityIds.contains(activity.id) && activity.isActiveLifecycle;
     final canJoin = !isRestricted &&
         activity.isJoinable &&
         activity.status != ActivityStatus.cancelled &&
@@ -91,10 +95,27 @@ class ActivityDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  PopupMenuButton<_DetailAction>(
-                    icon: const Icon(Icons.more_horiz_rounded, color: Colors.white),
-                    color: YnotTheme.surface2,
-                    onSelected: (value) async {
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _IconBubble(
+                        icon: isSaved
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        active: isSaved,
+                        onTap: activity.isActiveLifecycle
+                            ? () {
+                                unawaited(
+                                  controller.toggleSavedActivity(activity.id).then((_) {}),
+                                );
+                              }
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                      PopupMenuButton<_DetailAction>(
+                        icon: const Icon(Icons.more_horiz_rounded, color: Colors.white),
+                        color: YnotTheme.surface2,
+                        onSelected: (value) async {
                       switch (value) {
                         case _DetailAction.startActivity:
                           if (canStart) {
@@ -144,9 +165,9 @@ class ActivityDetailScreen extends ConsumerWidget {
                             await ref.read(appControllerProvider).leaveActivity(activity.id);
                           }
                           break;
-                      }
-                    },
-                      itemBuilder: (context) => [
+                        }
+                        },
+                        itemBuilder: (context) => [
                       if (canStart)
                         const PopupMenuItem(
                           value: _DetailAction.startActivity,
@@ -192,6 +213,8 @@ class ActivityDetailScreen extends ConsumerWidget {
                           enabled: canLeave,
                           child: const Text('Salir del evento'),
                         ),
+                        ],
+                      ),
                     ],
                   ),
                 ],
@@ -316,6 +339,44 @@ enum _DetailAction {
   reportActivity,
   reportUser,
   leaveEvent,
+}
+
+class _IconBubble extends StatelessWidget {
+  const _IconBubble({
+    required this.icon,
+    required this.active,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = active
+        ? Colors.pinkAccent.withValues(alpha: 0.22)
+        : Colors.white.withValues(alpha: 0.08);
+    final border = active
+        ? Colors.pinkAccent.withValues(alpha: 0.40)
+        : Colors.white.withValues(alpha: 0.08);
+    final iconColor = active ? Colors.pinkAccent : Colors.white;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: background,
+          shape: BoxShape.circle,
+          border: Border.all(color: border),
+        ),
+        child: Icon(icon, size: 18, color: iconColor),
+      ),
+    );
+  }
 }
 
 class _RoundBubble extends StatelessWidget {

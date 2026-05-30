@@ -1,3 +1,8 @@
+## v1.0.8.0
+- Saved activities and favorites in local mock mode
+- Save toggle from activity detail and map preview
+- Guardadas screen with local persistence
+
 ## v1.0.7.1
 - Profile subpages reuse a consistent back button style
 - Mis actividades now returns cleanly to Perfil

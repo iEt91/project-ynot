@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,10 +31,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appStateProvider);
+    final controller = ref.read(appControllerProvider);
     final activities = ref.read(appControllerProvider).filteredActivities();
     final bottomPadding =
         MediaQuery.of(context).padding.bottom + KawaiiBottomNav.dockHeight + 12.0;
     final fabBottom = bottomPadding + 12.0;
+    final selectedActivity = _selectedActivity;
+    final isSelectedSaved =
+        selectedActivity != null && state.savedActivityIds.contains(selectedActivity.id);
 
     return KawaiiScene(
       child: SafeArea(
@@ -112,8 +118,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       right: 12,
                       bottom: bottomPadding,
                       child: _SelectedActivityCard(
-                        activity: _selectedActivity!,
-                        onTap: () => context.push('/activity/${_selectedActivity!.id}'),
+                        activity: selectedActivity!,
+                        isSaved: isSelectedSaved,
+                        onToggleSave: () async {
+                          await controller.toggleSavedActivity(selectedActivity.id);
+                        },
+                        onTap: () => context.push('/activity/${selectedActivity.id}'),
                       ),
                     ),
                   if (_selectedActivity == null)
@@ -199,10 +209,14 @@ class _FilterRow extends StatelessWidget {
 class _SelectedActivityCard extends StatelessWidget {
   const _SelectedActivityCard({
     required this.activity,
+    required this.isSaved,
+    required this.onToggleSave,
     required this.onTap,
   });
 
   final Activity activity;
+  final bool isSaved;
+  final Future<void> Function() onToggleSave;
   final VoidCallback onTap;
 
   @override
@@ -216,6 +230,7 @@ class _SelectedActivityCard extends StatelessWidget {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           KawaiiAvatar(
             emoji: activity.emoji,
@@ -245,17 +260,31 @@ class _SelectedActivityCard extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _MiniMeta(text: '${activity.confirmedCount}/${activity.maxPeople} asistentes'),
+                    _MiniMeta(
+                      text: '${activity.confirmedCount}/${activity.maxPeople} asistentes',
+                    ),
                     _MiniMeta(text: activity.vibe),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          FilledButton(
-            onPressed: onTap,
-            child: const Text('Ver detalle'),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+                      _SaveBubbleButton(
+                saved: isSaved,
+                onTap: () {
+                  unawaited(onToggleSave());
+                },
+              ),
+              const SizedBox(height: 10),
+              FilledButton(
+                onPressed: onTap,
+                child: const Text('Ver detalle'),
+              ),
+            ],
           ),
         ],
       ),
@@ -301,6 +330,46 @@ class _MiniMeta extends StatelessWidget {
               color: Colors.white,
               fontWeight: FontWeight.w800,
             ),
+      ),
+    );
+  }
+}
+
+class _SaveBubbleButton extends StatelessWidget {
+  const _SaveBubbleButton({
+    required this.saved,
+    required this.onTap,
+  });
+
+  final bool saved;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = saved
+        ? Colors.pinkAccent.withValues(alpha: 0.22)
+        : Colors.white.withValues(alpha: 0.08);
+    final border = saved
+        ? Colors.pinkAccent.withValues(alpha: 0.42)
+        : Colors.white.withValues(alpha: 0.10);
+    final iconColor = saved ? Colors.pinkAccent : Colors.white;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: border),
+        ),
+        child: Icon(
+          saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          size: 18,
+          color: iconColor,
+        ),
       ),
     );
   }
