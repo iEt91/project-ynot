@@ -1,3 +1,9 @@
+## v1.0.6.0
+- Activity lifecycle with open, ongoing, finished and archived states
+- Creator actions to start and finish activities
+- Finished activities move to history and chats become read-only
+- Profile now separates active activities from history
+
 ## v1.0.5.4
 - Final map FAB positioning above the dock
 - FAB hidden while the activity preview card is open

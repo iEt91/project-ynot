@@ -1,10 +1,12 @@
 enum ActivityStatus {
   draft,
   pendingModeration,
+  open,
   active,
   full,
   ongoing,
   finished,
+  archived,
   cancelled,
   flagged,
   removed,
@@ -124,7 +126,15 @@ class Activity {
   final int unreadMessageCount;
 
   bool get isJoinable =>
-      status == ActivityStatus.active && confirmedCount < maxPeople;
+      (status == ActivityStatus.open || status == ActivityStatus.active) &&
+      confirmedCount < maxPeople;
+  bool get isActiveLifecycle =>
+      status == ActivityStatus.open ||
+      status == ActivityStatus.active ||
+      status == ActivityStatus.full ||
+      status == ActivityStatus.ongoing;
+  bool get isFinishedOrArchived =>
+      status == ActivityStatus.finished || status == ActivityStatus.archived;
   bool get isFull => confirmedCount >= maxPeople;
   String get emoji => switch (category) {
     'Coffee' => '☕',
@@ -251,9 +261,7 @@ class Activity {
       category: json['category'] as String? ?? '',
       vibe: json['vibe'] as String? ?? '',
       zone: json['zone'] as String? ?? '',
-      status: ActivityStatus.values.byName(
-        json['status'] as String? ?? ActivityStatus.active.name,
-      ),
+      status: _parseStatus(json['status'] as String?),
       realLat: (json['realLat'] as num?)?.toDouble() ?? 0,
       realLng: (json['realLng'] as num?)?.toDouble() ?? 0,
       displayLat: (json['displayLat'] as num?)?.toDouble() ?? 0,
@@ -288,5 +296,23 @@ class Activity {
           : DateTime.tryParse(json['lastMessageAt'] as String),
       unreadMessageCount: json['unreadMessageCount'] as int? ?? 0,
     );
+  }
+
+  static ActivityStatus _parseStatus(String? rawStatus) {
+    return switch ((rawStatus ?? '').toUpperCase()) {
+      'OPEN' => ActivityStatus.open,
+      'ACTIVE' => ActivityStatus.open,
+      'FULL' => ActivityStatus.full,
+      'ONGOING' => ActivityStatus.ongoing,
+      'FINISHED' => ActivityStatus.finished,
+      'ARCHIVED' => ActivityStatus.archived,
+      'CANCELLED' => ActivityStatus.cancelled,
+      'FLAGGED' => ActivityStatus.flagged,
+      'REMOVED' => ActivityStatus.removed,
+      'REJECTED_HIDDEN' => ActivityStatus.rejectedHidden,
+      'DRAFT' => ActivityStatus.draft,
+      'PENDING_MODERATION' => ActivityStatus.pendingModeration,
+      _ => ActivityStatus.open,
+    };
   }
 }

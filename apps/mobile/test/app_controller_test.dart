@@ -70,7 +70,7 @@ void main() {
         final created = controller.state.activities.first;
         expect(created.title, 'Cafe Talk');
         expect(created.visibility, ActivityVisibility.privateActivity);
-        expect(created.status, ActivityStatus.active);
+        expect(created.status, ActivityStatus.open);
         expect(created.isMine, isTrue);
         expect(created.creatorId, controller.state.user!.id);
         expect(controller.filteredActivities().first.title, 'Cafe Talk');
@@ -224,6 +224,65 @@ void main() {
       },
     );
 
+    test(
+      'creator can start and finish an activity and it moves to history',
+      () async {
+        final controller = await _buildLoggedInController();
+
+        await controller.createActivity(
+          title: 'Lifecycle Cafe',
+          description: 'Para probar el ciclo de vida.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Hongdae',
+          startTime: DateTime(2026, 6, 1, 18, 0),
+          duration: const Duration(hours: 2),
+          maxPeople: 6,
+          realLat: 37.5563,
+          realLng: 126.9228,
+        );
+
+        final activityId = controller.state.activities.first.id;
+        expect(
+          controller.state.activities.first.status,
+          ActivityStatus.open,
+        );
+
+        expect(await controller.startActivity(activityId), isTrue);
+        expect(
+          controller.state.activities.first.status,
+          ActivityStatus.ongoing,
+        );
+
+        expect(await controller.finishActivity(activityId), isTrue);
+        expect(
+          controller.state.activities.first.status,
+          ActivityStatus.finished,
+        );
+        expect(
+          controller.filteredActivities().any((item) => item.id == activityId),
+          isFalse,
+        );
+        expect(
+          controller.historyActivitiesForUser(controller.state.user!.id)
+              .any((item) => item.id == activityId),
+          isTrue,
+        );
+        expect(controller.canCreateActivity(), isTrue);
+
+        expect(await controller.archiveActivity(activityId), isTrue);
+        expect(
+          controller.state.activities.first.status,
+          ActivityStatus.archived,
+        );
+        expect(
+          controller.historyActivitiesForUser(controller.state.user!.id)
+              .any((item) => item.id == activityId),
+          isTrue,
+        );
+      },
+    );
+
     test('chat messages are kept in memory while the app is open', () async {
       final controller = await _buildLoggedInController();
       final activityId = controller.state.activities.first.id;
@@ -254,6 +313,54 @@ void main() {
             .firstWhere((item) => item.id == activityId)
             .lastMessagePreview,
         'Mantengamos la vibra suave',
+      );
+    });
+
+    test('finished chat becomes read only and keeps prior messages', () async {
+      final controller = await _buildLoggedInController();
+
+      await controller.createActivity(
+        title: 'Read Only Chat',
+        description: 'Actividad para probar chat en solo lectura.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        startTime: DateTime(2026, 6, 1, 18, 0),
+        duration: const Duration(hours: 2),
+        maxPeople: 6,
+        realLat: 37.5563,
+        realLng: 126.9228,
+      );
+
+      final activityId = controller.state.activities.first.id;
+      await controller.joinActivity(activityId);
+      await controller.confirmAttendance(activityId);
+      await controller.sendChatMessage(activityId, 'Antes de terminar');
+
+      expect(
+        controller.state.chatMessages[activityId],
+        isNotNull,
+      );
+      expect(
+        controller.state.chatMessages[activityId],
+        hasLength(1),
+      );
+
+      expect(await controller.startActivity(activityId), isTrue);
+      expect(
+        controller.state.activities.first.status,
+        ActivityStatus.ongoing,
+      );
+      expect(await controller.finishActivity(activityId), isTrue);
+      await controller.sendChatMessage(activityId, 'No debería entrar');
+
+      expect(
+        controller.state.chatMessages[activityId],
+        hasLength(1),
+      );
+      expect(
+        controller.filteredActivities().any((item) => item.id == activityId),
+        isFalse,
       );
     });
 

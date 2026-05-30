@@ -86,6 +86,12 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
         status == ParticipantStatus.joinedPendingConfirmation ||
         status == ParticipantStatus.confirmed;
     final isCreator = state.user?.id == activity.creatorId;
+    final canStart = isCreator &&
+        (activity.status == ActivityStatus.open ||
+            activity.status == ActivityStatus.active);
+    final canFinish = isCreator && activity.status == ActivityStatus.ongoing;
+    final isFinishedOrArchived = activity.isFinishedOrArchived;
+    final canSendMessage = !isFinishedOrArchived;
     final userStatus = state.user?.status;
     final isRestricted =
         userStatus == UserStatus.limited || userStatus == UserStatus.banned;
@@ -182,6 +188,20 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                       color: YnotTheme.surface2,
                       onSelected: (value) async {
                         switch (value) {
+                          case _ChatAction.startActivity:
+                            if (canStart) {
+                              await ref
+                                  .read(appControllerProvider)
+                                  .startActivity(activity.id);
+                            }
+                            break;
+                          case _ChatAction.finishActivity:
+                            if (canFinish) {
+                              await ref
+                                  .read(appControllerProvider)
+                                  .finishActivity(activity.id);
+                            }
+                            break;
                           case _ChatAction.confirmAttendance:
                             if (canConfirm) {
                               await ref
@@ -267,20 +287,32 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                         }
                       },
                       itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: _ChatAction.confirmAttendance,
-                          enabled: canConfirm,
-                          child: Text(
-                            isConfirmed
-                                ? 'Asistencia confirmada'
-                                : 'Confirmar asistencia',
+                        if (canStart)
+                          const PopupMenuItem(
+                            value: _ChatAction.startActivity,
+                            child: Text('Iniciar actividad'),
                           ),
-                        ),
-                        PopupMenuItem(
-                          value: _ChatAction.cancelAttendance,
-                          enabled: canCancel,
-                          child: const Text('Cancelar asistencia'),
-                        ),
+                        if (canFinish)
+                          const PopupMenuItem(
+                            value: _ChatAction.finishActivity,
+                            child: Text('Finalizar actividad'),
+                          ),
+                        if (!isFinishedOrArchived)
+                          PopupMenuItem(
+                            value: _ChatAction.confirmAttendance,
+                            enabled: canConfirm,
+                            child: Text(
+                              isConfirmed
+                                  ? 'Asistencia confirmada'
+                                  : 'Confirmar asistencia',
+                            ),
+                          ),
+                        if (!isFinishedOrArchived)
+                          PopupMenuItem(
+                            value: _ChatAction.cancelAttendance,
+                            enabled: canCancel,
+                            child: const Text('Cancelar asistencia'),
+                          ),
                         const PopupMenuItem(
                           value: _ChatAction.feedback,
                           child: Text('Feedback'),
@@ -289,11 +321,12 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           value: _ChatAction.report,
                           child: Text('Reportar'),
                         ),
-                        PopupMenuItem(
-                          value: _ChatAction.leaveEvent,
-                          enabled: canLeave,
-                          child: const Text('Salir del evento'),
-                        ),
+                        if (!isFinishedOrArchived)
+                          PopupMenuItem(
+                            value: _ChatAction.leaveEvent,
+                            enabled: canLeave,
+                            child: const Text('Salir del evento'),
+                          ),
                         if (isCreator)
                           const PopupMenuItem(
                             value: _ChatAction.deleteActivity,
@@ -358,40 +391,44 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: canConfirm
-                        ? () async {
-                            await ref
-                                .read(appControllerProvider)
-                                .confirmAttendance(activity.id);
-                          }
-                        : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: isConfirmed
-                          ? YnotTheme.mint.withValues(alpha: 0.22)
-                          : YnotTheme.mint,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: YnotTheme.mint.withValues(
-                        alpha: 0.18,
+              if (!isFinishedOrArchived) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: canConfirm
+                          ? () async {
+                              await ref
+                                  .read(appControllerProvider)
+                                  .confirmAttendance(activity.id);
+                            }
+                          : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: isConfirmed
+                            ? YnotTheme.mint.withValues(alpha: 0.22)
+                            : YnotTheme.mint,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: YnotTheme.mint.withValues(
+                          alpha: 0.18,
+                        ),
+                        disabledForegroundColor: Colors.white.withValues(
+                          alpha: 0.82,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      disabledForegroundColor: Colors.white.withValues(
-                        alpha: 0.82,
+                      child: Text(
+                        isConfirmed
+                            ? 'Asistencia confirmada'
+                            : 'Confirmar asistencia',
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text(
-                      isConfirmed
-                          ? 'Asistencia confirmada'
-                          : 'Confirmar asistencia',
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
+              ] else ...[
+                const SizedBox(height: 10),
+              ],
               Expanded(
                 child: _loadingMessages && messages.isEmpty
                     ? const Center(child: CircularProgressIndicator())
@@ -448,49 +485,75 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-                child: KawaiiCard(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: const InputDecoration(
-                            hintText: 'Escribe un mensaje...',
-                            border: InputBorder.none,
-                            filled: false,
-                          ),
-                          onSubmitted: (_) async {
-                            final text = _messageController.text.trim();
-                            if (text.isEmpty) return;
-                            await ref
-                                .read(appControllerProvider)
-                                .sendChatMessage(activity.id, text);
-                            _messageController.clear();
-                          },
+                child: Column(
+                  children: [
+                    if (!canSendMessage) ...[
+                      KawaiiCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          'Chat en modo lectura.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ),
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 34,
-                          minHeight: 34,
-                        ),
-                        onPressed: () async {
-                          final text = _messageController.text.trim();
-                          if (text.isEmpty) return;
-                          await ref
-                              .read(appControllerProvider)
-                              .sendChatMessage(activity.id, text);
-                          _messageController.clear();
-                        },
-                        icon: const Icon(Icons.send_rounded),
-                      ),
+                      const SizedBox(height: 10),
                     ],
-                  ),
+                    KawaiiCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              enabled: canSendMessage,
+                              decoration: const InputDecoration(
+                                hintText: 'Escribe un mensaje...',
+                                border: InputBorder.none,
+                                filled: false,
+                              ),
+                              onSubmitted: canSendMessage
+                                  ? (_) async {
+                                      final text = _messageController.text.trim();
+                                      if (text.isEmpty) return;
+                                      await ref
+                                          .read(appControllerProvider)
+                                          .sendChatMessage(activity.id, text);
+                                      _messageController.clear();
+                                    }
+                                  : null,
+                            ),
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 34,
+                              minHeight: 34,
+                            ),
+                            onPressed: canSendMessage
+                                ? () async {
+                                    final text = _messageController.text.trim();
+                                    if (text.isEmpty) return;
+                                    await ref
+                                        .read(appControllerProvider)
+                                        .sendChatMessage(activity.id, text);
+                                    _messageController.clear();
+                                  }
+                                : null,
+                            icon: const Icon(Icons.send_rounded),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -684,6 +747,8 @@ class _OpaqueAttendeeAvatar extends StatelessWidget {
 }
 
 enum _ChatAction {
+  startActivity,
+  finishActivity,
   confirmAttendance,
   cancelAttendance,
   feedback,

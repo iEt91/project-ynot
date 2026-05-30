@@ -383,7 +383,7 @@ class AppController extends ChangeNotifier {
       final isRestricted =
           user?.status == UserStatus.limited ||
           user?.status == UserStatus.banned;
-      if (isRestricted || activity.isFull) {
+      if (isRestricted || !activity.isJoinable) {
         return activity;
       }
 
@@ -406,18 +406,21 @@ class AppController extends ChangeNotifier {
 
   Future<void> confirmAttendance(String activityId) async {
     final updated = _updateActivity(activityId, (activity) {
-      if (activity.myStatus != ParticipantStatus.joinedPendingConfirmation) {
+      if (activity.isFinishedOrArchived ||
+          activity.myStatus != ParticipantStatus.joinedPendingConfirmation) {
         return activity;
       }
 
+      final nextConfirmedCount = activity.confirmedCount + 1;
       _confirmedAttendanceActivityIds.add(activityId);
       return activity.copyWith(
         pendingCount: activity.pendingCount > 0 ? activity.pendingCount - 1 : 0,
-        confirmedCount: activity.confirmedCount + 1,
+        confirmedCount: nextConfirmedCount,
         myStatus: ParticipantStatus.confirmed,
-        status: (activity.confirmedCount + 1) >= activity.maxPeople
-            ? ActivityStatus.full
-            : ActivityStatus.active,
+        status: _nextLifecycleStatus(
+          activity,
+          confirmedCount: nextConfirmedCount,
+        ),
       );
     });
 
@@ -433,26 +436,38 @@ class AppController extends ChangeNotifier {
   Future<void> cancelAttendance(String activityId) async {
     var shouldDecreaseAttendance = false;
     final updated = _updateActivity(activityId, (activity) {
+      if (activity.isFinishedOrArchived) {
+        return activity;
+      }
+
       if (activity.myStatus == ParticipantStatus.joinedPendingConfirmation) {
         _confirmedAttendanceActivityIds.remove(activityId);
+        final nextPendingCount = activity.pendingCount > 0
+            ? activity.pendingCount - 1
+            : 0;
         return activity.copyWith(
-          pendingCount: activity.pendingCount > 0
-              ? activity.pendingCount - 1
-              : 0,
+          pendingCount: nextPendingCount,
           myStatus: ParticipantStatus.cancelled,
-          status: ActivityStatus.active,
+          status: _nextLifecycleStatus(
+            activity,
+            confirmedCount: activity.confirmedCount,
+          ),
         );
       }
 
       if (activity.myStatus == ParticipantStatus.confirmed) {
         _confirmedAttendanceActivityIds.remove(activityId);
         shouldDecreaseAttendance = true;
+        final nextConfirmedCount = activity.confirmedCount > 0
+            ? activity.confirmedCount - 1
+            : 0;
         return activity.copyWith(
-          confirmedCount: activity.confirmedCount > 0
-              ? activity.confirmedCount - 1
-              : 0,
+          confirmedCount: nextConfirmedCount,
           myStatus: ParticipantStatus.cancelled,
-          status: ActivityStatus.active,
+          status: _nextLifecycleStatus(
+            activity,
+            confirmedCount: nextConfirmedCount,
+          ),
         );
       }
 
@@ -475,26 +490,38 @@ class AppController extends ChangeNotifier {
 
   Future<void> leaveActivity(String activityId) async {
     final updated = _updateActivity(activityId, (activity) {
+      if (activity.isFinishedOrArchived) {
+        return activity;
+      }
+
       if (activity.myStatus == ParticipantStatus.joinedPendingConfirmation) {
         _joinedActivityIds.remove(activityId);
+        final nextPendingCount = activity.pendingCount > 0
+            ? activity.pendingCount - 1
+            : 0;
         return activity.copyWith(
-          pendingCount: activity.pendingCount > 0
-              ? activity.pendingCount - 1
-              : 0,
+          pendingCount: nextPendingCount,
           myStatus: ParticipantStatus.left,
-          status: ActivityStatus.active,
+          status: _nextLifecycleStatus(
+            activity,
+            confirmedCount: activity.confirmedCount,
+          ),
         );
       }
 
       if (activity.myStatus == ParticipantStatus.confirmed) {
         _joinedActivityIds.remove(activityId);
         _confirmedAttendanceActivityIds.remove(activityId);
+        final nextConfirmedCount = activity.confirmedCount > 0
+            ? activity.confirmedCount - 1
+            : 0;
         return activity.copyWith(
-          confirmedCount: activity.confirmedCount > 0
-              ? activity.confirmedCount - 1
-              : 0,
+          confirmedCount: nextConfirmedCount,
           myStatus: ParticipantStatus.left,
-          status: ActivityStatus.active,
+          status: _nextLifecycleStatus(
+            activity,
+            confirmedCount: nextConfirmedCount,
+          ),
         );
       }
 
@@ -536,6 +563,11 @@ class AppController extends ChangeNotifier {
 
     final user = state.user;
     if (user == null) return;
+
+    final activity = _findActivity(activityId);
+    if (activity == null || activity.isFinishedOrArchived) {
+      return;
+    }
 
     await _ensureClientUid();
     final chatId = _resolveChatId(activityId);
@@ -585,6 +617,68 @@ class AppController extends ChangeNotifier {
 
   Future<void> refreshActivity(String activityId) async {
     // In-memory mock keeps the current activity list as source of truth.
+  }
+
+  Future<bool> startActivity(String activityId) async {
+    final currentUser = state.user;
+    final updated = _updateActivity(activityId, (activity) {
+      if (currentUser == null ||
+          activity.creatorId != currentUser.id ||
+          !(activity.status == ActivityStatus.open ||
+              activity.status == ActivityStatus.active ||
+              activity.status == ActivityStatus.full)) {
+        return activity;
+      }
+
+      return activity.copyWith(status: ActivityStatus.ongoing);
+    });
+
+    final changed = _activityChanged(activityId, updated);
+    if (!changed) return false;
+
+    state = state.copyWith(activities: updated);
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
+  Future<bool> finishActivity(String activityId) async {
+    final currentUser = state.user;
+    final updated = _updateActivity(activityId, (activity) {
+      if (currentUser == null ||
+          activity.creatorId != currentUser.id ||
+          activity.status != ActivityStatus.ongoing) {
+        return activity;
+      }
+
+      return activity.copyWith(status: ActivityStatus.finished);
+    });
+
+    final changed = _activityChanged(activityId, updated);
+    if (!changed) return false;
+
+    state = state.copyWith(activities: updated);
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
+  Future<bool> archiveActivity(String activityId) async {
+    final currentUser = state.user;
+    final updated = _updateActivity(activityId, (activity) {
+      if (currentUser == null ||
+          activity.creatorId != currentUser.id ||
+          activity.status != ActivityStatus.finished) {
+        return activity;
+      }
+
+      return activity.copyWith(status: ActivityStatus.archived);
+    });
+
+    final changed = _activityChanged(activityId, updated);
+    if (!changed) return false;
+
+    state = state.copyWith(activities: updated);
+    unawaited(_persistSnapshot());
+    return true;
   }
 
   bool hasSubmittedFeedback({
@@ -743,11 +837,15 @@ class AppController extends ChangeNotifier {
   }
 
   List<Activity> filteredActivities() {
+    final visibleActivities = state.activities
+        .where((activity) => activity.isActiveLifecycle)
+        .toList(growable: false);
+
     if (state.filter == ActivityFilter.all) {
-      return state.activities;
+      return visibleActivities;
     }
 
-    return state.activities
+    return visibleActivities
         .where((activity) {
           final query = state.filter;
           return switch (query) {
@@ -767,6 +865,35 @@ class AppController extends ChangeNotifier {
 
   Future<String?> ensureChatId(String activityId) async {
     return _resolveChatId(activityId);
+  }
+
+  List<Activity> activeActivitiesForUser(String userId) {
+    return state.activities
+        .where(
+          (activity) =>
+              !activity.isFinishedOrArchived &&
+              activity.status != ActivityStatus.removed &&
+              activity.status != ActivityStatus.rejectedHidden &&
+              (activity.creatorId == userId ||
+                  activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+                  activity.myStatus == ParticipantStatus.confirmed),
+        )
+        .toList(growable: false);
+  }
+
+  List<Activity> historyActivitiesForUser(String userId) {
+    return state.activities
+        .where(
+          (activity) =>
+              activity.isFinishedOrArchived &&
+              (activity.creatorId == userId ||
+                  activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+                  activity.myStatus == ParticipantStatus.confirmed ||
+                  activity.myStatus == ParticipantStatus.attended ||
+                  activity.myStatus == ParticipantStatus.noShow ||
+                  activity.myStatus == ParticipantStatus.notSure),
+        )
+        .toList(growable: false);
   }
 
   Activity? _findActivity(String activityId) {
@@ -844,7 +971,7 @@ class AppController extends ChangeNotifier {
       category: category,
       vibe: vibe,
       zone: zone,
-      status: ActivityStatus.active,
+      status: ActivityStatus.open,
       realLat: realLat,
       realLng: realLng,
       displayLat: displayLat,
@@ -883,7 +1010,7 @@ class AppController extends ChangeNotifier {
         category: 'Coffee',
         vibe: 'Calm',
         zone: 'Hongdae',
-        status: ActivityStatus.active,
+        status: ActivityStatus.open,
         realLat: 37.5563,
         realLng: 126.9228,
         displayLat: 37.5569,
@@ -927,7 +1054,7 @@ class AppController extends ChangeNotifier {
         category: 'Study',
         vibe: 'Productive',
         zone: 'Gangnam',
-        status: ActivityStatus.active,
+        status: ActivityStatus.open,
         realLat: 37.4981,
         realLng: 127.0276,
         displayLat: 37.4975,
@@ -1015,7 +1142,7 @@ class AppController extends ChangeNotifier {
         category: 'Art',
         vibe: 'Creative',
         zone: 'Insadong',
-        status: ActivityStatus.active,
+        status: ActivityStatus.finished,
         realLat: 37.5744,
         realLng: 126.9838,
         displayLat: 37.5749,
@@ -1039,7 +1166,7 @@ class AppController extends ChangeNotifier {
             emoji: '🙂',
           ),
         ],
-        myStatus: null,
+        myStatus: ParticipantStatus.attended,
         isMine: false,
       ),
       Activity(
@@ -1084,6 +1211,45 @@ class AppController extends ChangeNotifier {
         ],
         myStatus: null,
         isMine: false,
+      ),
+      Activity(
+        id: 'seed_6',
+        creatorId: 'seed_creator_yura',
+        creatorLabel: 'Yura',
+        activityType: ActivityType.publicEvent,
+        visibility: ActivityVisibility.publicActivity,
+        title: '🌸 Archive Walk',
+        description: 'Paseo que ya pasó y ahora vive en el historial.',
+        category: 'Walks',
+        vibe: 'Calm',
+        zone: 'Seoul',
+        status: ActivityStatus.archived,
+        realLat: 37.5666,
+        realLng: 126.978,
+        displayLat: 37.5669,
+        displayLng: 126.9776,
+        locationPrivacyRadiusM: 140,
+        exactLocationUnlockAt: now.subtract(const Duration(hours: 3)),
+        startTime: now.subtract(const Duration(hours: 4)),
+        endTime: now.subtract(const Duration(hours: 2)),
+        maxPeople: 8,
+        confirmedCount: 5,
+        pendingCount: 0,
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_yura',
+            label: 'Yura',
+            emoji: '🌸',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_ren',
+            label: 'Ren',
+            emoji: '✨',
+          ),
+        ],
+        myStatus: ParticipantStatus.attended,
+        isMine: false,
+        lastMessagePreview: 'Yura: Gracias por venir 💫',
       ),
     ];
   }
@@ -1259,11 +1425,58 @@ class AppController extends ChangeNotifier {
 
   bool _hasActiveCreatedActivity(String userId) {
     return state.activities.any((activity) {
-      final isInactive =
-          activity.status == ActivityStatus.finished ||
-          activity.status == ActivityStatus.removed ||
-          activity.status == ActivityStatus.rejectedHidden;
-      return activity.creatorId == userId && !isInactive;
+      return activity.creatorId == userId && activity.isActiveLifecycle;
     });
+  }
+
+  ActivityStatus _nextLifecycleStatus(
+    Activity activity, {
+    required int confirmedCount,
+  }) {
+    if (activity.status == ActivityStatus.ongoing) {
+      return ActivityStatus.ongoing;
+    }
+
+    if (confirmedCount >= activity.maxPeople) {
+      return ActivityStatus.full;
+    }
+
+    return ActivityStatus.open;
+  }
+
+  bool _activityChanged(String activityId, List<Activity> updated) {
+    final before = state.activities.firstWhere(
+      (activity) => activity.id == activityId,
+      orElse: () => updated.firstWhere(
+        (activity) => activity.id == activityId,
+        orElse: () => Activity(
+          id: '',
+          creatorId: '',
+          creatorLabel: '',
+          activityType: ActivityType.userActivity,
+          title: '',
+          description: '',
+          category: '',
+          vibe: '',
+          zone: '',
+          status: ActivityStatus.open,
+          realLat: 0,
+          realLng: 0,
+          displayLat: 0,
+          displayLng: 0,
+          locationPrivacyRadiusM: 0,
+          exactLocationUnlockAt: DateTime.now(),
+          startTime: DateTime.now(),
+          endTime: DateTime.now(),
+          maxPeople: 0,
+          confirmedCount: 0,
+          pendingCount: 0,
+          myStatus: null,
+          isMine: false,
+        ),
+      ),
+    );
+    final after = updated.firstWhere((activity) => activity.id == activityId);
+    return before.status != after.status;
   }
 }

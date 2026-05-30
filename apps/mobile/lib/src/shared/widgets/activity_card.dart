@@ -36,10 +36,12 @@ class ActivityCard extends StatelessWidget {
 
     final statusLabel = switch (activity.status) {
       ActivityStatus.pendingModeration => 'En revisión',
+      ActivityStatus.open => 'Abierta',
       ActivityStatus.active => 'Abierta',
       ActivityStatus.full => 'Llena',
       ActivityStatus.ongoing => 'En curso',
       ActivityStatus.finished => 'Terminada',
+      ActivityStatus.archived => 'Terminada',
       ActivityStatus.cancelled => 'Cancelada',
       ActivityStatus.flagged => 'Atenta',
       ActivityStatus.removed => 'Oculta',

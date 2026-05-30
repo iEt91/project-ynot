@@ -105,10 +105,14 @@ class ProfileScreen extends ConsumerWidget {
                 _ProfileAction(
                   label: 'Mis actividades',
                   emoji: '🗂️',
-                  onTap: () => context.go('/'),
+                  onTap: () => context.push('/my-activities'),
                 ),
                 const Divider(height: 24),
-                _ProfileAction(label: 'Historial', emoji: '🕯️', onTap: () {}),
+                _ProfileAction(
+                  label: 'Historial',
+                  emoji: '🕯️',
+                  onTap: () => context.push('/history'),
+                ),
                 const Divider(height: 24),
                 _ProfileAction(label: 'Guardadas', emoji: '💖', onTap: () {}),
                 const Divider(height: 24),

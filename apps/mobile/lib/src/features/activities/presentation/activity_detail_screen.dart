@@ -19,7 +19,8 @@ class ActivityDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activity = ref.watch(appStateProvider).activities.where((item) => item.id == activityId).firstOrNull;
+    final state = ref.watch(appStateProvider);
+    final activity = state.activities.where((item) => item.id == activityId).firstOrNull;
 
     if (activity == null) {
       return Scaffold(
@@ -35,18 +36,25 @@ class ActivityDetailScreen extends ConsumerWidget {
 
     final status = activity.myStatus;
     final isActiveMember = status == ParticipantStatus.joinedPendingConfirmation || status == ParticipantStatus.confirmed;
-    final userStatus = ref.watch(appStateProvider).user?.status;
+    final userStatus = state.user?.status;
     final isRestricted = userStatus == UserStatus.limited || userStatus == UserStatus.banned;
     final canJoin = !isRestricted &&
-        !activity.isFull &&
-        activity.status != ActivityStatus.finished &&
+        activity.isJoinable &&
         activity.status != ActivityStatus.cancelled &&
         activity.status != ActivityStatus.removed &&
         activity.status != ActivityStatus.rejectedHidden &&
         status != ParticipantStatus.removedByAdmin;
-    final canConfirm = status == ParticipantStatus.joinedPendingConfirmation;
-    final canCancel = isActiveMember;
-    final canLeave = isActiveMember;
+    final canManageAttendance = !activity.isFinishedOrArchived;
+    final canConfirm =
+        canManageAttendance &&
+        status == ParticipantStatus.joinedPendingConfirmation;
+    final canCancel = canManageAttendance && isActiveMember;
+    final canLeave = canManageAttendance && isActiveMember;
+    final isCreator = state.user?.id == activity.creatorId;
+    final canStart = isCreator &&
+        (activity.status == ActivityStatus.open ||
+            activity.status == ActivityStatus.active);
+    final canFinish = isCreator && activity.status == ActivityStatus.ongoing;
 
     return Scaffold(
       body: KawaiiScene(
@@ -87,6 +95,16 @@ class ActivityDetailScreen extends ConsumerWidget {
                     color: YnotTheme.surface2,
                     onSelected: (value) async {
                       switch (value) {
+                        case _DetailAction.startActivity:
+                          if (canStart) {
+                            await ref.read(appControllerProvider).startActivity(activity.id);
+                          }
+                          break;
+                        case _DetailAction.finishActivity:
+                          if (canFinish) {
+                            await ref.read(appControllerProvider).finishActivity(activity.id);
+                          }
+                          break;
                         case _DetailAction.confirmAttendance:
                           if (canConfirm) {
                             await ref.read(appControllerProvider).confirmAttendance(activity.id);
@@ -110,7 +128,17 @@ class ActivityDetailScreen extends ConsumerWidget {
                           break;
                       }
                     },
-                    itemBuilder: (context) => [
+                      itemBuilder: (context) => [
+                      if (canStart)
+                        const PopupMenuItem(
+                          value: _DetailAction.startActivity,
+                          child: Text('Iniciar actividad'),
+                        ),
+                      if (canFinish)
+                        const PopupMenuItem(
+                          value: _DetailAction.finishActivity,
+                          child: Text('Finalizar actividad'),
+                        ),
                       PopupMenuItem(
                         value: _DetailAction.confirmAttendance,
                         enabled: canConfirm,
@@ -187,7 +215,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (!isActiveMember) ...[
+              if (!isActiveMember && activity.isActiveLifecycle) ...[
                 const SizedBox(height: 14),
                 KawaiiCard(
                     child: SizedBox(
@@ -234,10 +262,12 @@ class ActivityDetailScreen extends ConsumerWidget {
   String _statusLabel(ActivityStatus status) {
     return switch (status) {
       ActivityStatus.pendingModeration => 'En revisión',
+      ActivityStatus.open => 'Abierta',
       ActivityStatus.active => 'Abierta',
       ActivityStatus.full => 'Llena',
       ActivityStatus.ongoing => 'En curso',
       ActivityStatus.finished => 'Terminada',
+      ActivityStatus.archived => 'Terminada',
       ActivityStatus.cancelled => 'Cancelada',
       ActivityStatus.flagged => 'Atenta',
       ActivityStatus.removed => 'Oculta',
@@ -247,7 +277,15 @@ class ActivityDetailScreen extends ConsumerWidget {
   }
 }
 
-enum _DetailAction { confirmAttendance, cancelAttendance, feedback, report, leaveEvent }
+enum _DetailAction {
+  startActivity,
+  finishActivity,
+  confirmAttendance,
+  cancelAttendance,
+  feedback,
+  report,
+  leaveEvent,
+}
 
 class _RoundBubble extends StatelessWidget {
   const _RoundBubble({

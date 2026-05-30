@@ -245,10 +245,12 @@ class _ActivityListItem extends StatelessWidget {
   Color _statusColor(ActivityStatus status) {
     return switch (status) {
       ActivityStatus.pendingModeration => const Color(0xFF8B5CF6),
+      ActivityStatus.open => const Color(0xFFFF5DB8),
       ActivityStatus.active => const Color(0xFFFF5DB8),
       ActivityStatus.full => const Color(0xFFFFB86B),
       ActivityStatus.ongoing => const Color(0xFF63E6BE),
       ActivityStatus.finished => Colors.white54,
+      ActivityStatus.archived => Colors.white54,
       ActivityStatus.cancelled => const Color(0xFFEF4444),
       ActivityStatus.flagged => const Color(0xFFFB7185),
       ActivityStatus.removed => Colors.white54,
@@ -279,10 +281,12 @@ extension on Activity {
   String get statusName {
     return switch (status) {
       ActivityStatus.pendingModeration => 'En revisi\u00f3n',
+      ActivityStatus.open => 'Abierta',
       ActivityStatus.active => 'Abierta',
       ActivityStatus.full => 'Llena',
       ActivityStatus.ongoing => 'En curso',
       ActivityStatus.finished => 'Terminada',
+      ActivityStatus.archived => 'Terminada',
       ActivityStatus.cancelled => 'Cancelada',
       ActivityStatus.flagged => 'Atenta',
       ActivityStatus.removed => 'Oculta',

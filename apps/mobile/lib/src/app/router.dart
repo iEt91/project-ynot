@@ -7,6 +7,8 @@ import '../features/activities/presentation/create_activity_screen.dart';
 import '../features/chat/presentation/chat_thread_screen.dart';
 import '../core/state/app_controller.dart';
 import 'app.dart';
+import '../features/profile/presentation/activity_history_screen.dart';
+import '../features/profile/presentation/my_activities_screen.dart';
 import '../features/feedback/presentation/feedback_screen.dart';
 import '../features/reports/presentation/report_screen.dart';
 
@@ -56,6 +58,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : null;
           return CreateActivityScreen(initialLocation: initialLocation);
         },
+      ),
+      GoRoute(
+        path: '/my-activities',
+        builder: (context, state) => const MyActivitiesScreen(),
+      ),
+      GoRoute(
+        path: '/history',
+        builder: (context, state) => const ActivityHistoryScreen(),
       ),
     ],
   );

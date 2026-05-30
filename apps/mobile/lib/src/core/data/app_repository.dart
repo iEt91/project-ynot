@@ -544,15 +544,17 @@ class AppRepository implements ActivityRepository {
     return switch (value) {
       'DRAFT' => ActivityStatus.draft,
       'PENDING_MODERATION' => ActivityStatus.pendingModeration,
-      'ACTIVE' => ActivityStatus.active,
+      'OPEN' => ActivityStatus.open,
+      'ACTIVE' => ActivityStatus.open,
       'FULL' => ActivityStatus.full,
       'ONGOING' => ActivityStatus.ongoing,
       'FINISHED' => ActivityStatus.finished,
+      'ARCHIVED' => ActivityStatus.archived,
       'CANCELLED' => ActivityStatus.cancelled,
       'FLAGGED' => ActivityStatus.flagged,
       'REMOVED' => ActivityStatus.removed,
       'REJECTED_HIDDEN' => ActivityStatus.rejectedHidden,
-      _ => ActivityStatus.active,
+      _ => ActivityStatus.open,
     };
   }
 
