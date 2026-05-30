@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../config/app_environment.dart';
+import '../data/local_mock_store.dart';
 import '../data/local_session_store.dart';
 import '../models/activity.dart';
 import '../models/app_user.dart';
@@ -106,6 +107,7 @@ class AppController extends ChangeNotifier {
   AppController({
     Object? repository,
     LocalSessionStore? sessionStore,
+    LocalMockStore? mockStore,
     bool? demoModeOverride,
     bool autoInitialize = true,
   }) {
@@ -114,6 +116,7 @@ class AppController extends ChangeNotifier {
       demoMode: demoModeOverride ?? true,
     );
     _sessionStore = sessionStore ?? LocalSessionStore();
+    _mockStore = mockStore ?? LocalMockStore();
     if (autoInitialize) {
       unawaited(initialize());
     }
@@ -123,6 +126,7 @@ class AppController extends ChangeNotifier {
 
   final _random = Random();
   late final LocalSessionStore _sessionStore;
+  late final LocalMockStore _mockStore;
 
   late AppState _state;
   String? _clientUid;
@@ -158,6 +162,19 @@ class AppController extends ChangeNotifier {
     }
 
     _clientUid = localSession;
+
+    final snapshot = await _mockStore.load();
+    if (snapshot != null) {
+      final restoredMessages = _restoreMessagesMap(snapshot.messagesByActivityId);
+      _hydrateFromSnapshot(
+        snapshot,
+        restoredMessages,
+        phoneMasked: restoredPhone == null ? 'Sesión local' : _maskPhone(restoredPhone),
+      );
+      AppLogger.log('AUTH', 'session_restored=true');
+      return;
+    }
+
     _joinResetFromStoredSession(localSession);
 
     final user = _buildDemoUser(
@@ -174,6 +191,7 @@ class AppController extends ChangeNotifier {
       messageReports: const [],
       errorMessage: null,
     );
+    unawaited(_persistSnapshot());
   }
 
   void updatePhoneInput(String value) {
@@ -221,6 +239,7 @@ class AppController extends ChangeNotifier {
       messageReports: const [],
       errorMessage: null,
     );
+    unawaited(_persistSnapshot());
 
     AppLogger.log('AUTH', 'login_success userId=${user.id}');
   }
@@ -249,11 +268,13 @@ class AppController extends ChangeNotifier {
       stage: AppStage.ready,
       errorMessage: null,
     );
+    unawaited(_persistSnapshot());
   }
 
   void signOut() {
     AppLogger.log('AUTH', 'logout');
     unawaited(_sessionStore.clear());
+    unawaited(_mockStore.clear());
     _clientUid = null;
     _messagesByActivityId.clear();
     _chatIdsByActivityId.clear();
@@ -309,6 +330,7 @@ class AppController extends ChangeNotifier {
     );
 
     AppLogger.log('ACTIVITY', 'created id=${created.id}');
+    unawaited(_persistSnapshot());
   }
 
   Future<void> joinActivity(String activityId) async {
@@ -333,6 +355,7 @@ class AppController extends ChangeNotifier {
     });
 
     state = state.copyWith(activities: updated);
+    unawaited(_persistSnapshot());
   }
 
   Future<void> confirmAttendance(String activityId) async {
@@ -356,6 +379,7 @@ class AppController extends ChangeNotifier {
         attendingActivityCount: (state.user?.attendingActivityCount ?? 0) + 1,
       ),
     );
+    unawaited(_persistSnapshot());
   }
 
   Future<void> cancelAttendance(String activityId) async {
@@ -392,6 +416,7 @@ class AppController extends ChangeNotifier {
             )
           : state.user,
     );
+    unawaited(_persistSnapshot());
   }
 
   Future<void> leaveActivity(String activityId) async {
@@ -425,6 +450,7 @@ class AppController extends ChangeNotifier {
             (state.user?.attendingActivityCount ?? 0) > 0 ? (state.user?.attendingActivityCount ?? 0) - 1 : 0,
       ),
     );
+    unawaited(_persistSnapshot());
   }
 
   Future<void> loadChatMessages(String activityId) async {
@@ -469,6 +495,7 @@ class AppController extends ChangeNotifier {
     _messagesByActivityId[chatId] = messages;
     _setChatMessages(activityId, messages, chatId: chatId, source: 'mock');
     AppLogger.log('MESSAGE', 'sent activityId=$activityId');
+    unawaited(_persistSnapshot());
   }
 
   Future<void> reportChatMessage({
@@ -772,6 +799,65 @@ class AppController extends ChangeNotifier {
     _clientUid = clientUid;
     _joinedActivityIds.clear();
     _confirmedAttendanceActivityIds.clear();
+  }
+
+  Future<void> _persistSnapshot() async {
+    if (_clientUid == null || _clientUid!.isEmpty) {
+      return;
+    }
+
+    await _mockStore.save(
+      LocalMockSnapshot(
+        user: state.user,
+        activities: state.activities,
+        messagesByActivityId: Map<String, List<ChatMessage>>.from(_messagesByActivityId),
+      ),
+    );
+  }
+
+  void _hydrateFromSnapshot(
+    LocalMockSnapshot snapshot,
+    Map<String, List<ChatMessage>> restoredMessages, {
+    required String phoneMasked,
+  }) {
+    _messagesByActivityId
+      ..clear()
+      ..addAll(restoredMessages);
+
+    _chatIdsByActivityId
+      ..clear()
+      ..addEntries(snapshot.activities.map((activity) => MapEntry(activity.id, activity.id)));
+
+    final user = snapshot.user ??
+        _buildDemoUser(
+          _clientUid ?? 'user_demo',
+          phoneMasked: phoneMasked,
+        );
+
+    state = state.copyWith(
+      stage: AppStage.ready,
+      user: user,
+      activities: snapshot.activities.isEmpty ? _seedActivities() : snapshot.activities,
+      chatMessages: restoredMessages,
+      messageReports: const [],
+      errorMessage: null,
+    );
+  }
+
+  Map<String, List<ChatMessage>> _restoreMessagesMap(Map<String, List<ChatMessage>> raw) {
+    return raw.map(
+      (key, value) => MapEntry(
+        key,
+        value
+            .map(
+              (message) => message.copyWith(
+                chatId: message.chatId.isEmpty ? key : message.chatId,
+                activityId: message.activityId.isEmpty ? key : message.activityId,
+              ),
+            )
+            .toList(growable: false),
+      ),
+    );
   }
 
   Future<String> _ensureClientUid() async {

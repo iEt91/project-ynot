@@ -153,4 +153,74 @@ class Activity {
       unreadMessageCount: unreadMessageCount ?? this.unreadMessageCount,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'creatorLabel': creatorLabel,
+      'activityType': activityType.name,
+      'visibility': visibility.name,
+      'title': title,
+      'description': description,
+      'category': category,
+      'vibe': vibe,
+      'zone': zone,
+      'status': status.name,
+      'realLat': realLat,
+      'realLng': realLng,
+      'displayLat': displayLat,
+      'displayLng': displayLng,
+      'locationPrivacyRadiusM': locationPrivacyRadiusM,
+      'exactLocationUnlockAt': exactLocationUnlockAt.toIso8601String(),
+      'startTime': startTime.toIso8601String(),
+      'endTime': endTime.toIso8601String(),
+      'maxPeople': maxPeople,
+      'confirmedCount': confirmedCount,
+      'pendingCount': pendingCount,
+      'myStatus': myStatus?.name,
+      'isMine': isMine,
+      'lastMessagePreview': lastMessagePreview,
+      'lastMessageAt': lastMessageAt?.toIso8601String(),
+      'unreadMessageCount': unreadMessageCount,
+    };
+  }
+
+  factory Activity.fromJson(Map<String, dynamic> json) {
+    return Activity(
+      id: json['id'] as String? ?? '',
+      creatorLabel: json['creatorLabel'] as String? ?? '',
+      activityType:
+          ActivityType.values.byName(json['activityType'] as String? ?? ActivityType.userActivity.name),
+      visibility: ActivityVisibility.values.byName(
+        json['visibility'] as String? ?? ActivityVisibility.publicActivity.name,
+      ),
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      vibe: json['vibe'] as String? ?? '',
+      zone: json['zone'] as String? ?? '',
+      status: ActivityStatus.values.byName(json['status'] as String? ?? ActivityStatus.active.name),
+      realLat: (json['realLat'] as num?)?.toDouble() ?? 0,
+      realLng: (json['realLng'] as num?)?.toDouble() ?? 0,
+      displayLat: (json['displayLat'] as num?)?.toDouble() ?? 0,
+      displayLng: (json['displayLng'] as num?)?.toDouble() ?? 0,
+      locationPrivacyRadiusM: json['locationPrivacyRadiusM'] as int? ?? 0,
+      exactLocationUnlockAt:
+          DateTime.tryParse(json['exactLocationUnlockAt'] as String? ?? '') ?? DateTime.now(),
+      startTime: DateTime.tryParse(json['startTime'] as String? ?? '') ?? DateTime.now(),
+      endTime: DateTime.tryParse(json['endTime'] as String? ?? '') ?? DateTime.now(),
+      maxPeople: json['maxPeople'] as int? ?? 0,
+      confirmedCount: json['confirmedCount'] as int? ?? 0,
+      pendingCount: json['pendingCount'] as int? ?? 0,
+      myStatus: json['myStatus'] == null
+          ? null
+          : ParticipantStatus.values.byName(json['myStatus'] as String),
+      isMine: json['isMine'] as bool? ?? false,
+      lastMessagePreview: json['lastMessagePreview'] as String? ?? '',
+      lastMessageAt: json['lastMessageAt'] == null
+          ? null
+          : DateTime.tryParse(json['lastMessageAt'] as String),
+      unreadMessageCount: json['unreadMessageCount'] as int? ?? 0,
+    );
+  }
 }

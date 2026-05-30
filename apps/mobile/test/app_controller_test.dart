@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
 import 'package:ynot_mobile/src/core/models/activity.dart';
 import 'package:ynot_mobile/src/core/state/app_controller.dart';
@@ -7,11 +8,13 @@ import 'package:ynot_mobile/src/core/state/app_controller.dart';
 void main() {
   group('AppController mock flows', () {
     test('existing local session restores the app on startup', () async {
-      final store = _TestSessionStore(
-        clientUid: 'persisted_client_001',
-        phone: '+82 10 1234 5678',
+      final controller = await _buildController(
+        sessionStore: _TestSessionStore(
+          clientUid: 'persisted_client_001',
+          phone: '+82 10 1234 5678',
+        ),
+        mockStore: _TestMockStore(),
       );
-      final controller = await _buildController(sessionStore: store);
 
       expect(controller.state.stage, AppStage.ready);
       expect(controller.state.user, isNotNull);
@@ -22,7 +25,10 @@ void main() {
 
     test('login with demo code stores a local session and enters the app', () async {
       final store = _TestSessionStore();
-      final controller = await _buildController(sessionStore: store);
+      final controller = await _buildController(
+        sessionStore: store,
+        mockStore: _TestMockStore(),
+      );
 
       expect(controller.state.stage, AppStage.phoneAuth);
 
@@ -41,7 +47,7 @@ void main() {
       final controller = await _buildLoggedInController();
 
       await controller.createActivity(
-        title: 'Café & Talk',
+        title: 'Cafe Talk',
         description: 'Charlita suave y tranquila.',
         category: 'Coffee',
         vibe: 'Calm',
@@ -56,11 +62,11 @@ void main() {
 
       expect(controller.state.activities, isNotEmpty);
       final created = controller.state.activities.first;
-      expect(created.title, 'Café & Talk');
+      expect(created.title, 'Cafe Talk');
       expect(created.visibility, ActivityVisibility.privateActivity);
       expect(created.status, ActivityStatus.active);
       expect(created.isMine, isTrue);
-      expect(controller.filteredActivities().first.title, 'Café & Talk');
+      expect(controller.filteredActivities().first.title, 'Cafe Talk');
     });
 
     test('joining, confirming, cancelling and leaving remain reversible', () async {
@@ -111,20 +117,21 @@ void main() {
       expect(controller.state.chatMessages[activityId], isEmpty);
 
       await controller.sendChatMessage(activityId, 'Hola');
-      await controller.sendChatMessage(activityId, '¿Ya llegaron?');
+      await controller.sendChatMessage(activityId, 'Ya llegamos?');
       await controller.sendChatMessage(activityId, 'Mantengamos la vibra suave');
 
       await controller.loadChatMessages(activityId);
       final messages = controller.state.chatMessages[activityId];
       expect(messages, isNotNull);
       expect(messages, hasLength(3));
-      expect(messages!.map((message) => message.content), containsAll([
-        'Hola',
-        '¿Ya llegaron?',
+      expect(
+        messages!.map((message) => message.content),
+        containsAll(['Hola', 'Ya llegamos?', 'Mantengamos la vibra suave']),
+      );
+      expect(
+        controller.state.activities.firstWhere((item) => item.id == activityId).lastMessagePreview,
         'Mantengamos la vibra suave',
-      ]));
-      expect(controller.state.activities.firstWhere((item) => item.id == activityId).lastMessagePreview,
-          'Mantengamos la vibra suave');
+      );
     });
 
     test('logout clears the session and returns to auth', () async {
@@ -136,14 +143,59 @@ void main() {
       expect(controller.state.user, isNull);
       expect(controller.state.activities, isEmpty);
     });
+
+    test('local persistence survives controller restart', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      await firstController.createActivity(
+        title: 'Cafe Talk',
+        description: 'Charlita suave y tranquila.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        startTime: DateTime(2026, 6, 1, 18, 0),
+        duration: const Duration(hours: 2),
+        maxPeople: 6,
+        realLat: 37.5563,
+        realLng: 126.9228,
+      );
+
+      final createdId = firstController.state.activities.first.id;
+      await firstController.joinActivity(createdId);
+      await firstController.confirmAttendance(createdId);
+      await firstController.sendChatMessage(createdId, 'Persisted');
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.activities, isNotEmpty);
+      final restored = secondController.state.activities.firstWhere((item) => item.id == createdId);
+      expect(restored.myStatus, ParticipantStatus.confirmed);
+      await secondController.loadChatMessages(createdId);
+      expect(secondController.state.chatMessages[createdId], isNotNull);
+      expect(secondController.state.chatMessages[createdId]!.last.content, 'Persisted');
+    });
   });
 }
 
 Future<AppController> _buildController({
   _TestSessionStore? sessionStore,
+  _TestMockStore? mockStore,
 }) async {
   final controller = AppController(
     sessionStore: sessionStore ?? _TestSessionStore(),
+    mockStore: mockStore ?? _TestMockStore(),
     autoInitialize: false,
   );
   await controller.initialize();
@@ -151,15 +203,13 @@ Future<AppController> _buildController({
 }
 
 Future<AppController> _buildLoggedInController() async {
-  final controller = AppController(
+  return _buildController(
     sessionStore: _TestSessionStore(
       clientUid: 'client_001',
       phone: '+82 10 1234 5678',
     ),
-    autoInitialize: false,
+    mockStore: _TestMockStore(),
   );
-  await controller.initialize();
-  return controller;
 }
 
 class _TestSessionStore extends LocalSessionStore {
@@ -207,5 +257,22 @@ class _TestSessionStore extends LocalSessionStore {
     phone = null;
     savedClientUid = null;
     savedPhone = null;
+  }
+}
+
+class _TestMockStore extends LocalMockStore {
+  LocalMockSnapshot? snapshot;
+
+  @override
+  Future<LocalMockSnapshot?> load() async => snapshot;
+
+  @override
+  Future<void> save(LocalMockSnapshot snapshot) async {
+    this.snapshot = snapshot;
+  }
+
+  @override
+  Future<void> clear() async {
+    snapshot = null;
   }
 }

@@ -31,6 +31,42 @@ class AppUser {
   final int createdActivityCount;
   final int attendingActivityCount;
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'phoneMasked': phoneMasked,
+      'nickname': nickname,
+      'avatarEmoji': avatarEmoji,
+      'photoUrl': photoUrl,
+      'bio': bio,
+      'languages': languages,
+      'vibes': vibes,
+      'interests': interests,
+      'status': status.name,
+      'profileComplete': profileComplete,
+      'createdActivityCount': createdActivityCount,
+      'attendingActivityCount': attendingActivityCount,
+    };
+  }
+
+  factory AppUser.fromJson(Map<String, dynamic> json) {
+    return AppUser(
+      id: json['id'] as String? ?? '',
+      phoneMasked: json['phoneMasked'] as String? ?? '',
+      nickname: json['nickname'] as String? ?? '',
+      avatarEmoji: json['avatarEmoji'] as String? ?? '🌙',
+      photoUrl: json['photoUrl'] as String?,
+      bio: json['bio'] as String? ?? '',
+      languages: (json['languages'] as List<dynamic>? ?? const []).cast<String>(),
+      vibes: (json['vibes'] as List<dynamic>? ?? const []).cast<String>(),
+      interests: (json['interests'] as List<dynamic>? ?? const []).cast<String>(),
+      status: UserStatus.values.byName(json['status'] as String? ?? UserStatus.newUser.name),
+      profileComplete: json['profileComplete'] as bool? ?? false,
+      createdActivityCount: json['createdActivityCount'] as int? ?? 0,
+      attendingActivityCount: json['attendingActivityCount'] as int? ?? 0,
+    );
+  }
+
   AppUser copyWith({
     String? id,
     String? phoneMasked,
