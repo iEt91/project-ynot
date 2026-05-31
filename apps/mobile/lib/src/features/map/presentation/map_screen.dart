@@ -10,6 +10,7 @@ import '../../../core/constants/app_version.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/google_maps_support.dart';
+import '../../../shared/widgets/activity_filters_bar.dart';
 import '../../../shared/widgets/google_activity_map.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_bottom_nav.dart';
@@ -79,10 +80,26 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: _FilterRow(
-                selected: state.filter,
-                onSelected: (filter) {
-                  ref.read(appControllerProvider).setFilter(filter);
+              child: ActivityFiltersBar(
+                filters: state.activityFilters,
+                onToggleToday: () {
+                  ref.read(appControllerProvider).toggleTodayFilter();
+                  _dismissSelectedActivity();
+                },
+                onTimeSlotSelected: (timeSlot) {
+                  ref.read(appControllerProvider).setTimeSlotFilter(timeSlot);
+                  _dismissSelectedActivity();
+                },
+                onCategoryToggled: (category) {
+                  ref.read(appControllerProvider).toggleCategoryFilter(category);
+                  _dismissSelectedActivity();
+                },
+                onPeopleRangeSelected: (range) {
+                  ref.read(appControllerProvider).setPeopleRangeFilter(range);
+                  _dismissSelectedActivity();
+                },
+                onClear: () {
+                  ref.read(appControllerProvider).clearActivityFilters();
                   _dismissSelectedActivity();
                 },
               ),
@@ -98,10 +115,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             onActivityTap: _selectActivity,
                             onMapInteraction: _dismissSelectedActivity,
                             onMapLongPress: (position) {
-                              context.push(
-                                '/create-activity',
-                                extra: position,
-                              );
+                              context.push('/create-activity', extra: position);
                             },
                             onCameraPositionChanged: (position) {
                               setState(() => _cameraTarget = position);
@@ -121,9 +135,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: IgnorePointer(
                         ignoring: false,
                         child: KawaiiEmptyState(
-                          emoji: '🌙',
-                          title: 'No hay actividades cercanas',
-                          message: 'Crea un momento nuevo y aparecerá aquí en el mapa.',
+                          emoji: '✨',
+                          title: 'No encontramos actividades con esos filtros.',
+                          message:
+                              'Prueba limpiar filtros o crea un momento nuevo para llenar el mapa.',
                           ctaLabel: 'Crear actividad',
                           onCtaPressed: () => context.push(
                             '/create-activity',
@@ -183,46 +198,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _dismissSelectedActivity() {
     if (_selectedActivity == null) return;
     setState(() => _selectedActivity = null);
-  }
-}
-
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final ActivityFilter selected;
-  final ValueChanged<ActivityFilter> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final filters = {
-      ActivityFilter.all: 'Todas',
-      ActivityFilter.coffee: 'Café',
-      ActivityFilter.study: 'Estudio',
-      ActivityFilter.walks: 'Paseos',
-      ActivityFilter.food: 'Comida',
-      ActivityFilter.art: 'Arte',
-    };
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: filters.entries
-            .map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(entry.value),
-                  selected: selected == entry.key,
-                  onSelected: (_) => onSelected(entry.key),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
   }
 }
 
@@ -293,7 +268,7 @@ class _SelectedActivityCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-                      _SaveBubbleButton(
+              _SaveBubbleButton(
                 saved: isSaved,
                 onTap: () {
                   unawaited(onToggleSave());
@@ -369,9 +344,7 @@ class _SaveBubbleButton extends StatelessWidget {
     final background = saved
         ? Colors.pinkAccent.withValues(alpha: 0.22)
         : YnotTheme.surface2.withValues(alpha: 0.96);
-    final border = saved
-        ? Colors.pinkAccent.withValues(alpha: 0.42)
-        : YnotTheme.border;
+    final border = saved ? Colors.pinkAccent.withValues(alpha: 0.42) : YnotTheme.border;
     final iconColor = saved ? Colors.pinkAccent : Colors.white;
 
     return InkWell(
@@ -495,8 +468,7 @@ class _NightCityPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
     );
 
-    final blocksPaint = Paint()
-      ..color = const Color(0xFF0F172A).withValues(alpha: 0.32);
+    final blocksPaint = Paint()..color = const Color(0xFF0F172A).withValues(alpha: 0.32);
     final blocks = <Rect>[
       Rect.fromLTWH(24, 26, 72, 54),
       Rect.fromLTWH(122, 18, 92, 72),
@@ -510,7 +482,10 @@ class _NightCityPainter extends CustomPainter {
       Rect.fromLTWH(222, 318, 100, 56),
     ];
     for (final rect in blocks) {
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(18)), blocksPaint);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(18)),
+        blocksPaint,
+      );
     }
 
     roadPaint.color = const Color(0xFF263A5A).withValues(alpha: 0.42);
@@ -528,8 +503,18 @@ class _NightCityPainter extends CustomPainter {
     canvas.drawPath(
       Path()
         ..moveTo(30, size.height * 0.42)
-        ..quadraticBezierTo(size.width * 0.28, size.height * 0.36, size.width * 0.52, size.height * 0.45)
-        ..quadraticBezierTo(size.width * 0.75, size.height * 0.55, size.width - 24, size.height * 0.5),
+        ..quadraticBezierTo(
+          size.width * 0.28,
+          size.height * 0.36,
+          size.width * 0.52,
+          size.height * 0.45,
+        )
+        ..quadraticBezierTo(
+          size.width * 0.75,
+          size.height * 0.55,
+          size.width - 24,
+          size.height * 0.5,
+        ),
       roadPaint,
     );
 
@@ -538,23 +523,36 @@ class _NightCityPainter extends CustomPainter {
     canvas.drawPath(
       Path()
         ..moveTo(size.width * 0.12, size.height - 18)
-        ..quadraticBezierTo(size.width * 0.24, size.height * 0.74, size.width * 0.38, size.height * 0.64)
-        ..quadraticBezierTo(size.width * 0.55, size.height * 0.52, size.width * 0.76, size.height * 0.38)
-        ..quadraticBezierTo(size.width * 0.88, size.height * 0.30, size.width - 18, size.height * 0.2),
+        ..quadraticBezierTo(size.width * 0.20, size.height * 0.74, size.width * 0.40, size.height * 0.70)
+        ..quadraticBezierTo(size.width * 0.63, size.height * 0.66, size.width * 0.88, size.height * 0.72),
       roadPaint,
     );
 
-    final minorRoadPaint = Paint()
-      ..color = const Color(0xFF1E4D38).withValues(alpha: 0.12)
-      ..strokeWidth = 1.2;
-    for (var i = 0; i < 5; i++) {
-      final y = 42.0 + i * 68;
-      canvas.drawLine(Offset(18, y), Offset(size.width - 18, y), minorRoadPaint);
-    }
-    for (var i = 0; i < 4; i++) {
-      final x = 44.0 + i * 78;
-      canvas.drawLine(Offset(x, 18), Offset(x, size.height - 18), minorRoadPaint);
-    }
+    final waterPaint = Paint()..color = const Color(0xFF102D4F).withValues(alpha: 0.18);
+    canvas.drawOval(
+      Rect.fromLTWH(size.width * 0.08, size.height * 0.18, 96, 42),
+      waterPaint,
+    );
+    canvas.drawOval(
+      Rect.fromLTWH(size.width * 0.68, size.height * 0.18, 86, 36),
+      waterPaint,
+    );
+
+    final parkPaint = Paint()..color = const Color(0xFF1E4D38).withValues(alpha: 0.18);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.62, size.height * 0.10, 86, 58),
+        const Radius.circular(18),
+      ),
+      parkPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.14, size.height * 0.58, 94, 54),
+        const Radius.circular(18),
+      ),
+      parkPaint,
+    );
   }
 
   @override

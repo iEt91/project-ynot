@@ -1,3 +1,8 @@
+## v1.0.15.0
+- Activity discovery filters for today, time of day, category and group size
+- Filters apply to both the activities list and the map markers
+- Local filter state persists across restarts with a clean empty state when nothing matches
+
 ## v1.0.14.0
 - Profile onboarding after first login in mock/local mode
 - Required onboarding for name, avatar and at least one interest before entering the app

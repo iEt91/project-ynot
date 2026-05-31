@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/geo.dart';
+import '../../../shared/widgets/activity_filters_bar.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -36,12 +37,19 @@ class ActivitiesScreen extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: _FilterRow(
-                selected: state.filter,
-                onSelected: (filter) => ref.read(appControllerProvider).setFilter(filter),
+              child: ActivityFiltersBar(
+                filters: state.activityFilters,
+                onToggleToday: () => ref.read(appControllerProvider).toggleTodayFilter(),
+                onTimeSlotSelected: (timeSlot) =>
+                    ref.read(appControllerProvider).setTimeSlotFilter(timeSlot),
+                onCategoryToggled: (category) =>
+                    ref.read(appControllerProvider).toggleCategoryFilter(category),
+                onPeopleRangeSelected: (range) =>
+                    ref.read(appControllerProvider).setPeopleRangeFilter(range),
+                onClear: () => ref.read(appControllerProvider).clearActivityFilters(),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Expanded(
               child: activities.isEmpty
                   ? Center(
@@ -49,8 +57,9 @@ class ActivitiesScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: KawaiiEmptyState(
                           emoji: '✨',
-                          title: 'No hay actividades disponibles',
-                          message: 'Prueba otro filtro o crea un momento nuevo para llenar el mapa.',
+                          title: 'No encontramos actividades con esos filtros.',
+                          message:
+                              'Prueba limpiar filtros o crea un momento nuevo para llenar el mapa.',
                           ctaLabel: 'Crear actividad',
                           onCtaPressed: () => context.push('/create-activity'),
                         ),
@@ -78,46 +87,6 @@ class ActivitiesScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final ActivityFilter selected;
-  final ValueChanged<ActivityFilter> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final filters = {
-      ActivityFilter.all: 'Todas',
-      ActivityFilter.coffee: 'Caf\u00e9',
-      ActivityFilter.study: 'Estudio',
-      ActivityFilter.walks: 'Paseos',
-      ActivityFilter.food: 'Comida',
-      ActivityFilter.art: 'Arte',
-    };
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: filters.entries
-            .map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(entry.value),
-                  selected: selected == entry.key,
-                  onSelected: (_) => onSelected(entry.key),
-                ),
-              ),
-            )
-            .toList(),
       ),
     );
   }
@@ -164,7 +133,7 @@ class _ActivityListItem extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          activity.title,
+                      activity.title,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.2,
@@ -173,7 +142,7 @@ class _ActivityListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       StatusPill(
-                        label: activity.statusName,
+                        label: _statusLabel(activity.status),
                         color: _statusColor(activity.status),
                       ),
                     ],
@@ -194,7 +163,7 @@ class _ActivityListItem extends StatelessWidget {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _MetaText(text: '${_formatDate(activity.startTime)} \u00b7 ${_formatHour(activity.startTime)}'),
+                      _MetaText(text: '${_formatDate(activity.startTime)} · ${_formatHour(activity.startTime)}'),
                       _MetaText(text: '${distance.toStringAsFixed(distance < 1 ? 2 : 1)} km'),
                       _MetaText(text: '${activity.confirmedCount}/${activity.maxPeople} asistentes'),
                     ],
@@ -262,29 +231,10 @@ class _ActivityListItem extends StatelessWidget {
       ActivityStatus.draft => Colors.white54,
     };
   }
-}
 
-class _MetaText extends StatelessWidget {
-  const _MetaText({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-    );
-  }
-}
-
-extension on Activity {
-  String get statusName {
+  String _statusLabel(ActivityStatus status) {
     return switch (status) {
-      ActivityStatus.pendingModeration => 'En revisi\u00f3n',
+      ActivityStatus.pendingModeration => 'En revisión',
       ActivityStatus.open => 'Abierta',
       ActivityStatus.active => 'Abierta',
       ActivityStatus.full => 'Llena',
@@ -297,5 +247,22 @@ extension on Activity {
       ActivityStatus.rejectedHidden => 'Oculta',
       ActivityStatus.draft => 'Borrador',
     };
+  }
+}
+
+class _MetaText extends StatelessWidget {
+  const _MetaText({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
+    );
   }
 }

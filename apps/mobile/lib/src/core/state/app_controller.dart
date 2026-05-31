@@ -9,6 +9,7 @@ import '../config/app_environment.dart';
 import '../data/local_mock_store.dart';
 import '../data/local_session_store.dart';
 import '../models/activity.dart';
+import '../models/activity_filters.dart';
 import '../models/app_settings.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
@@ -27,6 +28,7 @@ class AppState {
     required this.chatMessages,
     required this.savedActivityIds,
     required this.settings,
+    required this.activityFilters,
     required this.reports,
     required this.feedbackEntries,
     this.user,
@@ -44,6 +46,7 @@ class AppState {
       chatMessages: const {},
       savedActivityIds: const {},
       settings: AppSettings.initial(),
+      activityFilters: ActivityDiscoveryFilters.initial(),
       reports: const [],
       feedbackEntries: const [],
     );
@@ -56,6 +59,7 @@ class AppState {
   final Map<String, List<ChatMessage>> chatMessages;
   final Set<String> savedActivityIds;
   final AppSettings settings;
+  final ActivityDiscoveryFilters activityFilters;
   final List<ModerationReport> reports;
   final List<PrivateFeedbackEntry> feedbackEntries;
   final String phoneInput;
@@ -71,6 +75,7 @@ class AppState {
     Map<String, List<ChatMessage>>? chatMessages,
     Set<String>? savedActivityIds,
     AppSettings? settings,
+    ActivityDiscoveryFilters? activityFilters,
     List<ModerationReport>? reports,
     List<PrivateFeedbackEntry>? feedbackEntries,
     String? phoneInput,
@@ -86,6 +91,7 @@ class AppState {
       chatMessages: chatMessages ?? this.chatMessages,
       savedActivityIds: savedActivityIds ?? this.savedActivityIds,
       settings: settings ?? this.settings,
+      activityFilters: activityFilters ?? this.activityFilters,
       reports: reports ?? this.reports,
       feedbackEntries: feedbackEntries ?? this.feedbackEntries,
       phoneInput: phoneInput ?? this.phoneInput,
@@ -160,6 +166,7 @@ class AppController extends ChangeNotifier {
         chatMessages: const {},
         savedActivityIds: const {},
         settings: AppSettings.initial(),
+        activityFilters: ActivityDiscoveryFilters.initial(),
         reports: const [],
         feedbackEntries: const [],
         errorMessage: null,
@@ -203,6 +210,7 @@ class AppController extends ChangeNotifier {
       chatMessages: const {},
       savedActivityIds: const {},
       settings: AppSettings.initial(),
+      activityFilters: ActivityDiscoveryFilters.initial(),
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -337,6 +345,7 @@ class AppController extends ChangeNotifier {
       chatMessages: const {},
       savedActivityIds: const {},
       settings: AppSettings.initial(),
+      activityFilters: ActivityDiscoveryFilters.initial(),
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -361,6 +370,7 @@ class AppController extends ChangeNotifier {
       chatMessages: const {},
       savedActivityIds: const {},
       settings: AppSettings.initial(),
+      activityFilters: ActivityDiscoveryFilters.initial(),
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -431,6 +441,7 @@ class AppController extends ChangeNotifier {
       chatMessages: const {},
       savedActivityIds: const {},
       settings: AppSettings.initial(),
+      activityFilters: ActivityDiscoveryFilters.initial(),
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -1065,30 +1076,100 @@ class AppController extends ChangeNotifier {
         .where((activity) => activity.isActiveLifecycle)
         .toList(growable: false);
 
-    if (state.filter == ActivityFilter.all) {
+    final filters = state.activityFilters;
+    if (filters.isEmpty) {
       return visibleActivities;
     }
 
-    return visibleActivities
-        .where((activity) {
-          final query = state.filter;
-          return switch (query) {
-            ActivityFilter.coffee => activity.category == 'Coffee',
-            ActivityFilter.study => activity.category == 'Study',
-            ActivityFilter.walks => activity.category == 'Walks',
-            ActivityFilter.food => activity.category == 'Food',
-            ActivityFilter.art => activity.category == 'Art',
-            ActivityFilter.music => activity.category == 'Music',
-            ActivityFilter.calm => activity.vibe == 'Calm',
-            ActivityFilter.social => activity.vibe == 'Social',
-            ActivityFilter.all => true,
-          };
-        })
-        .toList(growable: false);
+    return visibleActivities.where((activity) {
+      if (filters.today) {
+        final now = DateTime.now();
+        final isToday = activity.startTime.year == now.year &&
+            activity.startTime.month == now.month &&
+            activity.startTime.day == now.day;
+        if (!isToday) return false;
+      }
+
+      if (filters.timeSlot != null && !_matchesTimeSlot(activity, filters.timeSlot!)) {
+        return false;
+      }
+
+      if (filters.categories.isNotEmpty &&
+          !filters.categories.contains(activity.category)) {
+        return false;
+      }
+
+      if (filters.peopleRange != null &&
+          !_matchesPeopleRange(activity, filters.peopleRange!)) {
+        return false;
+      }
+
+      return true;
+    }).toList(growable: false);
+  }
+
+  void toggleTodayFilter() {
+    state = state.copyWith(
+      activityFilters: state.activityFilters.copyWith(
+        today: !state.activityFilters.today,
+      ),
+    );
+    unawaited(_persistSnapshot());
+  }
+
+  void setTimeSlotFilter(ActivityTimeSlot? timeSlot) {
+    state = state.copyWith(
+      activityFilters: state.activityFilters.copyWith(
+        timeSlot: timeSlot,
+      ),
+    );
+    unawaited(_persistSnapshot());
+  }
+
+  void toggleCategoryFilter(String category) {
+    state = state.copyWith(
+      activityFilters: state.activityFilters.toggleCategory(category),
+    );
+    unawaited(_persistSnapshot());
+  }
+
+  void setPeopleRangeFilter(ActivityPeopleRange? range) {
+    state = state.copyWith(
+      activityFilters: state.activityFilters.copyWith(
+        peopleRange: range,
+      ),
+    );
+    unawaited(_persistSnapshot());
+  }
+
+  void clearActivityFilters() {
+    state = state.copyWith(
+      activityFilters: ActivityDiscoveryFilters.initial(),
+    );
+    unawaited(_persistSnapshot());
   }
 
   Future<String?> ensureChatId(String activityId) async {
     return _resolveChatId(activityId);
+  }
+
+  bool _matchesTimeSlot(Activity activity, ActivityTimeSlot timeSlot) {
+    final hour = activity.startTime.hour;
+    return switch (timeSlot) {
+      ActivityTimeSlot.morning => hour >= 5 && hour < 12,
+      ActivityTimeSlot.afternoon => hour >= 12 && hour < 18,
+      ActivityTimeSlot.night => hour >= 18 || hour < 5,
+    };
+  }
+
+  bool _matchesPeopleRange(Activity activity, ActivityPeopleRange range) {
+    return switch (range) {
+      ActivityPeopleRange.twoToFour =>
+        activity.maxPeople >= 2 && activity.maxPeople <= 4,
+      ActivityPeopleRange.fiveToEight =>
+        activity.maxPeople >= 5 && activity.maxPeople <= 8,
+      ActivityPeopleRange.ninePlus => activity.maxPeople >= 9,
+    };
   }
 
   List<Activity> activeActivitiesForUser(String userId) {
@@ -1556,6 +1637,7 @@ class AppController extends ChangeNotifier {
           _messagesByActivityId,
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
+        activityFilters: state.activityFilters.toJson(),
         settings: state.settings.toJson(),
         reports: state.reports,
         feedbackEntries: state.feedbackEntries,
@@ -1611,6 +1693,9 @@ class AppController extends ChangeNotifier {
     final hydratedSettings = snapshot.settings.isEmpty
         ? AppSettings.initial()
         : AppSettings.fromJson(snapshot.settings);
+    final hydratedFilters = snapshot.activityFilters.isEmpty
+        ? ActivityDiscoveryFilters.initial()
+        : ActivityDiscoveryFilters.fromJson(snapshot.activityFilters);
 
     _savedActivityIds
       ..clear()
@@ -1625,6 +1710,7 @@ class AppController extends ChangeNotifier {
       chatMessages: restoredMessages,
       savedActivityIds: hydratedSavedActivityIds,
       settings: hydratedSettings,
+      activityFilters: hydratedFilters,
       reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
       errorMessage: null,

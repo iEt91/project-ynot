@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
 import 'package:ynot_mobile/src/core/models/activity.dart';
+import 'package:ynot_mobile/src/core/models/activity_filters.dart';
 import 'package:ynot_mobile/src/core/models/app_user.dart';
 import 'package:ynot_mobile/src/core/models/moderation_report.dart';
 import 'package:ynot_mobile/src/core/models/private_feedback.dart';
@@ -41,18 +42,92 @@ void main() {
         expect(store.savedClientUid, isNotNull);
         expect(store.savedPhone, '+82 10 0000 0000');
 
-        await controller.completeOnboarding(
-          nickname: 'Luna',
-          avatarEmoji: '🌙',
-          languages: const ['Korean'],
-          vibes: const ['Calm'],
-          interests: const ['Coffee'],
+      await controller.completeOnboarding(
+        nickname: 'Luna',
+        avatarEmoji: '🌙',
+        languages: const ['Korean'],
+        vibes: const ['Calm'],
+        interests: const ['Coffee'],
+      );
+
+      expect(controller.state.stage, AppStage.ready);
+      expect(controller.state.user!.profileComplete, isTrue);
+    },
+  );
+
+    test('activity discovery filters persist and apply to results', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore()
+        ..snapshot = LocalMockSnapshot(
+          user: AppUser(
+            id: 'client_001',
+            phoneMasked: '•••• 5678',
+            nickname: 'Luna',
+            avatarEmoji: '🌙',
+            bio: 'Pequeños momentos, juntos.',
+            languages: const ['Korean', 'English'],
+            vibes: const ['Calm', 'Creative'],
+            interests: const ['Coffee', 'Walks', 'Study'],
+            status: UserStatus.trusted,
+            profileComplete: true,
+            createdActivityCount: 0,
+            attendingActivityCount: 0,
+          ),
+          activities: const [],
+          messagesByActivityId: const {},
+          savedActivityIds: const [],
+          activityFilters: const {},
+          settings: const {},
+          reports: const [],
+          feedbackEntries: const [],
         );
 
-        expect(controller.state.stage, AppStage.ready);
-        expect(controller.state.user!.profileComplete, isTrue);
-      },
-    );
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final now = DateTime.now();
+      await firstController.createActivity(
+        title: 'Morning Coffee',
+        description: 'Plan perfecto para probar filtros.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        startTime: DateTime(now.year, now.month, now.day, 10, 0),
+        duration: const Duration(hours: 2),
+        maxPeople: 4,
+        realLat: 37.5563,
+        realLng: 126.9228,
+        visibility: ActivityVisibility.privateActivity,
+      );
+
+      firstController.clearActivityFilters();
+      firstController.toggleTodayFilter();
+      firstController.setTimeSlotFilter(ActivityTimeSlot.morning);
+      firstController.toggleCategoryFilter('Coffee');
+      firstController.setPeopleRangeFilter(ActivityPeopleRange.twoToFour);
+
+      final filtered = firstController.filteredActivities();
+      expect(filtered, isNotEmpty);
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.activityFilters.today, isTrue);
+      expect(secondController.state.activityFilters.timeSlot, ActivityTimeSlot.morning);
+      expect(secondController.state.activityFilters.categories, contains('Coffee'));
+      expect(
+        secondController.state.activityFilters.peopleRange,
+        ActivityPeopleRange.twoToFour,
+      );
+      expect(secondController.filteredActivities(), isNotEmpty);
+    });
 
     test(
       'create activity updates local state and is visible in the map/list',
@@ -930,6 +1005,7 @@ Future<AppController> _buildLoggedInController() async {
     activities: const [],
     messagesByActivityId: const {},
     savedActivityIds: const [],
+    activityFilters: const {},
     settings: const {},
     reports: const [],
     feedbackEntries: const [],
