@@ -1,3 +1,8 @@
+## v1.0.16.4
+- Search overlay no longer shows the pink divider under the input
+- Input focus is now handled with a subtle border instead of a full-width line
+- Tapping outside the search panel keeps dismissing the overlay on Map and Activities
+
 ## v1.0.16.3
 - Search overlay is now flatter and cleaner with one floating panel and a simple input row
 - Results appear directly below the input with dividers instead of nested cards

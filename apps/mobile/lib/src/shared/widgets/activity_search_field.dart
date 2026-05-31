@@ -67,14 +67,18 @@ class _ActivitySearchFieldState extends State<ActivitySearchField> {
   Widget build(BuildContext context) {
     final hasText = _controller.text.trim().isNotEmpty;
     final borderColor = _isFocused || hasText
-        ? const Color(0xFFFF5DB8).withValues(alpha: 0.75)
+        ? const Color(0xFFFF5DB8).withValues(alpha: 0.72)
         : Colors.white.withValues(alpha: 0.10);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
           children: [
             const Icon(
               Icons.search_rounded,
@@ -122,16 +126,6 @@ class _ActivitySearchFieldState extends State<ActivitySearchField> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          height: 1,
-          decoration: BoxDecoration(
-            color: borderColor,
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-      ],
     );
   }
 }
