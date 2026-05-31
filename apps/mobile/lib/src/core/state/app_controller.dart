@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -148,6 +148,7 @@ class AppController extends ChangeNotifier {
     AppLogger.log('BOOT', 'mode=mock');
     final localSession = await _sessionStore.peekClientUid();
     final restoredPhone = await _sessionStore.peekPhone();
+    final allowSeedData = await _shouldUseSeedData();
 
     if (localSession == null || localSession.isEmpty) {
       AppLogger.log('AUTH', 'session_restored=false');
@@ -175,8 +176,9 @@ class AppController extends ChangeNotifier {
       _hydrateFromSnapshot(
         snapshot,
         restoredMessages,
+        allowSeedData: allowSeedData,
         phoneMasked: restoredPhone == null
-            ? 'Sesión local'
+            ? 'SesiÃ³n local'
             : _maskPhone(restoredPhone),
       );
       AppLogger.log('AUTH', 'session_restored=true');
@@ -188,7 +190,7 @@ class AppController extends ChangeNotifier {
     final user = _buildDemoUser(
       localSession,
       phoneMasked: restoredPhone == null
-          ? 'Sesión local'
+          ? 'SesiÃ³n local'
           : _maskPhone(restoredPhone),
     );
 
@@ -196,7 +198,7 @@ class AppController extends ChangeNotifier {
     state = state.copyWith(
       stage: AppStage.ready,
       user: user,
-      activities: _seedActivities(),
+      activities: allowSeedData ? _seedActivities() : const [],
       chatMessages: const {},
       savedActivityIds: const {},
       settings: AppSettings.initial(),
@@ -219,7 +221,7 @@ class AppController extends ChangeNotifier {
     final phone = state.phoneInput.trim();
     if (phone.isEmpty || phone.length < 6) {
       state = state.copyWith(
-        errorMessage: 'Escribe un número de teléfono válido.',
+        errorMessage: 'Escribe un nÃºmero de telÃ©fono vÃ¡lido.',
       );
       return;
     }
@@ -310,6 +312,8 @@ class AppController extends ChangeNotifier {
   Future<void> clearLocalData() async {
     await _sessionStore.clear();
     await _mockStore.clear();
+    await _sessionStore.setMockSeedDisabledAfterWipe(true);
+    AppLogger.log('WIPE', 'local data cleared');
     _clientUid = null;
     _messagesByActivityId.clear();
     _chatIdsByActivityId.clear();
@@ -370,6 +374,7 @@ class AppController extends ChangeNotifier {
     required String clientUid,
   }) async {
     _joinResetFromStoredSession(clientUid);
+    final allowSeedData = await _shouldUseSeedData();
 
     final snapshot = await _mockStore.load();
     if (snapshot != null) {
@@ -379,6 +384,7 @@ class AppController extends ChangeNotifier {
       _hydrateFromSnapshot(
         snapshot,
         restoredMessages,
+        allowSeedData: allowSeedData,
         phoneMasked: phoneMasked,
       );
       return;
@@ -387,7 +393,7 @@ class AppController extends ChangeNotifier {
     state = state.copyWith(
       user: user,
       stage: AppStage.ready,
-      activities: _seedActivities(),
+      activities: allowSeedData ? _seedActivities() : const [],
       chatMessages: const {},
       savedActivityIds: const {},
       settings: AppSettings.initial(),
@@ -422,7 +428,7 @@ class AppController extends ChangeNotifier {
     final currentUser = state.user;
     if (currentUser == null) {
       state = state.copyWith(
-        errorMessage: 'Inicia sesión para crear una actividad.',
+        errorMessage: 'Inicia sesiÃ³n para crear una actividad.',
       );
       return;
     }
@@ -432,7 +438,7 @@ class AppController extends ChangeNotifier {
       creatorId: currentUser.id,
       creatorLabel: state.user?.nickname.isNotEmpty == true
           ? state.user!.nickname
-          : 'Tú',
+          : 'TÃº',
       isMine: true,
       title: title,
       description: description,
@@ -668,7 +674,7 @@ class AppController extends ChangeNotifier {
       chatId: chatId,
       activityId: activityId,
       senderId: user.id,
-      senderName: user.nickname.isNotEmpty ? user.nickname : 'Tú',
+      senderName: user.nickname.isNotEmpty ? user.nickname : 'TÃº',
       senderEmoji: user.avatarEmoji,
       content: text,
       createdAt: DateTime.now(),
@@ -925,7 +931,7 @@ class AppController extends ChangeNotifier {
   String? creationRestrictionMessage() {
     final currentUser = state.user;
     if (currentUser == null) {
-      return 'Inicia sesión para crear una actividad.';
+      return 'Inicia sesiÃ³n para crear una actividad.';
     }
 
     if (_hasActiveCreatedActivity(currentUser.id)) {
@@ -1091,13 +1097,13 @@ class AppController extends ChangeNotifier {
 
   String _categoryEmoji(String category) {
     return switch (category) {
-      'Coffee' => '☕',
-      'Study' => '📚',
-      'Walks' => '🌙',
-      'Food' => '🍜',
-      'Art' => '🎨',
-      'Music' => '🎵',
-      _ => '🌙',
+      'Coffee' => 'â˜•',
+      'Study' => 'ðŸ“š',
+      'Walks' => 'ðŸŒ™',
+      'Food' => 'ðŸœ',
+      'Art' => 'ðŸŽ¨',
+      'Music' => 'ðŸŽµ',
+      _ => 'ðŸŒ™',
     };
   }
 
@@ -1106,8 +1112,8 @@ class AppController extends ChangeNotifier {
       id: id,
       phoneMasked: phoneMasked,
       nickname: 'Luna',
-      avatarEmoji: '🌙',
-      bio: 'Pequeños momentos, juntos.',
+      avatarEmoji: 'ðŸŒ™',
+      bio: 'PequeÃ±os momentos, juntos.',
       languages: const ['Korean', 'English'],
       vibes: const ['Calm', 'Creative'],
       interests: const ['Coffee', 'Walks', 'Study'],
@@ -1188,9 +1194,9 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Mina',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: '☕ Café & Talk',
+        title: 'â˜• CafÃ© & Talk',
         description:
-            'Un rato suave para charlar sin presión y compartir una taza.',
+            'Un rato suave para charlar sin presiÃ³n y compartir una taza.',
         category: 'Coffee',
         vibe: 'Calm',
         zone: 'Hongdae',
@@ -1210,22 +1216,22 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_mina',
             label: 'Mina',
-            emoji: '☕',
+            emoji: 'â˜•',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_soojin',
             label: 'Soojin',
-            emoji: '✨',
+            emoji: 'âœ¨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_hana',
             label: 'Hana',
-            emoji: '🌙',
+            emoji: 'ðŸŒ™',
           ),
         ],
         myStatus: null,
         isMine: false,
-        lastMessagePreview: 'Soojin: ¿Ya llegaron?',
+        lastMessagePreview: 'Soojin: Â¿Ya llegaron?',
       ),
       Activity(
         id: 'seed_2',
@@ -1233,8 +1239,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Jisoo',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: '📚 Study Together',
-        description: 'Mesa tranquila, música suave y enfoque bonito.',
+        title: 'ðŸ“š Study Together',
+        description: 'Mesa tranquila, mÃºsica suave y enfoque bonito.',
         category: 'Study',
         vibe: 'Productive',
         zone: 'Gangnam',
@@ -1254,17 +1260,17 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_jisoo',
             label: 'Jisoo',
-            emoji: '📚',
+            emoji: 'ðŸ“š',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_jiyoon',
             label: 'Jiyoon',
-            emoji: '✨',
+            emoji: 'âœ¨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_mina',
             label: 'Mina',
-            emoji: '🌸',
+            emoji: 'ðŸŒ¸',
           ),
         ],
         myStatus: null,
@@ -1277,8 +1283,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Aria',
         activityType: ActivityType.publicEvent,
         visibility: ActivityVisibility.publicActivity,
-        title: '🌙 Night Walk',
-        description: 'Caminata suave junto al río con vibra calm y segura.',
+        title: 'ðŸŒ™ Night Walk',
+        description: 'Caminata suave junto al rÃ­o con vibra calm y segura.',
         category: 'Walks',
         vibe: 'Calm',
         zone: 'Yeouido',
@@ -1298,17 +1304,17 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_aria',
             label: 'Aria',
-            emoji: '🌙',
+            emoji: 'ðŸŒ™',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_juno',
             label: 'Juno',
-            emoji: '✨',
+            emoji: 'âœ¨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_minsu',
             label: 'Minsu',
-            emoji: '🙂',
+            emoji: 'ðŸ™‚',
           ),
         ],
         myStatus: ParticipantStatus.confirmed,
@@ -1321,7 +1327,7 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Nari',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: '🎨 Tiny Art Club',
+        title: 'ðŸŽ¨ Tiny Art Club',
         description: 'Dibujo, stickers y charla suave cerca del centro.',
         category: 'Art',
         vibe: 'Creative',
@@ -1342,12 +1348,12 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_nari',
             label: 'Nari',
-            emoji: '🎨',
+            emoji: 'ðŸŽ¨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_dami',
             label: 'Dami',
-            emoji: '🙂',
+            emoji: 'ðŸ™‚',
           ),
         ],
         myStatus: ParticipantStatus.attended,
@@ -1359,8 +1365,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Sora',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: '🍜 Late Food Run',
-        description: 'Buscar algo rico y caminar un poco después.',
+        title: 'ðŸœ Late Food Run',
+        description: 'Buscar algo rico y caminar un poco despuÃ©s.',
         category: 'Food',
         vibe: 'Social',
         zone: 'Myeongdong',
@@ -1380,17 +1386,17 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_sora',
             label: 'Sora',
-            emoji: '🍜',
+            emoji: 'ðŸœ',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_yuna',
             label: 'Yuna',
-            emoji: '✨',
+            emoji: 'âœ¨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_jiho',
             label: 'Jiho',
-            emoji: '🌙',
+            emoji: 'ðŸŒ™',
           ),
         ],
         myStatus: null,
@@ -1402,8 +1408,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Yura',
         activityType: ActivityType.publicEvent,
         visibility: ActivityVisibility.publicActivity,
-        title: '🌸 Archive Walk',
-        description: 'Paseo que ya pasó y ahora vive en el historial.',
+        title: 'ðŸŒ¸ Archive Walk',
+        description: 'Paseo que ya pasÃ³ y ahora vive en el historial.',
         category: 'Walks',
         vibe: 'Calm',
         zone: 'Seoul',
@@ -1423,23 +1429,23 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_yura',
             label: 'Yura',
-            emoji: '🌸',
+            emoji: 'ðŸŒ¸',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_ren',
             label: 'Ren',
-            emoji: '✨',
+            emoji: 'âœ¨',
           ),
         ],
         myStatus: ParticipantStatus.attended,
         isMine: false,
-        lastMessagePreview: 'Yura: Gracias por venir 💫',
+        lastMessagePreview: 'Yura: Gracias por venir ðŸ’«',
       ),
     ];
   }
 
   String _feedbackPlaceholderEmoji(int index) {
-    const emojis = ['🌸', '✨', '🙂', '🫧', '🌙', '💫'];
+    const emojis = ['ðŸŒ¸', 'âœ¨', 'ðŸ™‚', 'ðŸ«§', 'ðŸŒ™', 'ðŸ’«'];
     return emojis[index % emojis.length];
   }
 
@@ -1526,6 +1532,7 @@ class AppController extends ChangeNotifier {
   void _hydrateFromSnapshot(
     LocalMockSnapshot snapshot,
     Map<String, List<ChatMessage>> restoredMessages, {
+    required bool allowSeedData,
     required String phoneMasked,
   }) {
     _messagesByActivityId
@@ -1578,7 +1585,7 @@ class AppController extends ChangeNotifier {
     state = state.copyWith(
       stage: AppStage.ready,
       user: user,
-      activities: snapshot.activities.isEmpty
+      activities: snapshot.activities.isEmpty && allowSeedData
           ? _seedActivities()
           : hydratedActivities,
       chatMessages: restoredMessages,
@@ -1619,6 +1626,16 @@ class AppController extends ChangeNotifier {
     return _clientUid!;
   }
 
+  Future<bool> _shouldUseSeedData() async {
+    final seedDisabled = await _sessionStore.peekMockSeedDisabledAfterWipe();
+    if (seedDisabled) {
+      AppLogger.log('SEED', 'skipped after wipe');
+      return false;
+    }
+
+    return true;
+  }
+
   static String _maskPhone(String phone) {
     final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
     if (digits.length <= 4) {
@@ -1626,7 +1643,7 @@ class AppController extends ChangeNotifier {
     }
 
     final last4 = digits.substring(digits.length - 4);
-    return '•••• $last4';
+    return 'â€¢â€¢â€¢â€¢ $last4';
   }
 
   bool _hasActiveCreatedActivity(String userId) {
@@ -1686,3 +1703,4 @@ class AppController extends ChangeNotifier {
     return before.status != after.status;
   }
 }
+

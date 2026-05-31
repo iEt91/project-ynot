@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LocalSessionStore {
   static const _clientUidKey = 'ynot_client_uid';
   static const _phoneKey = 'ynot_client_phone';
+  static const _mockSeedDisabledKey = 'ynot_mock_seed_disabled_after_wipe';
 
   Future<String> getOrCreateClientUid() async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,6 +54,20 @@ class LocalSessionStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_clientUidKey);
     await prefs.remove(_phoneKey);
+  }
+
+  Future<void> setMockSeedDisabledAfterWipe(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value) {
+      await prefs.setBool(_mockSeedDisabledKey, true);
+    } else {
+      await prefs.remove(_mockSeedDisabledKey);
+    }
+  }
+
+  Future<bool> peekMockSeedDisabledAfterWipe() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_mockSeedDisabledKey) ?? false;
   }
 
   String _generateUuidV4() {

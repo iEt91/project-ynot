@@ -1,3 +1,8 @@
+## v1.0.11.1
+- Fixed local data wipe so seed data does not come back after clearing
+- Empty states remain empty after logging in again post-wipe
+- Added persistent mock seed disabled flag with deterministic wipe logs
+
 ## v1.0.11.0
 - Consistent beautiful empty states across the app
 - No activities, chats, saved, history, feedback and map states now feel intentional

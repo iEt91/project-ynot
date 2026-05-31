@@ -173,6 +173,39 @@ void main() {
       expect(mockStore.snapshot, isNull);
     });
 
+    test('local wipe disables seed data on the next login', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final controller = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(controller.state.activities, isNotEmpty);
+
+      await controller.clearLocalData();
+
+      expect(controller.state.stage, AppStage.phoneAuth);
+      expect(controller.state.activities, isEmpty);
+      expect(sessionStore.mockSeedDisabledAfterWipe, isTrue);
+
+      controller.updatePhoneInput('+82 10 0000 0000');
+      await controller.sendVerificationCode();
+      controller.updateVerificationInput('000000');
+      await controller.verifyCode();
+
+      expect(controller.state.stage, AppStage.ready);
+      expect(controller.state.activities, isEmpty);
+      expect(controller.filteredActivities(), isEmpty);
+      expect(controller.state.chatMessages, isEmpty);
+      expect(controller.savedActivities(), isEmpty);
+      expect(controller.historyActivitiesForUser(controller.state.user!.id), isEmpty);
+    });
+
     test('joined or confirmed activities can open chat from the list', () {
       final activity = Activity(
         id: 'activity_001',
@@ -817,6 +850,7 @@ class _TestSessionStore extends LocalSessionStore {
   String? phone;
   String? savedClientUid;
   String? savedPhone;
+  bool mockSeedDisabledAfterWipe = false;
 
   @override
   Future<String> getOrCreateClientUid() async {
@@ -852,6 +886,16 @@ class _TestSessionStore extends LocalSessionStore {
     phone = null;
     savedClientUid = null;
     savedPhone = null;
+  }
+
+  @override
+  Future<void> setMockSeedDisabledAfterWipe(bool value) async {
+    mockSeedDisabledAfterWipe = value;
+  }
+
+  @override
+  Future<bool> peekMockSeedDisabledAfterWipe() async {
+    return mockSeedDisabledAfterWipe;
   }
 }
 
