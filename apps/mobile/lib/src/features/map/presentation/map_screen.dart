@@ -10,7 +10,7 @@ import '../../../core/constants/app_version.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/google_maps_support.dart';
-import '../../../shared/widgets/activity_filters_bar.dart';
+import '../../../shared/widgets/activity_filters_sheet.dart';
 import '../../../shared/widgets/google_activity_map.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_bottom_nav.dart';
@@ -59,6 +59,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           letterSpacing: -0.4,
                         ),
                   ),
+                  const Spacer(),
+                  ActivityFiltersHeaderButton(
+                    onPressed: () => showActivityFiltersSheet(
+                      context,
+                      onChanged: _dismissSelectedActivity,
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -78,33 +85,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: ActivityFiltersBar(
-                filters: state.activityFilters,
-                onToggleToday: () {
-                  ref.read(appControllerProvider).toggleTodayFilter();
-                  _dismissSelectedActivity();
-                },
-                onTimeSlotSelected: (timeSlot) {
-                  ref.read(appControllerProvider).setTimeSlotFilter(timeSlot);
-                  _dismissSelectedActivity();
-                },
-                onCategoryToggled: (category) {
-                  ref.read(appControllerProvider).toggleCategoryFilter(category);
-                  _dismissSelectedActivity();
-                },
-                onPeopleRangeSelected: (range) {
-                  ref.read(appControllerProvider).setPeopleRangeFilter(range);
-                  _dismissSelectedActivity();
-                },
-                onClear: () {
-                  ref.read(appControllerProvider).clearActivityFilters();
-                  _dismissSelectedActivity();
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
             Expanded(
               child: Stack(
                 children: [

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/models/activity_filters.dart';
 import '../../app/theme.dart';
+import '../../core/models/activity_filters.dart';
 import 'kawaii_card.dart';
 
 class ActivityFiltersBar extends StatelessWidget {
@@ -13,6 +13,9 @@ class ActivityFiltersBar extends StatelessWidget {
     required this.onCategoryToggled,
     required this.onPeopleRangeSelected,
     required this.onClear,
+    this.showCard = true,
+    this.showHeader = true,
+    this.showClearButton = true,
   });
 
   final ActivityDiscoveryFilters filters;
@@ -21,6 +24,9 @@ class ActivityFiltersBar extends StatelessWidget {
   final ValueChanged<String> onCategoryToggled;
   final ValueChanged<ActivityPeopleRange?> onPeopleRangeSelected;
   final VoidCallback onClear;
+  final bool showCard;
+  final bool showHeader;
+  final bool showClearButton;
 
   static const _categories = <String, String>{
     'Coffee': 'Café',
@@ -45,11 +51,55 @@ class ActivityFiltersBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final body = _ActivityFiltersBody(
+      filters: filters,
+      onToggleToday: onToggleToday,
+      onTimeSlotSelected: onTimeSlotSelected,
+      onCategoryToggled: onCategoryToggled,
+      onPeopleRangeSelected: onPeopleRangeSelected,
+      onClear: onClear,
+      showHeader: showHeader,
+      showClearButton: showClearButton,
+    );
+
+    if (!showCard) {
+      return body;
+    }
+
     return KawaiiCard(
       padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: body,
+    );
+  }
+}
+
+class _ActivityFiltersBody extends StatelessWidget {
+  const _ActivityFiltersBody({
+    required this.filters,
+    required this.onToggleToday,
+    required this.onTimeSlotSelected,
+    required this.onCategoryToggled,
+    required this.onPeopleRangeSelected,
+    required this.onClear,
+    required this.showHeader,
+    required this.showClearButton,
+  });
+
+  final ActivityDiscoveryFilters filters;
+  final VoidCallback onToggleToday;
+  final ValueChanged<ActivityTimeSlot?> onTimeSlotSelected;
+  final ValueChanged<String> onCategoryToggled;
+  final ValueChanged<ActivityPeopleRange?> onPeopleRangeSelected;
+  final VoidCallback onClear;
+  final bool showHeader;
+  final bool showClearButton;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showHeader)
           Row(
             children: [
               Text(
@@ -59,7 +109,7 @@ class ActivityFiltersBar extends StatelessWidget {
                     ),
               ),
               const Spacer(),
-              if (!filters.isEmpty)
+              if (showClearButton && !filters.isEmpty)
                 TextButton(
                   onPressed: onClear,
                   style: TextButton.styleFrom(
@@ -70,72 +120,71 @@ class ActivityFiltersBar extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
-          _SectionLabel(text: 'Hoy'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _KawaiiFilterChip(
-                label: 'Hoy',
-                selected: filters.today,
-                onSelected: () => onToggleToday(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _SectionLabel(text: 'Horario'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _timeSlots.entries.map((entry) {
-              return _KawaiiFilterChip(
-                label: entry.value,
-                selected: filters.timeSlot == entry.key,
-                onSelected: () {
-                  onTimeSlotSelected(
-                    filters.timeSlot == entry.key ? null : entry.key,
-                  );
-                },
-              );
-            }).toList(growable: false),
-          ),
-          const SizedBox(height: 12),
-          _SectionLabel(text: 'Tipo'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _categories.entries.map((entry) {
-              return _KawaiiFilterChip(
-                label: entry.value,
-                selected: filters.categories.contains(entry.key),
-                onSelected: () => onCategoryToggled(entry.key),
-              );
-            }).toList(growable: false),
-          ),
-          const SizedBox(height: 12),
-          _SectionLabel(text: 'Personas'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _peopleRanges.entries.map((entry) {
-              return _KawaiiFilterChip(
-                label: entry.value,
-                selected: filters.peopleRange == entry.key,
-                onSelected: () {
-                  onPeopleRangeSelected(
-                    filters.peopleRange == entry.key ? null : entry.key,
-                  );
-                },
-              );
-            }).toList(growable: false),
-          ),
-        ],
-      ),
+        if (showHeader) const SizedBox(height: 8),
+        _SectionLabel(text: 'Hoy'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _KawaiiFilterChip(
+              label: 'Hoy',
+              selected: filters.today,
+              onSelected: () => onToggleToday(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _SectionLabel(text: 'Horario'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: ActivityFiltersBar._timeSlots.entries.map((entry) {
+            return _KawaiiFilterChip(
+              label: entry.value,
+              selected: filters.timeSlot == entry.key,
+              onSelected: () {
+                onTimeSlotSelected(
+                  filters.timeSlot == entry.key ? null : entry.key,
+                );
+              },
+            );
+          }).toList(growable: false),
+        ),
+        const SizedBox(height: 12),
+        _SectionLabel(text: 'Tipo'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: ActivityFiltersBar._categories.entries.map((entry) {
+            return _KawaiiFilterChip(
+              label: entry.value,
+              selected: filters.categories.contains(entry.key),
+              onSelected: () => onCategoryToggled(entry.key),
+            );
+          }).toList(growable: false),
+        ),
+        const SizedBox(height: 12),
+        _SectionLabel(text: 'Personas'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: ActivityFiltersBar._peopleRanges.entries.map((entry) {
+            return _KawaiiFilterChip(
+              label: entry.value,
+              selected: filters.peopleRange == entry.key,
+              onSelected: () {
+                onPeopleRangeSelected(
+                  filters.peopleRange == entry.key ? null : entry.key,
+                );
+              },
+            );
+          }).toList(growable: false),
+        ),
+      ],
     );
   }
 }

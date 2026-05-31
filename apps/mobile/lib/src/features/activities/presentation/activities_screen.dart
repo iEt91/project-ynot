@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/geo.dart';
-import '../../../shared/widgets/activity_filters_bar.dart';
+import '../../../shared/widgets/activity_filters_sheet.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -16,7 +16,6 @@ class ActivitiesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(appStateProvider);
     final activities = ref.read(appControllerProvider).filteredActivities();
 
     return KawaiiScene(
@@ -27,29 +26,22 @@ class ActivitiesScreen extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
-              child: Text(
-                'Actividades',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                    ),
+              child: Row(
+                children: [
+                  Text(
+                    'Actividades',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                        ),
+                  ),
+                  const Spacer(),
+                  ActivityFiltersHeaderButton(
+                    onPressed: () => showActivityFiltersSheet(context),
+                  ),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: ActivityFiltersBar(
-                filters: state.activityFilters,
-                onToggleToday: () => ref.read(appControllerProvider).toggleTodayFilter(),
-                onTimeSlotSelected: (timeSlot) =>
-                    ref.read(appControllerProvider).setTimeSlotFilter(timeSlot),
-                onCategoryToggled: (category) =>
-                    ref.read(appControllerProvider).toggleCategoryFilter(category),
-                onPeopleRangeSelected: (range) =>
-                    ref.read(appControllerProvider).setPeopleRangeFilter(range),
-                onClear: () => ref.read(appControllerProvider).clearActivityFilters(),
-              ),
-            ),
-            const SizedBox(height: 10),
             Expanded(
               child: activities.isEmpty
                   ? Center(

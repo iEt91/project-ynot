@@ -1,3 +1,8 @@
+## v1.0.15.1
+- Filters moved into a compact modal overlay from Map and Activities
+- Same activity discovery filters preserved with local persistence
+- Cleaner top-right header access to filters without occupying screen space
+
 ## v1.0.15.0
 - Activity discovery filters for today, time of day, category and group size
 - Filters apply to both the activities list and the map markers
