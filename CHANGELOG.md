@@ -1,3 +1,8 @@
+## v1.0.16.3
+- Search overlay is now flatter and cleaner with one floating panel and a simple input row
+- Results appear directly below the input with dividers instead of nested cards
+- Search logic, filters, map centering and selection behavior remain unchanged
+
 ## v1.0.16.2
 - Map search now shows matching activity results in a compact dropdown while typing
 - Tapping a search result centers the map and opens the selected activity card

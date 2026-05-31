@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'kawaii_card.dart';
-
 class ActivitySearchField extends StatefulWidget {
   const ActivitySearchField({
     super.key,
@@ -26,6 +24,21 @@ class _ActivitySearchFieldState extends State<ActivitySearchField> {
   late final TextEditingController _controller = TextEditingController(
     text: widget.value,
   );
+  late final FocusNode _focusNode = FocusNode()..addListener(_handleFocus);
+
+  bool _isFocused = false;
+
+  void _handleFocus() {
+    if (!mounted) {
+      return;
+    }
+    final focused = _focusNode.hasFocus;
+    if (_isFocused != focused) {
+      setState(() {
+        _isFocused = focused;
+      });
+    }
+  }
 
   @override
   void didUpdateWidget(covariant ActivitySearchField oldWidget) {
@@ -43,6 +56,9 @@ class _ActivitySearchFieldState extends State<ActivitySearchField> {
 
   @override
   void dispose() {
+    _focusNode
+      ..removeListener(_handleFocus)
+      ..dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -50,50 +66,72 @@ class _ActivitySearchFieldState extends State<ActivitySearchField> {
   @override
   Widget build(BuildContext context) {
     final hasText = _controller.text.trim().isNotEmpty;
+    final borderColor = _isFocused || hasText
+        ? const Color(0xFFFF5DB8).withValues(alpha: 0.75)
+        : Colors.white.withValues(alpha: 0.10);
 
-    return KawaiiCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          const Icon(Icons.search_rounded, color: Colors.white70, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              onChanged: widget.onChanged,
-              autofocus: widget.autofocus,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-              textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                hintText: 'Buscar actividad...',
-                hintStyle: TextStyle(color: Colors.white54),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.search_rounded,
+              color: Colors.white70,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                onChanged: widget.onChanged,
+                autofocus: widget.autofocus,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  hintText: 'Buscar actividad...',
+                  hintStyle: TextStyle(color: Colors.white54),
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
             ),
-          ),
-          IconButton(
-            onPressed: () {
-              if (_controller.text.trim().isEmpty) {
-                widget.onDismiss?.call();
-                return;
-              }
-              _controller.clear();
-              widget.onClear?.call();
-              widget.onChanged('');
-            },
-            icon: Icon(
-              hasText ? Icons.close_rounded : Icons.close_rounded,
+            IconButton(
+              onPressed: () {
+                if (_controller.text.trim().isEmpty) {
+                  widget.onDismiss?.call();
+                  return;
+                }
+                _controller.clear();
+                widget.onClear?.call();
+                widget.onChanged('');
+              },
+              icon: const Icon(Icons.close_rounded),
+              color: Colors.white70,
+              tooltip: hasText ? 'Limpiar búsqueda' : 'Cerrar',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             ),
-            color: Colors.white70,
-            tooltip: hasText ? 'Limpiar búsqueda' : 'Cerrar',
-            visualDensity: VisualDensity.compact,
+          ],
+        ),
+        const SizedBox(height: 8),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 1,
+          decoration: BoxDecoration(
+            color: borderColor,
+            borderRadius: BorderRadius.circular(999),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
