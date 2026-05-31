@@ -44,9 +44,10 @@ class ActivitiesScreen extends ConsumerWidget {
             ),
             Expanded(
               child: activities.isEmpty
-                  ? Center(
+                  ? Align(
+                      alignment: Alignment.topCenter,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
                         child: KawaiiEmptyState(
                           emoji: '✨',
                           title: 'No encontramos actividades con esos filtros.',

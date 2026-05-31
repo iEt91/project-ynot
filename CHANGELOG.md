@@ -1,3 +1,8 @@
+## v1.0.15.2
+- Map header now keeps the version badge next to the title and moves the filters button to the right
+- Activities empty state is now compact and content-sized instead of tall and centered
+- Filter modal behavior and persistence remain unchanged
+
 ## v1.0.15.1
 - Filters moved into a compact modal overlay from Map and Activities
 - Same activity discovery filters preserved with local persistence

@@ -59,13 +59,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           letterSpacing: -0.4,
                         ),
                   ),
-                  const Spacer(),
-                  ActivityFiltersHeaderButton(
-                    onPressed: () => showActivityFiltersSheet(
-                      context,
-                      onChanged: _dismissSelectedActivity,
-                    ),
-                  ),
                   const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -80,6 +73,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                           ),
+                    ),
+                  ),
+                  const Spacer(),
+                  ActivityFiltersHeaderButton(
+                    onPressed: () => showActivityFiltersSheet(
+                      context,
+                      onChanged: _dismissSelectedActivity,
                     ),
                   ),
                 ],
