@@ -1,3 +1,8 @@
+## v1.0.17.2
+- Create and edit activities now use a full-screen location picker instead of an embedded interactive map
+- The picker keeps the fixed center pin UX and returns the selected coordinates to the form
+- The create/edit form stays compact and no longer fights with vertical scrolling
+
 ## v1.0.17.1
 - Edit activity now opens from the activity detail screen for organizers
 - Create activity screen now works in edit mode with prefilled fields and save changes

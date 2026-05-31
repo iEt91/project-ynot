@@ -7,11 +7,10 @@ import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/google_maps_support.dart';
-import '../../../shared/widgets/google_activity_map.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
+import '../../profile/presentation/profile_back_button.dart';
 import '../../../shared/widgets/status_pill.dart';
 
 class ActivityFormSeed {
@@ -50,6 +49,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
   Duration _duration = const Duration(hours: 2);
   double _lat = 37.5563;
   double _lng = 126.9228;
+
   bool get _isEditing => widget.editingActivity != null;
 
   @override
@@ -95,6 +95,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
         : controller.creationRestrictionMessage();
     final theme = Theme.of(context);
     final submitLabel = _isEditing ? 'Guardar cambios' : 'Publicar actividad';
+    final selectedLocationLabel = _zone;
 
     return Scaffold(
       body: KawaiiScene(
@@ -104,10 +105,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
             children: [
               Row(
                 children: [
-                  _RoundIcon(
-                    icon: Icons.arrow_back_rounded,
-                    onTap: () => context.pop(),
-                  ),
+                  ProfileBackButton(onTap: () => context.pop()),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -120,9 +118,23 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                       ),
                     ),
                   ),
-                  _RoundIcon(
-                    icon: Icons.close_rounded,
+                  InkWell(
+                    borderRadius: BorderRadius.circular(999),
                     onTap: () => context.pop(),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: YnotTheme.surface2.withValues(alpha: 0.96),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: YnotTheme.border),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -163,7 +175,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: 'Categor?a'),
+                      const _SectionLabel(text: 'Categoría'),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
@@ -171,51 +183,51 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         children: [
                           _CategoryChip(
                             value: 'Coffee',
-                            emoji: '?',
+                            emoji: '☕',
                             selected: _category == 'Coffee',
                             onTap: () => setState(() => _category = 'Coffee'),
                           ),
                           _CategoryChip(
                             value: 'Study',
-                            emoji: '??',
+                            emoji: '📚',
                             selected: _category == 'Study',
                             onTap: () => setState(() => _category = 'Study'),
                           ),
                           _CategoryChip(
                             value: 'Walks',
-                            emoji: '??',
+                            emoji: '🌙',
                             selected: _category == 'Walks',
                             onTap: () => setState(() => _category = 'Walks'),
                           ),
                           _CategoryChip(
                             value: 'Food',
-                            emoji: '??',
+                            emoji: '🍜',
                             selected: _category == 'Food',
                             onTap: () => setState(() => _category = 'Food'),
                           ),
                           _CategoryChip(
                             value: 'Art',
-                            emoji: '??',
+                            emoji: '🎨',
                             selected: _category == 'Art',
                             onTap: () => setState(() => _category = 'Art'),
                           ),
                           _CategoryChip(
                             value: 'Music',
-                            emoji: '??',
+                            emoji: '🎧',
                             selected: _category == 'Music',
                             onTap: () => setState(() => _category = 'Music'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: 'Visibilidad'),
+                      const _SectionLabel(text: 'Visibilidad'),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           _VibeChip(
-                            label: 'P?blica',
+                            label: 'Pública',
                             selected:
                                 _visibility ==
                                 ActivityVisibility.publicActivity,
@@ -237,7 +249,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: 'Vibe'),
+                      const _SectionLabel(text: 'Vibe'),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
@@ -271,7 +283,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: '?Cu?ntas personas?'),
+                      const _SectionLabel(text: '¿Cuántas personas?'),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -286,6 +298,15 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                             child: LayoutBuilder(
                               builder: (context, constraints) {
                                 final compact = constraints.maxWidth < 220;
+                                final pill = StatusPill(
+                                  label: _maxPeople <= 4
+                                      ? 'Íntimo'
+                                      : _maxPeople <= 6
+                                      ? 'Suave'
+                                      : 'Social',
+                                  icon: '✨',
+                                  color: Colors.pinkAccent,
+                                );
                                 return Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
@@ -302,6 +323,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                       ? Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
                                               'Hasta $_maxPeople personas',
@@ -315,15 +337,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                             const SizedBox(height: 8),
                                             Align(
                                               alignment: Alignment.centerRight,
-                                              child: StatusPill(
-                                                label: _maxPeople <= 4
-                                                    ? '?ntimo'
-                                                    : _maxPeople <= 6
-                                                    ? 'Suave'
-                                                    : 'Social',
-                                                icon: '??',
-                                                color: Colors.pinkAccent,
-                                              ),
+                                              child: pill,
                                             ),
                                           ],
                                         )
@@ -334,9 +348,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                                 'Hasta $_maxPeople personas',
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: theme
-                                                    .textTheme
-                                                    .titleSmall
+                                                style: theme.textTheme.titleSmall
                                                     ?.copyWith(
                                                       fontWeight:
                                                           FontWeight.w800,
@@ -350,15 +362,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                                 fit: BoxFit.scaleDown,
                                                 alignment:
                                                     Alignment.centerRight,
-                                                child: StatusPill(
-                                                  label: _maxPeople <= 4
-                                                      ? '?ntimo'
-                                                      : _maxPeople <= 6
-                                                      ? 'Suave'
-                                                      : 'Social',
-                                                  icon: '??',
-                                                  color: Colors.pinkAccent,
-                                                ),
+                                                child: pill,
                                               ),
                                             ),
                                           ],
@@ -377,7 +381,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: '?Cu?ndo?'),
+                      const _SectionLabel(text: '¿Cuándo?'),
                       const SizedBox(height: 8),
                       FilledButton.tonal(
                         onPressed: () async {
@@ -458,86 +462,93 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Duraci?n: ${formatDurationLabel(_duration)}',
+                        'Duración: ${formatDurationLabel(_duration)}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: '?D?nde?'),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Mueve el mapa para elegir el punto.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      const _SectionLabel(text: 'Ubicación'),
                       const SizedBox(height: 10),
-                      SizedBox(
-                        height: 250,
-                        child: canUseGoogleMaps()
-                            ? Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Positioned.fill(
-                                    child: _MapPicker(
-                                      initialLocation: LatLng(_lat, _lng),
-                                      onCameraIdleChanged: (lat, lng) {
-                                        setState(() {
-                                          _lat = lat;
-                                          _lng = lng;
-                                          _zone = _zoneFromLocation(lat, lng);
-                                        });
-                                      },
+                      KawaiiCard(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: YnotTheme.surface2.withValues(
+                                      alpha: 0.92,
                                     ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: YnotTheme.border),
                                   ),
-                                  IgnorePointer(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.place_rounded,
-                                          size: 44,
-                                          color: YnotTheme.primary,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: YnotTheme.primary,
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: YnotTheme.primary
-                                                    .withValues(alpha: 0.45),
-                                                blurRadius: 18,
-                                                spreadRadius: 2,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  child: Icon(
+                                    Icons.place_rounded,
+                                    color: YnotTheme.primary,
                                   ),
-                                ],
-                              )
-                            : _StaticZonePicker(
-                                zone: _zone,
-                                onSelected: (zone, lat, lng) {
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        selectedLocationLabel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Se mostrará una ubicación aproximada por seguridad.',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.tonal(
+                                onPressed: () async {
+                                  final picked = await context.push<LatLng?>(
+                                    '/location-picker',
+                                    extra: LatLng(_lat, _lng),
+                                  );
+                                  if (!context.mounted || picked == null) {
+                                    return;
+                                  }
                                   setState(() {
-                                    _zone = zone;
-                                    _lat = lat;
-                                    _lng = lng;
+                                    _lat = picked.latitude;
+                                    _lng = picked.longitude;
+                                    _zone = _zoneFromLocation(
+                                      picked.latitude,
+                                      picked.longitude,
+                                    );
                                   });
                                 },
+                                child: const Text('Elegir en mapa'),
                               ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Se mostrar? una ubicaci?n aproximada por seguridad.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ],
                         ),
                       ),
                       if (creationBlockMessage != null) ...[
@@ -755,162 +766,4 @@ class _RoundStepButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StaticZonePicker extends StatelessWidget {
-  const _StaticZonePicker({required this.zone, required this.onSelected});
-
-  final String zone;
-  final void Function(String zone, double lat, double lng) onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final zones = <String, ({double lat, double lng, String emoji})>{
-      'Hongdae': (lat: 37.5563, lng: 126.9228, emoji: '☕'),
-      'Gangnam': (lat: 37.4981, lng: 127.0276, emoji: '✨'),
-      'Yeouido': (lat: 37.5219, lng: 126.9141, emoji: '🌙'),
-      'Insadong': (lat: 37.5744, lng: 126.9838, emoji: '🎨'),
-      'Myeongdong': (lat: 37.5636, lng: 126.9826, emoji: '🍜'),
-    };
-
-    return KawaiiCard(
-      padding: EdgeInsets.zero,
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0A1224), Color(0xFF050810)],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(child: CustomPaint(painter: _CityGridPainter())),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: zones.entries
-                      .map((entry) {
-                        final selectedZone = zone == entry.key;
-                        return GestureDetector(
-                          onTap: () => onSelected(
-                            entry.key,
-                            entry.value.lat,
-                            entry.value.lng,
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selectedZone
-                                  ? Colors.pinkAccent.withValues(alpha: 0.26)
-                                  : YnotTheme.surface2.withValues(alpha: 0.96),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: selectedZone
-                                    ? Colors.pinkAccent
-                                    : YnotTheme.border,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(entry.value.emoji),
-                                const SizedBox(width: 6),
-                                Text(entry.key),
-                              ],
-                            ),
-                          ),
-                        );
-                      })
-                      .toList(growable: false),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MapPicker extends StatelessWidget {
-  const _MapPicker({
-    required this.initialLocation,
-    required this.onCameraIdleChanged,
-  });
-
-  final LatLng initialLocation;
-  final void Function(double lat, double lng) onCameraIdleChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: GoogleActivityMap(
-        activities: const [],
-        interactive: true,
-        initialCameraPosition: CameraPosition(
-          target: initialLocation,
-          zoom: 14.5,
-          bearing: 0,
-          tilt: 0,
-        ),
-        onCameraIdlePositionChanged: (position) {
-          onCameraIdleChanged(position.latitude, position.longitude);
-        },
-      ),
-    );
-  }
-}
-
-class _RoundIcon extends StatelessWidget {
-  const _RoundIcon({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: YnotTheme.surface2.withValues(alpha: 0.96),
-          shape: BoxShape.circle,
-          border: Border.all(color: YnotTheme.border),
-        ),
-        child: Icon(icon, size: 18, color: Colors.white),
-      ),
-    );
-  }
-}
-
-class _CityGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = YnotTheme.purple.withValues(alpha: 0.04)
-      ..strokeWidth = 1;
-
-    for (var i = 0; i < 6; i++) {
-      final y = size.height / 6 * i;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-
-    for (var i = 0; i < 6; i++) {
-      final x = size.width / 6 * i;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

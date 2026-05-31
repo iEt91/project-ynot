@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../features/activities/presentation/activity_detail_screen.dart';
 import '../features/activities/presentation/create_activity_screen.dart';
+import '../features/activities/presentation/location_picker_screen.dart';
 import '../features/chat/presentation/chat_thread_screen.dart';
 import '../core/models/activity.dart';
 import '../core/models/moderation_report.dart';
@@ -77,6 +78,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             return CreateActivityScreen(editingActivity: extra);
           }
           return const CreateActivityScreen();
+        },
+      ),
+      GoRoute(
+        path: '/location-picker',
+        builder: (context, state) {
+          final initial = state.extra is LatLng
+              ? state.extra as LatLng
+              : const LatLng(37.5563, 126.9228);
+          return LocationPickerScreen(initialLocation: initial);
         },
       ),
       GoRoute(
