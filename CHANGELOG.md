@@ -1,3 +1,8 @@
+## v1.0.17.0
+- Complete activity detail screen added for Map and Activities entry points
+- Detail now shows organizer, attendees, capacity, status and main actions in one place
+- Existing local join, leave, delete and chat actions are reused without backend changes
+
 ## v1.0.16.4
 - Search overlay no longer shows the pink divider under the input
 - Input focus is now handled with a subtle border instead of a full-width line

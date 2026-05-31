@@ -43,10 +43,7 @@ class ActivitiesScreen extends ConsumerWidget {
                     onPressed: () => showActivitySearchSheet(
                       context,
                       onActivitySelected: (activity) {
-                        final route = activity.isJoinedOrConfirmed
-                            ? '/chat/${activity.id}'
-                            : '/activity/${activity.id}';
-                        context.push(route);
+                        context.push('/activity/${activity.id}');
                       },
                     ),
                   ),
@@ -86,12 +83,9 @@ class ActivitiesScreen extends ConsumerWidget {
                       ),
                       itemBuilder: (context, index) {
                         final activity = activities[index];
-                        final route = activity.isJoinedOrConfirmed
-                            ? '/chat/${activity.id}'
-                            : '/activity/${activity.id}';
                         return _ActivityListItem(
                           activity: activity,
-                          onTap: () => context.push(route),
+                          onTap: () => context.push('/activity/${activity.id}'),
                         );
                       },
                     ),
