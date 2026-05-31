@@ -288,6 +288,30 @@ class AppController extends ChangeNotifier {
     unawaited(_persistSnapshot());
   }
 
+  Future<void> updateProfile({
+    required String nickname,
+    required String avatarEmoji,
+    required String bio,
+    required List<String> languages,
+    required List<String> vibes,
+    required List<String> interests,
+  }) async {
+    final currentUser = state.user;
+    if (currentUser == null) return;
+
+    state = state.copyWith(
+      user: currentUser.copyWith(
+        nickname: safeDisplayText(nickname, fallback: 'Luna'),
+        avatarEmoji: safeDisplayText(avatarEmoji, fallback: '🌙'),
+        bio: safeDisplayText(bio, fallback: 'Pequeños momentos, juntos.'),
+        languages: languages,
+        vibes: vibes,
+        interests: interests,
+      ),
+    );
+    unawaited(_persistSnapshot());
+  }
+
   void signOut() {
     AppLogger.log('AUTH', 'logout');
     unawaited(_sessionStore.clear());

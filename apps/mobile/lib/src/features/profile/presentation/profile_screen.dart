@@ -30,75 +30,90 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           if (user == null)
             const KawaiiCard(child: Text('No encontramos una sesión activa.'))
-          else ...[
+          else
             KawaiiCard(
               padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  if (user.photoUrl != null && user.photoUrl!.isNotEmpty)
-                    ClipOval(
-                      child: Image.network(
-                        user.photoUrl!,
-                        width: 82,
-                        height: 82,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  else
-                    KawaiiAvatar(
-                      emoji: safeDisplayText(user.avatarEmoji, fallback: '🌙'),
-                      size: 82,
-                      accentColor: YnotTheme.primary,
-                    ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          safeDisplayText(user.nickname, fallback: 'Luna'),
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          safePhoneDisplay(user.phoneMasked),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        if (safeDisplayText(
-                              user.bio,
-                              fallback: 'Pequeños momentos, juntos.',
-                            ).isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            safeDisplayText(
-                              user.bio,
-                              fallback: 'Pequeños momentos, juntos.',
-                            ),
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => context.push('/edit-profile'),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Row(
+                    children: [
+                      if (user.photoUrl != null && user.photoUrl!.isNotEmpty)
+                        ClipOval(
+                          child: Image.network(
+                            user.photoUrl!,
+                            width: 82,
+                            height: 82,
+                            fit: BoxFit.cover,
                           ),
-                        ],
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                        )
+                      else
+                        KawaiiAvatar(
+                          emoji: safeDisplayText(user.avatarEmoji, fallback: '🌙'),
+                          size: 82,
+                          accentColor: YnotTheme.primary,
+                        ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            StatusPill(label: 'Calm', color: YnotTheme.primary),
-                            StatusPill(label: 'Social', color: YnotTheme.purple),
+                            Text(
+                              safeDisplayText(user.nickname, fallback: 'Luna'),
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              safePhoneDisplay(user.phoneMasked),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              safeDisplayText(
+                                user.bio,
+                                fallback: 'Pequeños momentos, juntos.',
+                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                StatusPill(label: 'Calm', color: YnotTheme.primary),
+                                StatusPill(label: 'Social', color: YnotTheme.purple),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: YnotTheme.surface.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: YnotTheme.border),
+                        ),
+                        child: const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ],
           const SizedBox(height: 14),
           KawaiiCard(
             child: Column(

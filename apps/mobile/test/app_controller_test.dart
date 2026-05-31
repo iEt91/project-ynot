@@ -819,6 +819,45 @@ void main() {
       expect(secondController.state.feedbackEntries, hasLength(1));
     });
 
+    test('editable profile persists locally and survives restart', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      await firstController.updateProfile(
+        nickname: 'Mina',
+        avatarEmoji: '☕',
+        bio: 'Café suave y charla bonita.',
+        languages: const ['Spanish', 'English'],
+        vibes: const ['Calm', 'Social'],
+        interests: const ['Coffee', 'Walks'],
+      );
+
+      expect(firstController.state.user!.nickname, 'Mina');
+      expect(firstController.state.user!.avatarEmoji, '☕');
+      expect(firstController.state.user!.bio, 'Café suave y charla bonita.');
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.user, isNotNull);
+      expect(secondController.state.user!.nickname, 'Mina');
+      expect(secondController.state.user!.avatarEmoji, '☕');
+      expect(secondController.state.user!.bio, 'Café suave y charla bonita.');
+      expect(secondController.state.user!.languages, ['Spanish', 'English']);
+      expect(secondController.state.user!.vibes, ['Calm', 'Social']);
+      expect(secondController.state.user!.interests, ['Coffee', 'Walks']);
+    });
+
     test('restored profile text is sanitized to safe defaults', () {
       final user = AppUser.fromJson({
         'id': 'client_001',

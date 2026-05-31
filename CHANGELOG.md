@@ -1,3 +1,8 @@
+## v1.0.13.0
+- Editable profile screen in mock/local mode
+- Local profile changes persist across restarts
+- Profile card now opens edit profile with compact chip-based controls
+
 ## v1.0.12.0
 - Settings screen simplified and polished for local/mock mode
 - Account, preferences and data sections now match the current product state

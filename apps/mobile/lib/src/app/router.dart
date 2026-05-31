@@ -7,6 +7,7 @@ import '../features/activities/presentation/create_activity_screen.dart';
 import '../features/chat/presentation/chat_thread_screen.dart';
 import '../core/models/moderation_report.dart';
 import 'app.dart';
+import '../features/profile/presentation/edit_profile_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/activity_history_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/my_activities_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/saved_activities_screen.dart';
@@ -78,6 +79,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/saved',
         builder: (context, state) => const SavedActivitiesScreen(),
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
       ),
       GoRoute(
         path: '/settings',
