@@ -11,15 +11,18 @@ import 'package:ynot_mobile/src/core/state/app_controller.dart';
 
 void main() {
   group('AppController mock flows', () {
-    test('existing complete local session restores the app on startup', () async {
-      final controller = await _buildLoggedInController();
+    test(
+      'existing complete local session restores the app on startup',
+      () async {
+        final controller = await _buildLoggedInController();
 
-      expect(controller.state.stage, AppStage.ready);
-      expect(controller.state.user, isNotNull);
-      expect(controller.state.user!.id, 'client_001');
-      expect(controller.state.user!.phoneMasked, contains('5678'));
-      expect(controller.state.activities, isNotEmpty);
-    });
+        expect(controller.state.stage, AppStage.ready);
+        expect(controller.state.user, isNotNull);
+        expect(controller.state.user!.id, 'client_001');
+        expect(controller.state.user!.phoneMasked, contains('5678'));
+        expect(controller.state.activities, isNotEmpty);
+      },
+    );
 
     test(
       'login with demo code opens onboarding when profile is incomplete',
@@ -42,18 +45,18 @@ void main() {
         expect(store.savedClientUid, isNotNull);
         expect(store.savedPhone, '+82 10 0000 0000');
 
-      await controller.completeOnboarding(
-        nickname: 'Luna',
-        avatarEmoji: '🌙',
-        languages: const ['Korean'],
-        vibes: const ['Calm'],
-        interests: const ['Coffee'],
-      );
+        await controller.completeOnboarding(
+          nickname: 'Luna',
+          avatarEmoji: '🌙',
+          languages: const ['Korean'],
+          vibes: const ['Calm'],
+          interests: const ['Coffee'],
+        );
 
-      expect(controller.state.stage, AppStage.ready);
-      expect(controller.state.user!.profileComplete, isTrue);
-    },
-  );
+        expect(controller.state.stage, AppStage.ready);
+        expect(controller.state.user!.profileComplete, isTrue);
+      },
+    );
 
     test('activity discovery filters persist and apply to results', () async {
       final sessionStore = _TestSessionStore(
@@ -120,8 +123,14 @@ void main() {
       );
 
       expect(secondController.state.activityFilters.today, isTrue);
-      expect(secondController.state.activityFilters.timeSlot, ActivityTimeSlot.morning);
-      expect(secondController.state.activityFilters.categories, contains('Coffee'));
+      expect(
+        secondController.state.activityFilters.timeSlot,
+        ActivityTimeSlot.morning,
+      );
+      expect(
+        secondController.state.activityFilters.categories,
+        contains('Coffee'),
+      );
       expect(
         secondController.state.activityFilters.peopleRange,
         ActivityPeopleRange.twoToFour,
@@ -297,11 +306,18 @@ void main() {
 
       expect(controller.state.activities, hasLength(1));
       expect(controller.state.activities.first.title, '🌸 Archive Walk');
-      expect(controller.state.activities.first.description,
-          'Paseo que ya pasó y ahora vive en el historial.');
-      expect(controller.state.activities.first.lastMessagePreview,
-          'Yura: Gracias por venir 💫');
-      expect(controller.state.activities.first.feedbackTargets.first.emoji, '🌸');
+      expect(
+        controller.state.activities.first.description,
+        'Paseo que ya pasó y ahora vive en el historial.',
+      );
+      expect(
+        controller.state.activities.first.lastMessagePreview,
+        'Yura: Gracias por venir 💫',
+      );
+      expect(
+        controller.state.activities.first.feedbackTargets.first.emoji,
+        '🌸',
+      );
     });
 
     test(
@@ -459,7 +475,10 @@ void main() {
       expect(controller.filteredActivities(), isEmpty);
       expect(controller.state.chatMessages, isEmpty);
       expect(controller.savedActivities(), isEmpty);
-      expect(controller.historyActivitiesForUser(controller.state.user!.id), isEmpty);
+      expect(
+        controller.historyActivitiesForUser(controller.state.user!.id),
+        isEmpty,
+      );
 
       await controller.completeOnboarding(
         nickname: 'Luna',
@@ -503,7 +522,8 @@ void main() {
 
       expect(activity.isJoinedOrConfirmed, isTrue);
       expect(
-        activity.copyWith(myStatus: ParticipantStatus.joinedPendingConfirmation)
+        activity
+            .copyWith(myStatus: ParticipantStatus.joinedPendingConfirmation)
             .isJoinedOrConfirmed,
         isTrue,
       );
@@ -706,10 +726,7 @@ void main() {
         );
 
         final activityId = controller.state.activities.first.id;
-        expect(
-          controller.state.activities.first.status,
-          ActivityStatus.open,
-        );
+        expect(controller.state.activities.first.status, ActivityStatus.open);
 
         expect(await controller.startActivity(activityId), isTrue);
         expect(
@@ -727,7 +744,8 @@ void main() {
           isFalse,
         );
         expect(
-          controller.historyActivitiesForUser(controller.state.user!.id)
+          controller
+              .historyActivitiesForUser(controller.state.user!.id)
               .any((item) => item.id == activityId),
           isTrue,
         );
@@ -739,7 +757,8 @@ void main() {
           ActivityStatus.archived,
         );
         expect(
-          controller.historyActivitiesForUser(controller.state.user!.id)
+          controller
+              .historyActivitiesForUser(controller.state.user!.id)
               .any((item) => item.id == activityId),
           isTrue,
         );
@@ -801,27 +820,15 @@ void main() {
       await controller.confirmAttendance(activityId);
       await controller.sendChatMessage(activityId, 'Antes de terminar');
 
-      expect(
-        controller.state.chatMessages[activityId],
-        isNotNull,
-      );
-      expect(
-        controller.state.chatMessages[activityId],
-        hasLength(1),
-      );
+      expect(controller.state.chatMessages[activityId], isNotNull);
+      expect(controller.state.chatMessages[activityId], hasLength(1));
 
       expect(await controller.startActivity(activityId), isTrue);
-      expect(
-        controller.state.activities.first.status,
-        ActivityStatus.ongoing,
-      );
+      expect(controller.state.activities.first.status, ActivityStatus.ongoing);
       expect(await controller.finishActivity(activityId), isTrue);
       await controller.sendChatMessage(activityId, 'No debería entrar');
 
-      expect(
-        controller.state.chatMessages[activityId],
-        hasLength(1),
-      );
+      expect(controller.state.chatMessages[activityId], hasLength(1));
       expect(
         controller.filteredActivities().any((item) => item.id == activityId),
         isFalse,
@@ -870,11 +877,7 @@ void main() {
         final activity = controller.state.activities.first.copyWith(
           confirmedCount: 8,
           feedbackTargets: [
-            ActivityFeedbackTarget(
-              userId: userId,
-              label: 'Tú',
-              emoji: '🌙',
-            ),
+            ActivityFeedbackTarget(userId: userId, label: 'Tú', emoji: '🌙'),
             const ActivityFeedbackTarget(
               userId: 'participant_001',
               label: 'Mina',
@@ -923,7 +926,10 @@ void main() {
         isFalse,
       );
       expect(controller.state.reports, hasLength(1));
-      expect(controller.state.reports.first.targetType, ReportTargetType.activity);
+      expect(
+        controller.state.reports.first.targetType,
+        ReportTargetType.activity,
+      );
       expect(controller.state.reports.first.reason, ReportReason.noShow);
     });
 
@@ -945,7 +951,9 @@ void main() {
           realLng: 126.9228,
         );
 
-        final createdId = controller.state.activities.first.id;
+        final createdId = controller.state.activities
+            .firstWhere((activity) => activity.title == 'Cafe Talk')
+            .id;
         await controller.joinActivity(createdId);
         await controller.confirmAttendance(createdId);
         await controller.sendChatMessage(createdId, 'Hola');
@@ -982,6 +990,105 @@ void main() {
           ),
           isTrue,
         );
+      },
+    );
+
+    test(
+      'editing activity updates the existing item without creating a new one',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore()
+          ..snapshot = LocalMockSnapshot(
+            user: AppUser(
+              id: 'client_001',
+              phoneMasked: '???? 5678',
+              nickname: 'Luna',
+              avatarEmoji: '??',
+              bio: 'Peque?os momentos, juntos.',
+              languages: const ['Korean', 'English'],
+              vibes: const ['Calm', 'Creative'],
+              interests: const ['Coffee', 'Walks', 'Study'],
+              status: UserStatus.trusted,
+              profileComplete: true,
+              createdActivityCount: 1,
+              attendingActivityCount: 1,
+            ),
+            activities: [
+              Activity(
+                id: 'activity_edit_me',
+                creatorId: 'client_001',
+                creatorLabel: 'Luna',
+                activityType: ActivityType.userActivity,
+                visibility: ActivityVisibility.publicActivity,
+                title: 'Original Plan',
+                description: 'Actividad base para editar.',
+                category: 'Coffee',
+                vibe: 'Calm',
+                zone: 'Hongdae',
+                status: ActivityStatus.open,
+                realLat: 37.5563,
+                realLng: 126.9228,
+                displayLat: 37.5563,
+                displayLng: 126.9228,
+                locationPrivacyRadiusM: 120,
+                exactLocationUnlockAt: DateTime(2026, 6, 3, 17, 50),
+                startTime: DateTime(2026, 6, 3, 18, 0),
+                endTime: DateTime(2026, 6, 3, 20, 0),
+                maxPeople: 5,
+                confirmedCount: 1,
+                pendingCount: 0,
+                feedbackTargets: const [],
+                myStatus: ParticipantStatus.confirmed,
+                isMine: true,
+                lastMessagePreview: '',
+                unreadMessageCount: 0,
+              ),
+            ],
+            messagesByActivityId: const {},
+            savedActivityIds: const [],
+            activityFilters: const {},
+            settings: const {},
+            reports: const [],
+            feedbackEntries: const [],
+          );
+        final controller = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        final createdId = controller.state.activities
+            .firstWhere((activity) => activity.id == 'activity_edit_me')
+            .id;
+        final previousLength = controller.state.activities.length;
+
+        final updated = await controller.updateActivity(
+          activityId: createdId,
+          title: 'Plan editado',
+          description: 'Texto actualizado.',
+          category: 'Study',
+          vibe: 'Social',
+          zone: 'Gangnam',
+          startTime: DateTime(2026, 6, 4, 19, 0),
+          duration: const Duration(hours: 3),
+          maxPeople: 6,
+          realLat: 37.4981,
+          realLng: 127.0276,
+        );
+
+        expect(updated, isTrue);
+        expect(controller.state.activities, hasLength(previousLength));
+
+        final edited = controller.state.activities.firstWhere(
+          (activity) => activity.id == createdId,
+        );
+        expect(edited.title, 'Plan editado');
+        expect(edited.description, 'Texto actualizado.');
+        expect(edited.category, 'Study');
+        expect(edited.vibe, 'Social');
+        expect(edited.zone, 'Gangnam');
       },
     );
 

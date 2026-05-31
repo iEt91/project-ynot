@@ -33,9 +33,9 @@ class ActivitiesScreen extends ConsumerWidget {
                   Text(
                     'Actividades',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
                   ),
                   const Spacer(),
                   ActivitySearchHeaderButton(
@@ -98,10 +98,7 @@ class ActivitiesScreen extends ConsumerWidget {
 }
 
 class _ActivityListItem extends StatelessWidget {
-  const _ActivityListItem({
-    required this.activity,
-    required this.onTap,
-  });
+  const _ActivityListItem({required this.activity, required this.onTap});
 
   final Activity activity;
   final VoidCallback onTap;
@@ -138,8 +135,9 @@ class _ActivityListItem extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                      activity.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          activity.title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.2,
                               ),
@@ -156,9 +154,9 @@ class _ActivityListItem extends StatelessWidget {
                   Text(
                     activity.description,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          height: 1.35,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.35,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -168,16 +166,29 @@ class _ActivityListItem extends StatelessWidget {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _MetaText(text: '${_formatDate(activity.startTime)} · ${_formatHour(activity.startTime)}'),
-                      _MetaText(text: '${distance.toStringAsFixed(distance < 1 ? 2 : 1)} km'),
-                      _MetaText(text: '${activity.confirmedCount}/${activity.maxPeople} asistentes'),
+                      _MetaText(
+                        text:
+                            '${_formatDate(activity.startTime)} · ${_formatHour(activity.startTime)}',
+                      ),
+                      _MetaText(
+                        text:
+                            '${distance.toStringAsFixed(distance < 1 ? 2 : 1)} km',
+                      ),
+                      _MetaText(
+                        text:
+                            '${activity.confirmedCount}/${activity.maxPeople} asistentes',
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 28),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white70,
+              size: 28,
+            ),
           ],
         ),
       ),
@@ -265,9 +276,9 @@ class _MetaText extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 }

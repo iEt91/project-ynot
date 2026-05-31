@@ -1,3 +1,8 @@
+## v1.0.17.1
+- Edit activity now opens from the activity detail screen for organizers
+- Create activity screen now works in edit mode with prefilled fields and save changes
+- Location picking uses a fixed center pin and the map center becomes the selected point
+
 ## v1.0.17.0
 - Complete activity detail screen added for Map and Activities entry points
 - Detail now shows organizer, attendees, capacity, status and main actions in one place

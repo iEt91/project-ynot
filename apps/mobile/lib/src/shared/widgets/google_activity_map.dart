@@ -19,6 +19,7 @@ class GoogleActivityMap extends StatefulWidget {
     this.onMapInteraction,
     this.onMapLongPress,
     this.onCameraPositionChanged,
+    this.onCameraIdlePositionChanged,
     this.animateToSelectedLocation = true,
     this.previewDismissGuardUntil,
     this.initialCameraPosition,
@@ -33,6 +34,7 @@ class GoogleActivityMap extends StatefulWidget {
   final VoidCallback? onMapInteraction;
   final ValueChanged<LatLng>? onMapLongPress;
   final ValueChanged<LatLng>? onCameraPositionChanged;
+  final ValueChanged<LatLng>? onCameraIdlePositionChanged;
   final bool animateToSelectedLocation;
   final DateTime? previewDismissGuardUntil;
   final CameraPosition? initialCameraPosition;
@@ -44,6 +46,7 @@ class GoogleActivityMap extends StatefulWidget {
 class _GoogleActivityMapState extends State<GoogleActivityMap> {
   GoogleMapController? _controller;
   double _currentZoom = 12.5;
+  LatLng _currentCameraTarget = _boundsCenter(_defaultKoreaBounds);
   LatLngBounds _visibleBounds = _defaultKoreaBounds;
   final Map<String, BitmapDescriptor> _activityIconCache = {};
   final Map<String, BitmapDescriptor> _clusterIconCache = {};
@@ -66,7 +69,9 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
     if (widget.selectedLocation != oldWidget.selectedLocation) {
       final controller = _controller;
       final selectedLocation = widget.selectedLocation;
-      if (controller != null && selectedLocation != null && widget.animateToSelectedLocation) {
+      if (controller != null &&
+          selectedLocation != null &&
+          widget.animateToSelectedLocation) {
         controller.animateCamera(
           CameraUpdate.newCameraPosition(
             CameraPosition(
@@ -135,9 +140,17 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
       }
     }
 
-    final clusters = _clusterActivities(widget.activities, _currentZoom, _visibleBounds);
-    final nextActivityIcons = Map<String, BitmapDescriptor>.from(_activityIconCache);
-    final nextClusterIcons = Map<String, BitmapDescriptor>.from(_clusterIconCache);
+    final clusters = _clusterActivities(
+      widget.activities,
+      _currentZoom,
+      _visibleBounds,
+    );
+    final nextActivityIcons = Map<String, BitmapDescriptor>.from(
+      _activityIconCache,
+    );
+    final nextClusterIcons = Map<String, BitmapDescriptor>.from(
+      _clusterIconCache,
+    );
 
     for (final activity in widget.activities) {
       if (!nextActivityIcons.containsKey(activity.id)) {
@@ -145,13 +158,17 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
       }
     }
 
-    for (final cluster in clusters.where((item) => item.activities.length > 1)) {
+    for (final cluster in clusters.where(
+      (item) => item.activities.length > 1,
+    )) {
       if (!nextClusterIcons.containsKey(cluster.cacheKey)) {
         nextClusterIcons[cluster.cacheKey] = await _buildClusterMarker(cluster);
       }
     }
 
-    final nextSelectedMarker = widget.selectedLocation == null ? null : await _buildSelectedMarker();
+    final nextSelectedMarker = widget.selectedLocation == null
+        ? null
+        : await _buildSelectedMarker();
 
     if (!mounted) return;
     setState(() {
@@ -167,7 +184,11 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
 
   @override
   Widget build(BuildContext context) {
-    final clusters = _clusterActivities(widget.activities, _currentZoom, _visibleBounds);
+    final clusters = _clusterActivities(
+      widget.activities,
+      _currentZoom,
+      _visibleBounds,
+    );
     final markers = <Marker>{
       for (final cluster in clusters)
         if (cluster.activities.length == 1)
@@ -178,26 +199,30 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
         Marker(
           markerId: const MarkerId('selected_location'),
           position: widget.selectedLocation!,
-          icon: _selectedMarker ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
+          icon:
+              _selectedMarker ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
           anchor: const Offset(0.5, 0.5),
           zIndexInt: 999,
         ),
     };
 
     return GoogleMap(
-      initialCameraPosition: widget.initialCameraPosition ??
-          const CameraPosition(
-            target: LatLng(37.5666, 126.9780),
-            zoom: 12.5,
-          ),
+      initialCameraPosition:
+          widget.initialCameraPosition ??
+          const CameraPosition(target: LatLng(37.5666, 126.9780), zoom: 12.5),
       onMapCreated: (controller) {
         _controller = controller;
         _queueRefresh();
       },
       onCameraMoveStarted: () {
-        _cameraGestureActive = DateTime.now().isAfter(widget.previewDismissGuardUntil ?? DateTime.fromMillisecondsSinceEpoch(0));
+        _cameraGestureActive = DateTime.now().isAfter(
+          widget.previewDismissGuardUntil ??
+              DateTime.fromMillisecondsSinceEpoch(0),
+        );
       },
       onCameraMove: (position) {
+        _currentCameraTarget = position.target;
         widget.onCameraPositionChanged?.call(position.target);
         if ((position.zoom - _currentZoom).abs() > 0.05) {
           setState(() {
@@ -206,21 +231,27 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
         }
       },
       onCameraIdle: () {
-        final dismissGuardActive = DateTime.now().isBefore(widget.previewDismissGuardUntil ?? DateTime.fromMillisecondsSinceEpoch(0));
+        final dismissGuardActive = DateTime.now().isBefore(
+          widget.previewDismissGuardUntil ??
+              DateTime.fromMillisecondsSinceEpoch(0),
+        );
         if (_cameraGestureActive && !dismissGuardActive) {
           widget.onMapInteraction?.call();
         }
         _cameraGestureActive = false;
+        widget.onCameraIdlePositionChanged?.call(_currentCameraTarget);
         _queueRefresh();
       },
       style: _darkMapStyle,
       markers: markers,
-      onTap: widget.onMapInteraction == null ? null : (_) => widget.onMapInteraction!.call(),
+      onTap: widget.onMapInteraction == null
+          ? null
+          : (_) => widget.onMapInteraction!.call(),
       onLongPress: widget.interactive && widget.onLocationSelected != null
           ? (position) => widget.onLocationSelected!(position)
           : widget.onMapLongPress != null
-              ? (position) => widget.onMapLongPress!(position)
-              : null,
+          ? (position) => widget.onMapLongPress!(position)
+          : null,
       mapType: MapType.normal,
       zoomControlsEnabled: false,
       zoomGesturesEnabled: true,
@@ -237,7 +268,9 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
   }
 
   Marker _buildActivityMarkerWidget(Activity activity) {
-    final icon = _activityIconCache[activity.id] ?? BitmapDescriptor.defaultMarkerWithHue(_fallbackHue(activity));
+    final icon =
+        _activityIconCache[activity.id] ??
+        BitmapDescriptor.defaultMarkerWithHue(_fallbackHue(activity));
     return Marker(
       markerId: MarkerId(activity.id),
       position: LatLng(activity.displayLat, activity.displayLng),
@@ -253,8 +286,11 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
   }
 
   Marker _buildClusterMarkerWidget(_ClusterGroup cluster) {
-    final icon = _clusterIconCache[cluster.cacheKey] ??
-        BitmapDescriptor.defaultMarkerWithHue(_fallbackHue(cluster.activities.first));
+    final icon =
+        _clusterIconCache[cluster.cacheKey] ??
+        BitmapDescriptor.defaultMarkerWithHue(
+          _fallbackHue(cluster.activities.first),
+        );
     return Marker(
       markerId: MarkerId('cluster_${cluster.cacheKey}'),
       position: cluster.position,
@@ -344,14 +380,10 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
 
     final bubbleRadius = 48.0;
     final bubblePaint = Paint()
-      ..shader = ui.Gradient.radial(
-        center,
-        bubbleRadius,
-        [
-          accent.withValues(alpha: selected || solid ? 1.0 : 0.95),
-          const Color(0xFF141B2D),
-        ],
-      );
+      ..shader = ui.Gradient.radial(center, bubbleRadius, [
+        accent.withValues(alpha: selected || solid ? 1.0 : 0.95),
+        const Color(0xFF141B2D),
+      ]);
     canvas.drawCircle(center, bubbleRadius, bubblePaint);
 
     final borderPaint = Paint()
@@ -368,10 +400,7 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
     final textPainter = TextPainter(
       text: TextSpan(
         text: emoji,
-        style: TextStyle(
-          fontSize: selected ? 48 : 42,
-          height: 1,
-        ),
+        style: TextStyle(fontSize: selected ? 48 : 42, height: 1),
       ),
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
@@ -384,7 +413,10 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
       ),
     );
 
-    final image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     // ignore: deprecated_member_use
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
@@ -409,8 +441,7 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
     canvas.drawCircle(
       center,
       42,
-      Paint()
-        ..color = accent.withValues(alpha: 1.0),
+      Paint()..color = accent.withValues(alpha: 1.0),
     );
 
     canvas.drawCircle(
@@ -436,10 +467,16 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
     )..layout();
     textPainter.paint(
       canvas,
-      Offset(center.dx - textPainter.width / 2, center.dy - textPainter.height / 2 - 1),
+      Offset(
+        center.dx - textPainter.width / 2,
+        center.dy - textPainter.height / 2 - 1,
+      ),
     );
 
-    final image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final image = await recorder.endRecording().toImage(
+      size.toInt(),
+      size.toInt(),
+    );
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     // ignore: deprecated_member_use
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
@@ -482,22 +519,37 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
     return _categoryColor(activity.category);
   }
 
-  List<_ClusterGroup> _clusterActivities(List<Activity> activities, double zoom, LatLngBounds bounds) {
+  List<_ClusterGroup> _clusterActivities(
+    List<Activity> activities,
+    double zoom,
+    LatLngBounds bounds,
+  ) {
     if (activities.isEmpty) {
       return const [];
     }
 
-    final visibleActivities = activities.where((activity) => _isWithinBounds(activity, bounds)).toList();
+    final visibleActivities = activities
+        .where((activity) => _isWithinBounds(activity, bounds))
+        .toList();
     if (visibleActivities.isEmpty) {
       return const [];
     }
     final source = visibleActivities;
     final divisions = _clusterDivisionsForZoom(zoom);
-    final latSpan = (bounds.northeast.latitude - bounds.southwest.latitude).abs().clamp(0.01, 180.0);
+    final latSpan = (bounds.northeast.latitude - bounds.southwest.latitude)
+        .abs()
+        .clamp(0.01, 180.0);
     final buckets = <String, List<Activity>>{};
     for (final activity in source) {
-      final latRatio = ((activity.displayLat - bounds.southwest.latitude) / latSpan).clamp(0.0, 0.999999);
-      final lngRatio = _normalizedLongitudeRatio(activity.displayLng, bounds).clamp(0.0, 0.999999);
+      final latRatio =
+          ((activity.displayLat - bounds.southwest.latitude) / latSpan).clamp(
+            0.0,
+            0.999999,
+          );
+      final lngRatio = _normalizedLongitudeRatio(
+        activity.displayLng,
+        bounds,
+      ).clamp(0.0, 0.999999);
       final latBucket = (latRatio * divisions).floor();
       final lngBucket = (lngRatio * divisions).floor();
       final key = '$latBucket:$lngBucket';
@@ -506,8 +558,12 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
 
     return buckets.entries.map((entry) {
       final groupActivities = entry.value;
-      final avgLat = groupActivities.map((a) => a.displayLat).reduce((a, b) => a + b) / groupActivities.length;
-      final avgLng = groupActivities.map((a) => a.displayLng).reduce((a, b) => a + b) / groupActivities.length;
+      final avgLat =
+          groupActivities.map((a) => a.displayLat).reduce((a, b) => a + b) /
+          groupActivities.length;
+      final avgLng =
+          groupActivities.map((a) => a.displayLng).reduce((a, b) => a + b) /
+          groupActivities.length;
       return _ClusterGroup(
         cacheKey: '${divisions}_${entry.key}',
         position: LatLng(avgLat, avgLng),
@@ -517,10 +573,18 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
   }
 
   bool _isWithinBounds(Activity activity, LatLngBounds bounds) {
-    final south = bounds.southwest.latitude <= bounds.northeast.latitude ? bounds.southwest.latitude : bounds.northeast.latitude;
-    final north = bounds.southwest.latitude <= bounds.northeast.latitude ? bounds.northeast.latitude : bounds.southwest.latitude;
-    final west = bounds.southwest.longitude <= bounds.northeast.longitude ? bounds.southwest.longitude : bounds.northeast.longitude;
-    final east = bounds.southwest.longitude <= bounds.northeast.longitude ? bounds.northeast.longitude : bounds.southwest.longitude;
+    final south = bounds.southwest.latitude <= bounds.northeast.latitude
+        ? bounds.southwest.latitude
+        : bounds.northeast.latitude;
+    final north = bounds.southwest.latitude <= bounds.northeast.latitude
+        ? bounds.northeast.latitude
+        : bounds.southwest.latitude;
+    final west = bounds.southwest.longitude <= bounds.northeast.longitude
+        ? bounds.southwest.longitude
+        : bounds.northeast.longitude;
+    final east = bounds.southwest.longitude <= bounds.northeast.longitude
+        ? bounds.northeast.longitude
+        : bounds.southwest.longitude;
     return activity.displayLat >= south &&
         activity.displayLat <= north &&
         activity.displayLng >= west &&
@@ -562,6 +626,13 @@ final LatLngBounds _defaultKoreaBounds = LatLngBounds(
   southwest: LatLng(33.0, 124.0),
   northeast: LatLng(39.8, 132.5),
 );
+
+LatLng _boundsCenter(LatLngBounds bounds) {
+  return LatLng(
+    (bounds.southwest.latitude + bounds.northeast.latitude) / 2,
+    (bounds.southwest.longitude + bounds.northeast.longitude) / 2,
+  );
+}
 
 class _ClusterGroup {
   const _ClusterGroup({

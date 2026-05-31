@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../features/activities/presentation/activity_detail_screen.dart';
 import '../features/activities/presentation/create_activity_screen.dart';
 import '../features/chat/presentation/chat_thread_screen.dart';
+import '../core/models/activity.dart';
 import '../core/models/moderation_report.dart';
 import 'app.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
@@ -62,10 +63,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/create-activity',
         builder: (context, state) {
-          final initialLocation = state.extra is LatLng
-              ? state.extra as LatLng
-              : null;
-          return CreateActivityScreen(initialLocation: initialLocation);
+          final extra = state.extra;
+          if (extra is ActivityFormSeed) {
+            return CreateActivityScreen(
+              initialLocation: extra.initialLocation,
+              editingActivity: extra.activity,
+            );
+          }
+          if (extra is LatLng) {
+            return CreateActivityScreen(initialLocation: extra);
+          }
+          if (extra is Activity) {
+            return CreateActivityScreen(editingActivity: extra);
+          }
+          return const CreateActivityScreen();
         },
       ),
       GoRoute(

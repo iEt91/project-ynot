@@ -10,6 +10,7 @@ import '../../../core/models/app_user.dart';
 import '../../../core/models/moderation_report.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
+import 'create_activity_screen.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -24,7 +25,9 @@ class ActivityDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
     final controller = ref.read(appControllerProvider);
-    final activity = state.activities.where((item) => item.id == activityId).firstOrNull;
+    final activity = state.activities
+        .where((item) => item.id == activityId)
+        .firstOrNull;
 
     if (activity == null) {
       return Scaffold(
@@ -40,11 +43,14 @@ class ActivityDetailScreen extends ConsumerWidget {
 
     final currentUser = state.user;
     final isCreator = currentUser?.id == activity.creatorId;
-    final isActiveMember = activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+    final isActiveMember =
+        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
         activity.myStatus == ParticipantStatus.confirmed;
-    final isRestricted = currentUser?.status == UserStatus.limited ||
+    final isRestricted =
+        currentUser?.status == UserStatus.limited ||
         currentUser?.status == UserStatus.banned;
-    final canJoin = !isRestricted &&
+    final canJoin =
+        !isRestricted &&
         !isCreator &&
         activity.isJoinable &&
         !activity.isFinishedOrArchived &&
@@ -53,7 +59,10 @@ class ActivityDetailScreen extends ConsumerWidget {
     final canOpenChat = isActiveMember;
     final isFull = activity.isFull && !isActiveMember;
     final currentUserId = currentUser?.id ?? '';
-    final attendeePreview = controller.feedbackTargetsForActivity(activity, currentUserId);
+    final attendeePreview = controller.feedbackTargetsForActivity(
+      activity,
+      currentUserId,
+    );
 
     return Scaffold(
       body: KawaiiScene(
@@ -63,15 +72,25 @@ class ActivityDetailScreen extends ConsumerWidget {
             children: [
               _TopBar(
                 title: activity.title,
-                subtitle: '${formatTimeRange(activity.startTime, activity.endTime)} · ${activity.zone}',
+                subtitle:
+                    '${formatTimeRange(activity.startTime, activity.endTime)} · ${activity.zone}',
                 onBack: () => context.pop(),
-                isSaved: state.savedActivityIds.contains(activity.id) && activity.isActiveLifecycle,
+                isSaved:
+                    state.savedActivityIds.contains(activity.id) &&
+                    activity.isActiveLifecycle,
                 onToggleSave: activity.isActiveLifecycle
-                    ? () => unawaited(controller.toggleSavedActivity(activity.id))
+                    ? () =>
+                          unawaited(controller.toggleSavedActivity(activity.id))
                     : null,
                 onMenuSelected: (value) async {
                   switch (value) {
                     case _DetailAction.edit:
+                      if (isCreator) {
+                        context.push(
+                          '/create-activity',
+                          extra: ActivityFormSeed(activity: activity),
+                        );
+                      }
                       break;
                     case _DetailAction.startActivity:
                       if (isCreator) {
@@ -84,14 +103,18 @@ class ActivityDetailScreen extends ConsumerWidget {
                       }
                       break;
                     case _DetailAction.confirmAttendance:
-                      if (!isCreator && activity.myStatus == ParticipantStatus.joinedPendingConfirmation) {
+                      if (!isCreator &&
+                          activity.myStatus ==
+                              ParticipantStatus.joinedPendingConfirmation) {
                         await controller.confirmAttendance(activity.id);
                       }
                       break;
                     case _DetailAction.cancelAttendance:
                       if (!isCreator &&
-                          (activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
-                              activity.myStatus == ParticipantStatus.confirmed)) {
+                          (activity.myStatus ==
+                                  ParticipantStatus.joinedPendingConfirmation ||
+                              activity.myStatus ==
+                                  ParticipantStatus.confirmed)) {
                         await controller.cancelAttendance(activity.id);
                       }
                       break;
@@ -124,12 +147,17 @@ class ActivityDetailScreen extends ConsumerWidget {
                   }
                 },
                 isCreator: isCreator,
-                canStart: activity.status == ActivityStatus.open ||
+                canStart:
+                    activity.status == ActivityStatus.open ||
                     activity.status == ActivityStatus.active ||
                     activity.status == ActivityStatus.full,
                 canFinish: activity.status == ActivityStatus.ongoing,
-                canConfirm: activity.myStatus == ParticipantStatus.joinedPendingConfirmation,
-                canCancel: activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+                canConfirm:
+                    activity.myStatus ==
+                    ParticipantStatus.joinedPendingConfirmation,
+                canCancel:
+                    activity.myStatus ==
+                        ParticipantStatus.joinedPendingConfirmation ||
                     activity.myStatus == ParticipantStatus.confirmed,
               ),
               const SizedBox(height: 16),
@@ -161,7 +189,8 @@ class ActivityDetailScreen extends ConsumerWidget {
                                 color: _categoryColor(activity.category),
                               ),
                               StatusPill(
-                                label: '${activity.confirmedCount}/${activity.maxPeople}',
+                                label:
+                                    '${activity.confirmedCount}/${activity.maxPeople}',
                                 color: Colors.pinkAccent,
                               ),
                             ],
@@ -169,8 +198,11 @@ class ActivityDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 12),
                           Text(
                             activity.description,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   height: 1.45,
                                 ),
                           ),
@@ -189,19 +221,22 @@ class ActivityDetailScreen extends ConsumerWidget {
                   children: [
                     _InfoChip(
                       icon: Icons.event_rounded,
-                      text: formatTimeRange(activity.startTime, activity.endTime),
+                      text: formatTimeRange(
+                        activity.startTime,
+                        activity.endTime,
+                      ),
                     ),
                     _InfoChip(
                       icon: Icons.hourglass_bottom_rounded,
-                      text: formatDurationLabel(activity.endTime.difference(activity.startTime).abs()),
+                      text: formatDurationLabel(
+                        activity.endTime.difference(activity.startTime).abs(),
+                      ),
                     ),
-                    _InfoChip(
-                      icon: Icons.place_rounded,
-                      text: activity.zone,
-                    ),
+                    _InfoChip(icon: Icons.place_rounded, text: activity.zone),
                     _InfoChip(
                       icon: Icons.groups_rounded,
-                      text: '${activity.confirmedCount}/${activity.maxPeople} asistentes',
+                      text:
+                          '${activity.confirmedCount}/${activity.maxPeople} asistentes',
                     ),
                     _InfoChip(
                       icon: Icons.category_rounded,
@@ -216,7 +251,9 @@ class ActivityDetailScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     KawaiiAvatar(
-                      emoji: currentUser != null && isCreator ? currentUser.avatarEmoji : '🌙',
+                      emoji: currentUser != null && isCreator
+                          ? currentUser.avatarEmoji
+                          : '🌙',
                       size: 54,
                       accentColor: _categoryColor(activity.category),
                     ),
@@ -227,15 +264,19 @@ class ActivityDetailScreen extends ConsumerWidget {
                         children: [
                           Text(
                             activity.creatorLabel,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isCreator ? 'Tú organizas este plan' : 'Organizador de la actividad',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            isCreator
+                                ? 'Tú organizas este plan'
+                                : 'Organizador de la actividad',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -250,9 +291,9 @@ class ActivityDetailScreen extends ConsumerWidget {
                 trailing: Text(
                   '${activity.confirmedCount} confirmados',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +303,8 @@ class ActivityDetailScreen extends ConsumerWidget {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: attendeePreview.length,
-                        separatorBuilder: (context, index) => const SizedBox(width: 10),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(width: 10),
                         itemBuilder: (context, index) {
                           final attendee = attendeePreview[index];
                           return _AttendeeChip(
@@ -278,8 +320,8 @@ class ActivityDetailScreen extends ConsumerWidget {
                           ? 'La actividad está llena por ahora.'
                           : 'Puedes ver una vista previa de quién viene. ',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -292,14 +334,23 @@ class ActivityDetailScreen extends ConsumerWidget {
                 canJoin: canJoin,
                 canLeave: canLeave,
                 canOpenChat: canOpenChat,
+                onEdit: isCreator
+                    ? () => context.push(
+                        '/create-activity',
+                        extra: ActivityFormSeed(activity: activity),
+                      )
+                    : null,
                 onJoin: () async {
                   await controller.joinActivity(activity.id);
                   if (!context.mounted) return;
-                  final updated = ref.read(appStateProvider).activities
+                  final updated = ref
+                      .read(appStateProvider)
+                      .activities
                       .where((item) => item.id == activity.id)
                       .firstOrNull;
                   if (updated == null) return;
-                  if (updated.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+                  if (updated.myStatus ==
+                          ParticipantStatus.joinedPendingConfirmation ||
                       updated.myStatus == ParticipantStatus.confirmed) {
                     context.push('/chat/${activity.id}');
                   }
@@ -349,12 +400,14 @@ class ActivityDetailScreen extends ConsumerWidget {
       return;
     }
 
-    final deleted = await ref.read(appControllerProvider).deleteActivity(activity.id);
+    final deleted = await ref
+        .read(appControllerProvider)
+        .deleteActivity(activity.id);
     if (!deleted || !context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Actividad eliminada.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Actividad eliminada.')));
     if (!context.mounted) return;
     context.go('/');
   }
@@ -450,10 +503,7 @@ class _TopBar extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _RoundBubble(
-          icon: Icons.arrow_back_rounded,
-          onTap: onBack,
-        ),
+        _RoundBubble(icon: Icons.arrow_back_rounded, onTap: onBack),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -462,16 +512,16 @@ class _TopBar extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -480,7 +530,9 @@ class _TopBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _IconBubble(
-              icon: isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              icon: isSaved
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
               active: isSaved,
               onTap: onToggleSave,
             ),
@@ -493,7 +545,6 @@ class _TopBar extends StatelessWidget {
                 if (isCreator)
                   const PopupMenuItem(
                     value: _DetailAction.edit,
-                    enabled: false,
                     child: Text('Editar'),
                   ),
                 if (canStart)
@@ -544,11 +595,7 @@ class _TopBar extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.child,
-    this.trailing,
-  });
+  const _SectionCard({required this.title, required this.child, this.trailing});
 
   final String title;
   final Widget child;
@@ -567,9 +614,9 @@ class _SectionCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
               ),
               const Spacer(),
               if (trailing != null) ...[trailing!],
@@ -606,9 +653,9 @@ class _InfoChip extends StatelessWidget {
           Text(
             text,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -617,10 +664,7 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _AttendeeChip extends StatelessWidget {
-  const _AttendeeChip({
-    required this.emoji,
-    required this.label,
-  });
+  const _AttendeeChip({required this.emoji, required this.label});
 
   final String emoji;
   final String label;
@@ -638,11 +682,7 @@ class _AttendeeChip extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          KawaiiAvatar(
-            emoji: emoji,
-            size: 38,
-            accentColor: Colors.pinkAccent,
-          ),
+          KawaiiAvatar(emoji: emoji, size: 38, accentColor: Colors.pinkAccent),
           const SizedBox(height: 6),
           Text(
             label,
@@ -650,9 +690,9 @@ class _AttendeeChip extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -668,6 +708,7 @@ class _ActionSection extends StatelessWidget {
     required this.canJoin,
     required this.canLeave,
     required this.canOpenChat,
+    required this.onEdit,
     required this.onJoin,
     required this.onLeave,
     required this.onOpenChat,
@@ -680,6 +721,7 @@ class _ActionSection extends StatelessWidget {
   final bool canJoin;
   final bool canLeave;
   final bool canOpenChat;
+  final VoidCallback? onEdit;
   final Future<void> Function() onJoin;
   final Future<void> Function() onLeave;
   final VoidCallback onOpenChat;
@@ -695,9 +737,9 @@ class _ActionSection extends StatelessWidget {
         children: [
           Text(
             'Acciones',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 14),
           if (isCreator) ...[
@@ -705,7 +747,7 @@ class _ActionSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: null,
+                    onPressed: onEdit,
                     child: const Text('Editar'),
                   ),
                 ),
@@ -743,10 +785,7 @@ class _ActionSection extends StatelessWidget {
               ],
             ),
           ] else if (isFull) ...[
-            FilledButton(
-              onPressed: null,
-              child: const Text('Actividad llena'),
-            ),
+            FilledButton(onPressed: null, child: const Text('Actividad llena')),
           ] else if (canJoin) ...[
             FilledButton(
               onPressed: () => unawaited(onJoin()),
@@ -803,10 +842,7 @@ class _IconBubble extends StatelessWidget {
 }
 
 class _RoundBubble extends StatelessWidget {
-  const _RoundBubble({
-    required this.icon,
-    required this.onTap,
-  });
+  const _RoundBubble({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;

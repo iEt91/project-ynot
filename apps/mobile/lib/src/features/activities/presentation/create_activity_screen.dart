@@ -14,10 +14,22 @@ import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/status_pill.dart';
 
-class CreateActivityScreen extends ConsumerStatefulWidget {
-  const CreateActivityScreen({super.key, this.initialLocation});
+class ActivityFormSeed {
+  const ActivityFormSeed({this.initialLocation, this.activity});
 
   final LatLng? initialLocation;
+  final Activity? activity;
+}
+
+class CreateActivityScreen extends ConsumerStatefulWidget {
+  const CreateActivityScreen({
+    super.key,
+    this.initialLocation,
+    this.editingActivity,
+  });
+
+  final LatLng? initialLocation;
+  final Activity? editingActivity;
 
   @override
   ConsumerState<CreateActivityScreen> createState() =>
@@ -38,17 +50,32 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
   Duration _duration = const Duration(hours: 2);
   double _lat = 37.5563;
   double _lng = 126.9228;
-  bool _useMapSelection = false;
+  bool get _isEditing => widget.editingActivity != null;
 
   @override
   void initState() {
     super.initState();
+    final activity = widget.editingActivity;
+    if (activity != null) {
+      _titleController.text = activity.title;
+      _descriptionController.text = activity.description;
+      _category = activity.category;
+      _vibe = activity.vibe;
+      _zone = activity.zone;
+      _visibility = activity.visibility;
+      _maxPeople = activity.maxPeople;
+      _startTime = activity.startTime;
+      _duration = activity.endTime.difference(activity.startTime);
+      _lat = activity.realLat;
+      _lng = activity.realLng;
+      return;
+    }
+
     final location = widget.initialLocation;
     if (location != null) {
       _lat = location.latitude;
       _lng = location.longitude;
       _zone = _zoneFromLocation(location.latitude, location.longitude);
-      _useMapSelection = true;
     }
   }
 
@@ -62,15 +89,18 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.read(appControllerProvider);
-    final canCreateActivity = controller.canCreateActivity();
-    final creationBlockMessage = controller.creationRestrictionMessage();
+    final canCreateActivity = _isEditing || controller.canCreateActivity();
+    final creationBlockMessage = _isEditing
+        ? null
+        : controller.creationRestrictionMessage();
     final theme = Theme.of(context);
+    final submitLabel = _isEditing ? 'Guardar cambios' : 'Publicar actividad';
 
     return Scaffold(
       body: KawaiiScene(
         child: SafeArea(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
             children: [
               Row(
                 children: [
@@ -81,7 +111,9 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Crear actividad',
+                      _isEditing ? 'Editar actividad' : 'Crear actividad',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.3,
@@ -131,7 +163,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: 'Categoría'),
+                      _SectionLabel(text: 'Categor?a'),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
@@ -139,37 +171,37 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         children: [
                           _CategoryChip(
                             value: 'Coffee',
-                            emoji: '☕',
+                            emoji: '?',
                             selected: _category == 'Coffee',
                             onTap: () => setState(() => _category = 'Coffee'),
                           ),
                           _CategoryChip(
                             value: 'Study',
-                            emoji: '📚',
+                            emoji: '??',
                             selected: _category == 'Study',
                             onTap: () => setState(() => _category = 'Study'),
                           ),
                           _CategoryChip(
                             value: 'Walks',
-                            emoji: '🌙',
+                            emoji: '??',
                             selected: _category == 'Walks',
                             onTap: () => setState(() => _category = 'Walks'),
                           ),
                           _CategoryChip(
                             value: 'Food',
-                            emoji: '🍜',
+                            emoji: '??',
                             selected: _category == 'Food',
                             onTap: () => setState(() => _category = 'Food'),
                           ),
                           _CategoryChip(
                             value: 'Art',
-                            emoji: '🎨',
+                            emoji: '??',
                             selected: _category == 'Art',
                             onTap: () => setState(() => _category = 'Art'),
                           ),
                           _CategoryChip(
                             value: 'Music',
-                            emoji: '🎵',
+                            emoji: '??',
                             selected: _category == 'Music',
                             onTap: () => setState(() => _category = 'Music'),
                           ),
@@ -183,7 +215,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         runSpacing: 8,
                         children: [
                           _VibeChip(
-                            label: 'Pública',
+                            label: 'P?blica',
                             selected:
                                 _visibility ==
                                 ActivityVisibility.publicActivity,
@@ -239,7 +271,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: '¿Cuántas personas?'),
+                      _SectionLabel(text: '?Cu?ntas personas?'),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -260,11 +292,11 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                     vertical: 14,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: YnotTheme.surface2.withValues(alpha: 0.96),
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(
-                                      color: YnotTheme.border,
+                                    color: YnotTheme.surface2.withValues(
+                                      alpha: 0.96,
                                     ),
+                                    borderRadius: BorderRadius.circular(22),
+                                    border: Border.all(color: YnotTheme.border),
                                   ),
                                   child: compact
                                       ? Column(
@@ -285,11 +317,11 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                               alignment: Alignment.centerRight,
                                               child: StatusPill(
                                                 label: _maxPeople <= 4
-                                                    ? 'Íntimo'
+                                                    ? '?ntimo'
                                                     : _maxPeople <= 6
                                                     ? 'Suave'
                                                     : 'Social',
-                                                icon: '👥',
+                                                icon: '??',
                                                 color: Colors.pinkAccent,
                                               ),
                                             ),
@@ -320,11 +352,11 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                                     Alignment.centerRight,
                                                 child: StatusPill(
                                                   label: _maxPeople <= 4
-                                                      ? 'Íntimo'
+                                                      ? '?ntimo'
                                                       : _maxPeople <= 6
                                                       ? 'Suave'
                                                       : 'Social',
-                                                  icon: '👥',
+                                                  icon: '??',
                                                   color: Colors.pinkAccent,
                                                 ),
                                               ),
@@ -345,7 +377,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: '¿Cuándo?'),
+                      _SectionLabel(text: '?Cu?ndo?'),
                       const SizedBox(height: 8),
                       FilledButton.tonal(
                         onPressed: () async {
@@ -426,43 +458,69 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Duración: ${formatDurationLabel(_duration)}',
+                        'Duraci?n: ${formatDurationLabel(_duration)}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 14),
-                      _SectionLabel(text: '¿Dónde?'),
+                      _SectionLabel(text: '?D?nde?'),
                       const SizedBox(height: 8),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: _useMapSelection,
-                        onChanged: (value) =>
-                            setState(() => _useMapSelection = value),
-                        title: const Text('Elegir en mapa'),
-                        subtitle: const Text(
-                          'Mantén presionado para mover el punto.',
+                      Text(
+                        'Mueve el mapa para elegir el punto.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       SizedBox(
                         height: 250,
-                        child: _useMapSelection && canUseGoogleMaps()
-                            ? _MapPicker(
-                                selectedLocation: LatLng(_lat, _lng),
-                                onChanged: (lat, lng) {
-                                  setState(() {
-                                    _lat = lat;
-                                    _lng = lng;
-                                  });
-                                },
-                                onCameraChanged: (lat, lng) {
-                                  setState(() {
-                                    _lat = lat;
-                                    _lng = lng;
-                                    _zone = _zoneFromLocation(lat, lng);
-                                  });
-                                },
+                        child: canUseGoogleMaps()
+                            ? Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Positioned.fill(
+                                    child: _MapPicker(
+                                      initialLocation: LatLng(_lat, _lng),
+                                      onCameraIdleChanged: (lat, lng) {
+                                        setState(() {
+                                          _lat = lat;
+                                          _lng = lng;
+                                          _zone = _zoneFromLocation(lat, lng);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  IgnorePointer(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.place_rounded,
+                                          size: 44,
+                                          color: YnotTheme.primary,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: YnotTheme.primary,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: YnotTheme.primary
+                                                    .withValues(alpha: 0.45),
+                                                blurRadius: 18,
+                                                spreadRadius: 2,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               )
                             : _StaticZonePicker(
                                 zone: _zone,
@@ -477,7 +535,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Se mostrará una ubicación aproximada por seguridad.',
+                        'Se mostrar? una ubicaci?n aproximada por seguridad.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -503,6 +561,38 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                   return;
                                 }
 
+                                if (_isEditing) {
+                                  final updated = await controller
+                                      .updateActivity(
+                                        activityId: widget.editingActivity!.id,
+                                        title: _titleController.text.trim(),
+                                        description: _descriptionController.text
+                                            .trim(),
+                                        category: _category,
+                                        vibe: _vibe,
+                                        zone: _zone,
+                                        startTime: _startTime,
+                                        duration: _duration,
+                                        maxPeople: _maxPeople,
+                                        realLat: _lat,
+                                        realLng: _lng,
+                                        visibility: _visibility,
+                                      );
+                                  if (!context.mounted) return;
+                                  if (updated) {
+                                    context.pop();
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'No pudimos guardar los cambios.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+
                                 await controller.createActivity(
                                   title: _titleController.text.trim(),
                                   description: _descriptionController.text
@@ -522,7 +612,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                 context.pop();
                               }
                             : null,
-                        child: const Text('Publicar actividad'),
+                        child: Text(submitLabel),
                       ),
                     ],
                   ),
@@ -694,45 +784,53 @@ class _StaticZonePicker extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(child: CustomPaint(painter: _CityGridPainter())),
-            ...zones.entries.map((entry) {
-              final index = zones.keys.toList().indexOf(entry.key);
-              final left = 20.0 + (index % 2) * 132;
-              final top = 18.0 + (index ~/ 2) * 58;
-              final selectedZone = zone == entry.key;
-              return Positioned(
-                left: left,
-                top: top,
-                child: GestureDetector(
-                  onTap: () =>
-                      onSelected(entry.key, entry.value.lat, entry.value.lng),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selectedZone
-                          ? Colors.pinkAccent.withValues(alpha: 0.26)
-                          : YnotTheme.surface2.withValues(alpha: 0.96),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: selectedZone
-                            ? Colors.pinkAccent
-                            : YnotTheme.border,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(entry.value.emoji),
-                        const SizedBox(width: 6),
-                        Text(entry.key),
-                      ],
-                    ),
-                  ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: zones.entries
+                      .map((entry) {
+                        final selectedZone = zone == entry.key;
+                        return GestureDetector(
+                          onTap: () => onSelected(
+                            entry.key,
+                            entry.value.lat,
+                            entry.value.lng,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selectedZone
+                                  ? Colors.pinkAccent.withValues(alpha: 0.26)
+                                  : YnotTheme.surface2.withValues(alpha: 0.96),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: selectedZone
+                                    ? Colors.pinkAccent
+                                    : YnotTheme.border,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(entry.value.emoji),
+                                const SizedBox(width: 6),
+                                Text(entry.key),
+                              ],
+                            ),
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
                 ),
-              );
-            }),
+              ),
+            ),
           ],
         ),
       ),
@@ -742,14 +840,12 @@ class _StaticZonePicker extends StatelessWidget {
 
 class _MapPicker extends StatelessWidget {
   const _MapPicker({
-    required this.onChanged,
-    required this.selectedLocation,
-    required this.onCameraChanged,
+    required this.initialLocation,
+    required this.onCameraIdleChanged,
   });
 
-  final void Function(double lat, double lng) onChanged;
-  final LatLng selectedLocation;
-  final void Function(double lat, double lng) onCameraChanged;
+  final LatLng initialLocation;
+  final void Function(double lat, double lng) onCameraIdleChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -758,13 +854,14 @@ class _MapPicker extends StatelessWidget {
       child: GoogleActivityMap(
         activities: const [],
         interactive: true,
-        selectedLocation: selectedLocation,
-        animateToSelectedLocation: false,
-        onLocationSelected: (position) {
-          onChanged(position.latitude, position.longitude);
-        },
-        onCameraPositionChanged: (position) {
-          onCameraChanged(position.latitude, position.longitude);
+        initialCameraPosition: CameraPosition(
+          target: initialLocation,
+          zoom: 14.5,
+          bearing: 0,
+          tilt: 0,
+        ),
+        onCameraIdlePositionChanged: (position) {
+          onCameraIdleChanged(position.latitude, position.longitude);
         },
       ),
     );

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -501,10 +501,7 @@ class AppController extends ChangeNotifier {
       realLat: realLat,
       realLng: realLng,
       visibility: visibility,
-    ).copyWith(
-      confirmedCount: 1,
-      myStatus: ParticipantStatus.confirmed,
-    );
+    ).copyWith(confirmedCount: 1, myStatus: ParticipantStatus.confirmed);
 
     state = state.copyWith(
       activities: [
@@ -513,8 +510,7 @@ class AppController extends ChangeNotifier {
       ],
       user: state.user?.copyWith(
         createdActivityCount: (state.user?.createdActivityCount ?? 0) + 1,
-        attendingActivityCount:
-            (state.user?.attendingActivityCount ?? 0) + 1,
+        attendingActivityCount: (state.user?.attendingActivityCount ?? 0) + 1,
       ),
     );
 
@@ -523,6 +519,90 @@ class AppController extends ChangeNotifier {
 
     AppLogger.log('ACTIVITY', 'created id=${created.id}');
     unawaited(_persistSnapshot());
+  }
+
+  Future<bool> updateActivity({
+    required String activityId,
+    required String title,
+    required String description,
+    required String category,
+    required String vibe,
+    required String zone,
+    required DateTime startTime,
+    required Duration duration,
+    required int maxPeople,
+    required double realLat,
+    required double realLng,
+    ActivityVisibility visibility = ActivityVisibility.publicActivity,
+  }) async {
+    final currentUser = state.user;
+    if (currentUser == null) {
+      state = state.copyWith(
+        errorMessage: 'Inicia sesión para editar una actividad.',
+      );
+      return false;
+    }
+
+    final activity = _findActivity(activityId);
+    if (activity == null || activity.creatorId != currentUser.id) {
+      return false;
+    }
+
+    final nextMaxPeople = max(maxPeople, activity.confirmedCount);
+    final updated = _updateActivity(activityId, (current) {
+      final nextStatus = switch (current.status) {
+        ActivityStatus.ongoing => ActivityStatus.ongoing,
+        ActivityStatus.finished => ActivityStatus.finished,
+        ActivityStatus.archived => ActivityStatus.archived,
+        ActivityStatus.cancelled => ActivityStatus.cancelled,
+        ActivityStatus.flagged => ActivityStatus.flagged,
+        ActivityStatus.removed => ActivityStatus.removed,
+        ActivityStatus.rejectedHidden => ActivityStatus.rejectedHidden,
+        ActivityStatus.draft => ActivityStatus.draft,
+        ActivityStatus.pendingModeration => ActivityStatus.pendingModeration,
+        _ =>
+          current.confirmedCount >= nextMaxPeople
+              ? ActivityStatus.full
+              : ActivityStatus.open,
+      };
+
+      final endTime = startTime.add(duration);
+      final privacyRadius = current.locationPrivacyRadiusM > 0
+          ? current.locationPrivacyRadiusM
+          : 100 + _random.nextInt(201);
+      final offset = _random.nextDouble() * privacyRadius;
+      final signLat = _random.nextBool() ? 1 : -1;
+      final signLng = _random.nextBool() ? 1 : -1;
+      final displayLat = realLat + signLat * (offset / 111320.0);
+      final displayLng =
+          realLng + signLng * (offset / (111320.0 * cos(realLat * pi / 180.0)));
+
+      return current.copyWith(
+        title: title,
+        description: description,
+        category: category,
+        vibe: vibe,
+        zone: zone,
+        status: nextStatus,
+        realLat: realLat,
+        realLng: realLng,
+        displayLat: displayLat,
+        displayLng: displayLng,
+        locationPrivacyRadiusM: privacyRadius,
+        exactLocationUnlockAt: startTime.subtract(const Duration(minutes: 10)),
+        startTime: startTime,
+        endTime: endTime,
+        maxPeople: nextMaxPeople,
+        visibility: visibility,
+      );
+    });
+
+    final changed = _activityChanged(activityId, updated);
+    if (!changed) return false;
+
+    state = state.copyWith(activities: updated);
+    unawaited(_persistSnapshot());
+    return true;
   }
 
   Future<void> joinActivity(String activityId) async {
@@ -814,9 +894,7 @@ class AppController extends ChangeNotifier {
     final changed = _activityChanged(activityId, updated);
     if (!changed) return false;
 
-    state = state.copyWith(
-      activities: updated,
-    );
+    state = state.copyWith(activities: updated);
     unawaited(_persistSnapshot());
     return true;
   }
@@ -878,7 +956,7 @@ class AppController extends ChangeNotifier {
       (entry) =>
           entry.activityId == activityId &&
           entry.reviewerUserId == reviewerUserId &&
-      entry.reviewedUserId == reviewedUserId,
+          entry.reviewedUserId == reviewedUserId,
     );
   }
 
@@ -1061,7 +1139,9 @@ class AppController extends ChangeNotifier {
       _savedActivityIds.add(activityId);
     }
 
-    state = state.copyWith(savedActivityIds: Set<String>.from(_savedActivityIds));
+    state = state.copyWith(
+      savedActivityIds: Set<String>.from(_savedActivityIds),
+    );
     unawaited(_persistSnapshot());
     return true;
   }
@@ -1070,7 +1150,8 @@ class AppController extends ChangeNotifier {
     final savedIds = _savedActivityIds;
     return state.activities
         .where(
-          (activity) => savedIds.contains(activity.id) && activity.isActiveLifecycle,
+          (activity) =>
+              savedIds.contains(activity.id) && activity.isActiveLifecycle,
         )
         .toList(growable: false)
       ..sort((left, right) => left.startTime.compareTo(right.startTime));
@@ -1086,38 +1167,44 @@ class AppController extends ChangeNotifier {
     if (filters.isEmpty) {
       return query.isEmpty
           ? visibleActivities
-          : visibleActivities.where((activity) => _matchesSearchQuery(activity, query)).toList(growable: false);
+          : visibleActivities
+                .where((activity) => _matchesSearchQuery(activity, query))
+                .toList(growable: false);
     }
 
-    return visibleActivities.where((activity) {
-      if (filters.today) {
-        final now = DateTime.now();
-        final isToday = activity.startTime.year == now.year &&
-            activity.startTime.month == now.month &&
-            activity.startTime.day == now.day;
-        if (!isToday) return false;
-      }
+    return visibleActivities
+        .where((activity) {
+          if (filters.today) {
+            final now = DateTime.now();
+            final isToday =
+                activity.startTime.year == now.year &&
+                activity.startTime.month == now.month &&
+                activity.startTime.day == now.day;
+            if (!isToday) return false;
+          }
 
-      if (filters.timeSlot != null && !_matchesTimeSlot(activity, filters.timeSlot!)) {
-        return false;
-      }
+          if (filters.timeSlot != null &&
+              !_matchesTimeSlot(activity, filters.timeSlot!)) {
+            return false;
+          }
 
-      if (filters.categories.isNotEmpty &&
-          !filters.categories.contains(activity.category)) {
-        return false;
-      }
+          if (filters.categories.isNotEmpty &&
+              !filters.categories.contains(activity.category)) {
+            return false;
+          }
 
-      if (filters.peopleRange != null &&
-          !_matchesPeopleRange(activity, filters.peopleRange!)) {
-        return false;
-      }
+          if (filters.peopleRange != null &&
+              !_matchesPeopleRange(activity, filters.peopleRange!)) {
+            return false;
+          }
 
-      if (query.isNotEmpty && !_matchesSearchQuery(activity, query)) {
-        return false;
-      }
+          if (query.isNotEmpty && !_matchesSearchQuery(activity, query)) {
+            return false;
+          }
 
-      return true;
-    }).toList(growable: false);
+          return true;
+        })
+        .toList(growable: false);
   }
 
   void setActivitySearchQuery(String query) {
@@ -1136,9 +1223,7 @@ class AppController extends ChangeNotifier {
 
   void setTimeSlotFilter(ActivityTimeSlot? timeSlot) {
     state = state.copyWith(
-      activityFilters: state.activityFilters.copyWith(
-        timeSlot: timeSlot,
-      ),
+      activityFilters: state.activityFilters.copyWith(timeSlot: timeSlot),
     );
     unawaited(_persistSnapshot());
   }
@@ -1152,17 +1237,13 @@ class AppController extends ChangeNotifier {
 
   void setPeopleRangeFilter(ActivityPeopleRange? range) {
     state = state.copyWith(
-      activityFilters: state.activityFilters.copyWith(
-        peopleRange: range,
-      ),
+      activityFilters: state.activityFilters.copyWith(peopleRange: range),
     );
     unawaited(_persistSnapshot());
   }
 
   void clearActivityFilters() {
-    state = state.copyWith(
-      activityFilters: ActivityDiscoveryFilters.initial(),
-    );
+    state = state.copyWith(activityFilters: ActivityDiscoveryFilters.initial());
     unawaited(_persistSnapshot());
   }
 
@@ -1212,7 +1293,8 @@ class AppController extends ChangeNotifier {
               activity.status != ActivityStatus.removed &&
               activity.status != ActivityStatus.rejectedHidden &&
               (activity.creatorId == userId ||
-                  activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+                  activity.myStatus ==
+                      ParticipantStatus.joinedPendingConfirmation ||
                   activity.myStatus == ParticipantStatus.confirmed),
         )
         .toList(growable: false);
@@ -1224,7 +1306,8 @@ class AppController extends ChangeNotifier {
           (activity) =>
               activity.isFinishedOrArchived &&
               (activity.creatorId == userId ||
-                  activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+                  activity.myStatus ==
+                      ParticipantStatus.joinedPendingConfirmation ||
                   activity.myStatus == ParticipantStatus.confirmed ||
                   activity.myStatus == ParticipantStatus.attended ||
                   activity.myStatus == ParticipantStatus.noShow ||
@@ -1342,7 +1425,8 @@ class AppController extends ChangeNotifier {
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
         title: '☕ Café & Talk',
-        description: 'Un rato suave para charlar sin presión y compartir una taza.',
+        description:
+            'Un rato suave para charlar sin presión y compartir una taza.',
         category: 'Coffee',
         vibe: 'Calm',
         zone: 'Hongdae',
@@ -1634,14 +1718,18 @@ class AppController extends ChangeNotifier {
       category: _sanitizeCategory(activity.category),
       vibe: safeDisplayText(activity.vibe, fallback: 'Calm'),
       zone: safeDisplayText(activity.zone, fallback: 'Seoul'),
-      lastMessagePreview: safeDisplayText(activity.lastMessagePreview, fallback: ''),
+      lastMessagePreview: safeDisplayText(
+        activity.lastMessagePreview,
+        fallback: '',
+      ),
       feedbackTargets: sanitizedTargets,
     );
 
     if (sanitized.id == 'seed_1') {
       return sanitized.copyWith(
         title: '☕ Café & Talk',
-        description: 'Un rato suave para charlar sin presión y compartir una taza.',
+        description:
+            'Un rato suave para charlar sin presión y compartir una taza.',
         category: 'Coffee',
         vibe: 'Calm',
         zone: 'Hongdae',
@@ -2058,7 +2146,17 @@ class AppController extends ChangeNotifier {
       ),
     );
     final after = updated.firstWhere((activity) => activity.id == activityId);
-    return before.status != after.status;
+    return before.status != after.status ||
+        before.title != after.title ||
+        before.description != after.description ||
+        before.category != after.category ||
+        before.vibe != after.vibe ||
+        before.zone != after.zone ||
+        before.realLat != after.realLat ||
+        before.realLng != after.realLng ||
+        before.startTime != after.startTime ||
+        before.endTime != after.endTime ||
+        before.maxPeople != after.maxPeople ||
+        before.visibility != after.visibility;
   }
 }
-
