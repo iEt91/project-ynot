@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme.dart';
+
 class ProfileBackButton extends StatelessWidget {
   const ProfileBackButton({
     super.key,
@@ -17,9 +19,9 @@ class ProfileBackButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: YnotTheme.surface2.withValues(alpha: 0.96),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: YnotTheme.border),
         ),
         child: const Icon(
           Icons.arrow_back_rounded,

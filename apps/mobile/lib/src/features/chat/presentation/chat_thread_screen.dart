@@ -364,12 +364,6 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: KawaiiCard(
                   padding: const EdgeInsets.all(12),
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.05),
-                      YnotTheme.surface.withValues(alpha: 0.78),
-                    ],
-                  ),
                   child: Row(
                     children: [
                       SizedBox(
@@ -601,8 +595,8 @@ class _ChatMessageBubble extends StatelessWidget {
           )
         : LinearGradient(
             colors: [
-              Colors.white.withValues(alpha: 0.08),
-              Colors.white.withValues(alpha: 0.05),
+              YnotTheme.surface2.withValues(alpha: 0.96),
+              YnotTheme.surface.withValues(alpha: 0.88),
             ],
           );
 
@@ -676,7 +670,7 @@ class _ChatMessageBubble extends StatelessWidget {
                     gradient: bubbleColor,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: YnotTheme.border,
                     ),
                   ),
                   child: Text(
@@ -740,7 +734,7 @@ class _OpaqueAttendeeAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: const Color(0xFF1A2238),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: YnotTheme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.20),

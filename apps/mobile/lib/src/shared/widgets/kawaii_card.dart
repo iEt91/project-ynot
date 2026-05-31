@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../app/theme.dart';
+
 class KawaiiCard extends StatelessWidget {
   const KawaiiCard({
     super.key,
@@ -25,17 +27,17 @@ class KawaiiCard extends StatelessWidget {
         gradient: gradient ??
             LinearGradient(
               colors: [
-                colors.surface.withValues(alpha: 0.9),
-                colors.surface.withValues(alpha: 0.72),
+                YnotTheme.surface2.withValues(alpha: 0.96),
+                colors.surface.withValues(alpha: 0.88),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: YnotTheme.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
+            color: Colors.black.withValues(alpha: 0.30),
             blurRadius: 22,
             offset: const Offset(0, 12),
           ),

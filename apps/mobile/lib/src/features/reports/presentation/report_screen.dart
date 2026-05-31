@@ -101,12 +101,6 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               const SizedBox(height: 16),
               KawaiiCard(
                 padding: const EdgeInsets.all(18),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.06),
-                    YnotTheme.surface.withValues(alpha: 0.88),
-                  ],
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -353,9 +347,9 @@ class _TargetPreviewCard extends StatelessWidget {
     return KawaiiCard(
       padding: const EdgeInsets.all(14),
       gradient: LinearGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.05),
-          YnotTheme.surface.withValues(alpha: 0.90),
+          colors: [
+          YnotTheme.surface2.withValues(alpha: 0.96),
+          YnotTheme.surface.withValues(alpha: 0.88),
         ],
       ),
       child: Row(
@@ -407,7 +401,7 @@ class _ReportReasonButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = selected ? YnotTheme.mint : Colors.white.withValues(alpha: 0.08);
+    final accent = selected ? YnotTheme.mint : YnotTheme.border;
 
     return InkWell(
       onTap: onTap,
@@ -420,12 +414,12 @@ class _ReportReasonButton extends StatelessWidget {
           gradient: selected
               ? LinearGradient(
                   colors: [
-                    YnotTheme.mint.withValues(alpha: 0.24),
-                    YnotTheme.primary.withValues(alpha: 0.14),
+                    YnotTheme.mint.withValues(alpha: 0.18),
+                    YnotTheme.primary.withValues(alpha: 0.10),
                   ],
                 )
               : null,
-          color: selected ? null : Colors.white.withValues(alpha: 0.06),
+          color: selected ? null : YnotTheme.surface2.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: accent.withValues(alpha: locked ? 0.7 : 1),
@@ -488,9 +482,9 @@ class _RoundBubble extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: YnotTheme.surface2.withValues(alpha: 0.96),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: YnotTheme.border),
         ),
         child: Icon(icon, size: 18, color: Colors.white),
       ),

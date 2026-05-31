@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../app/theme.dart';
+
 class KawaiiBottomNav extends StatelessWidget {
   const KawaiiBottomNav({
     super.key,
@@ -42,7 +44,7 @@ class KawaiiBottomNav extends StatelessWidget {
                 topRight: Radius.circular(24),
               ),
               border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                top: BorderSide(color: YnotTheme.border),
               ),
             ),
             child: Padding(

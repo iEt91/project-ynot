@@ -49,12 +49,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 const SizedBox(height: 16),
                 KawaiiCard(
                   padding: const EdgeInsets.all(18),
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.06),
-                      YnotTheme.surface.withValues(alpha: 0.88),
-                    ],
-                  ),
                   child: Row(
                     children: [
                       KawaiiAvatar(

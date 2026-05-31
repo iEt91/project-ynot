@@ -343,7 +343,7 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
     canvas.drawCircle(center, bubbleRadius, borderPaint);
 
     final innerGlowPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.12)
+      ..color = accent.withValues(alpha: 0.10)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     canvas.drawCircle(center, 28, innerGlowPaint);
 
@@ -401,7 +401,7 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4
-        ..color = Colors.white.withValues(alpha: 0.22),
+        ..color = accent.withValues(alpha: 0.34),
     );
 
     final label = count > 99 ? '99+' : '$count';

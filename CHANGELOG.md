@@ -1,3 +1,8 @@
+## v1.0.10.0
+- Visual cleanup to remove white and gray glow effects
+- Darker shared card surfaces across the app
+- Profile, feedback, report and auth cards aligned to the night palette
+
 ## v1.0.9.0
 - Settings screen in mock/local mode
 - Local notification and privacy toggles

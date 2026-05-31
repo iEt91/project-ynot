@@ -87,12 +87,6 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
               const SizedBox(height: 16),
               KawaiiCard(
                 padding: const EdgeInsets.all(16),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.06),
-                    YnotTheme.surface.withValues(alpha: 0.88),
-                  ],
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -173,12 +167,6 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: KawaiiCard(
                       padding: const EdgeInsets.all(14),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0.05),
-                          YnotTheme.surface.withValues(alpha: 0.9),
-                        ],
-                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -353,7 +341,7 @@ class _FeedbackOptionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = selected ? YnotTheme.mint : Colors.white.withValues(alpha: 0.08);
+    final accent = selected ? YnotTheme.mint : YnotTheme.border;
 
     return InkWell(
       onTap: onTap,
@@ -366,12 +354,12 @@ class _FeedbackOptionButton extends StatelessWidget {
           gradient: selected
               ? LinearGradient(
                   colors: [
-                    YnotTheme.mint.withValues(alpha: 0.24),
-                    YnotTheme.primary.withValues(alpha: 0.14),
+                    YnotTheme.mint.withValues(alpha: 0.18),
+                    YnotTheme.primary.withValues(alpha: 0.10),
                   ],
                 )
               : null,
-          color: selected ? null : Colors.white.withValues(alpha: 0.06),
+          color: selected ? null : YnotTheme.surface2.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: accent.withValues(alpha: locked ? 0.7 : 1),
@@ -398,7 +386,7 @@ class _FeedbackOptionButton extends StatelessWidget {
                 label.split(' ').skip(1).join(' '),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
@@ -434,9 +422,9 @@ class _RoundBubble extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: YnotTheme.surface2.withValues(alpha: 0.96),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: YnotTheme.border),
         ),
         child: Icon(icon, size: 18, color: Colors.white),
       ),

@@ -220,12 +220,6 @@ class ActivityDetailScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               KawaiiCard(
                 padding: const EdgeInsets.all(18),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.06),
-                    YnotTheme.surface.withValues(alpha: 0.88),
-                  ],
-                ),
                 child: Row(
                   children: [
                     KawaiiAvatar(
@@ -354,10 +348,10 @@ class _IconBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final background = active
         ? Colors.pinkAccent.withValues(alpha: 0.22)
-        : Colors.white.withValues(alpha: 0.08);
+        : YnotTheme.surface2.withValues(alpha: 0.96);
     final border = active
         ? Colors.pinkAccent.withValues(alpha: 0.40)
-        : Colors.white.withValues(alpha: 0.08);
+        : YnotTheme.border;
     final iconColor = active ? Colors.pinkAccent : Colors.white;
 
     return InkWell(
@@ -395,9 +389,9 @@ class _RoundBubble extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: YnotTheme.surface2.withValues(alpha: 0.96),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: YnotTheme.border),
         ),
         child: Icon(icon, size: 18, color: Colors.white),
       ),

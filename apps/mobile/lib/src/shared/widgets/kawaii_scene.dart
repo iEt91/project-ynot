@@ -42,7 +42,7 @@ class KawaiiScene extends StatelessWidget {
           Positioned(
             top: 70,
             right: 44,
-            child: _Star(size: 8, color: Colors.white.withValues(alpha: 0.18)),
+            child: _Star(size: 8, color: YnotTheme.mint.withValues(alpha: 0.16)),
           ),
           Positioned(
             top: 240,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
@@ -259,13 +260,10 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                     vertical: 14,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surface
-                                        .withValues(alpha: 0.55),
+                                    color: YnotTheme.surface2.withValues(alpha: 0.96),
                                     borderRadius: BorderRadius.circular(22),
                                     border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.08,
-                                      ),
+                                      color: YnotTheme.border,
                                     ),
                                   ),
                                   child: compact
@@ -652,16 +650,16 @@ class _RoundStepButton extends StatelessWidget {
         height: 44,
         decoration: BoxDecoration(
           color: onTap == null
-              ? Colors.white.withValues(alpha: 0.04)
-              : Colors.white.withValues(alpha: 0.08),
+              ? YnotTheme.surface2.withValues(alpha: 0.84)
+              : YnotTheme.surface2.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: YnotTheme.border),
         ),
         child: Icon(
           icon,
           size: 18,
           color: onTap == null
-              ? Colors.white.withValues(alpha: 0.3)
+              ? YnotTheme.mutedText.withValues(alpha: 0.65)
               : Colors.white,
         ),
       ),
@@ -715,12 +713,12 @@ class _StaticZonePicker extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: selectedZone
                           ? Colors.pinkAccent.withValues(alpha: 0.26)
-                          : Colors.white.withValues(alpha: 0.08),
+                          : YnotTheme.surface2.withValues(alpha: 0.96),
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
                         color: selectedZone
                             ? Colors.pinkAccent
-                            : Colors.white.withValues(alpha: 0.12),
+                            : YnotTheme.border,
                       ),
                     ),
                     child: Row(
@@ -788,9 +786,9 @@ class _RoundIcon extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: YnotTheme.surface2.withValues(alpha: 0.96),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: YnotTheme.border),
         ),
         child: Icon(icon, size: 18, color: Colors.white),
       ),
@@ -802,7 +800,7 @@ class _CityGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = YnotTheme.purple.withValues(alpha: 0.04)
       ..strokeWidth = 1;
 
     for (var i = 0; i < 6; i++) {

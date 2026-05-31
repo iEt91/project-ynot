@@ -34,12 +34,6 @@ class ChatsScreen extends ConsumerWidget {
           const SizedBox(height: 14),
           KawaiiCard(
             padding: const EdgeInsets.all(12),
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withValues(alpha: 0.05),
-                YnotTheme.surface.withValues(alpha: 0.82),
-              ],
-            ),
             child: Row(
               children: [
                 const Text('✨', style: TextStyle(fontSize: 22)),

@@ -61,7 +61,7 @@ class ActivitiesScreen extends ConsumerWidget {
                       separatorBuilder: (context, index) => Divider(
                         height: 1,
                         thickness: 1,
-                        color: Colors.white.withValues(alpha: 0.06),
+                        color: Theme.of(context).colorScheme.outlineVariant,
                       ),
                       itemBuilder: (context, index) {
                         final activity = activities[index];

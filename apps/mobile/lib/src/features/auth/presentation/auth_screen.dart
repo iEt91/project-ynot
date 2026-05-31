@@ -56,12 +56,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   const SizedBox(height: 18),
                   KawaiiCard(
                     padding: const EdgeInsets.all(22),
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.06),
-                        YnotTheme.surface.withValues(alpha: 0.84),
-                      ],
-                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -163,12 +157,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   const SizedBox(height: 18),
                   KawaiiCard(
                     padding: const EdgeInsets.all(18),
-                    gradient: LinearGradient(
-                      colors: [
-                        YnotTheme.primary.withValues(alpha: 0.16),
-                        YnotTheme.surface.withValues(alpha: 0.8),
-                      ],
-                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

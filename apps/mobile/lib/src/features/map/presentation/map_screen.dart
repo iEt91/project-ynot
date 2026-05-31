@@ -61,9 +61,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: YnotTheme.surface2.withValues(alpha: 0.96),
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                      border: Border.all(color: YnotTheme.border),
                     ),
                     child: Text(
                       kAppVisibleVersion,
@@ -320,9 +320,9 @@ class _MiniMeta extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
+        color: YnotTheme.surface2.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: YnotTheme.border),
       ),
       child: Text(
         text,
@@ -348,10 +348,10 @@ class _SaveBubbleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final background = saved
         ? Colors.pinkAccent.withValues(alpha: 0.22)
-        : Colors.white.withValues(alpha: 0.08);
+        : YnotTheme.surface2.withValues(alpha: 0.96);
     final border = saved
         ? Colors.pinkAccent.withValues(alpha: 0.42)
-        : Colors.white.withValues(alpha: 0.10);
+        : YnotTheme.border;
     final iconColor = saved ? Colors.pinkAccent : Colors.white;
 
     return InkWell(
@@ -475,7 +475,8 @@ class _NightCityPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
     );
 
-    final blocksPaint = Paint()..color = Colors.white.withValues(alpha: 0.015);
+    final blocksPaint = Paint()
+      ..color = const Color(0xFF0F172A).withValues(alpha: 0.32);
     final blocks = <Rect>[
       Rect.fromLTWH(24, 26, 72, 54),
       Rect.fromLTWH(122, 18, 92, 72),
@@ -492,7 +493,7 @@ class _NightCityPainter extends CustomPainter {
       canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(18)), blocksPaint);
     }
 
-    roadPaint.color = Colors.white.withValues(alpha: 0.09);
+    roadPaint.color = const Color(0xFF263A5A).withValues(alpha: 0.42);
     roadPaint.strokeWidth = 18;
     canvas.drawPath(
       Path()
@@ -502,7 +503,7 @@ class _NightCityPainter extends CustomPainter {
       roadPaint,
     );
 
-    roadPaint.color = Colors.white.withValues(alpha: 0.065);
+    roadPaint.color = const Color(0xFF1D2A42).withValues(alpha: 0.42);
     roadPaint.strokeWidth = 14;
     canvas.drawPath(
       Path()
@@ -512,7 +513,7 @@ class _NightCityPainter extends CustomPainter {
       roadPaint,
     );
 
-    roadPaint.color = Colors.white.withValues(alpha: 0.05);
+    roadPaint.color = const Color(0xFF102D4F).withValues(alpha: 0.34);
     roadPaint.strokeWidth = 12;
     canvas.drawPath(
       Path()
@@ -524,7 +525,7 @@ class _NightCityPainter extends CustomPainter {
     );
 
     final minorRoadPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.03)
+      ..color = const Color(0xFF1E4D38).withValues(alpha: 0.12)
       ..strokeWidth = 1.2;
     for (var i = 0; i < 5; i++) {
       final y = 42.0 + i * 68;
