@@ -1,3 +1,8 @@
+## v1.0.12.0
+- Settings screen simplified and polished for local/mock mode
+- Account, preferences and data sections now match the current product state
+- Clear local data and sign out remain available with the same behavior
+
 ## v1.0.11.2
 - Fixed profile encoding fallback after local wipe and relogin
 - Sanitized restored profile fields to avoid mojibake in avatar, phone and bio

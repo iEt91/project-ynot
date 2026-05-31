@@ -1,11 +1,11 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/constants/app_version.dart';
 import '../../../core/state/app_controller.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
@@ -18,7 +18,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
     final controller = ref.read(appControllerProvider);
-    final user = state.user;
+    final user = state.user?.sanitizedForDisplay();
 
     return Scaffold(
       body: KawaiiScene(
@@ -42,77 +42,38 @@ class SettingsScreen extends ConsumerWidget {
                 title: 'Cuenta',
                 children: [
                   _InfoRow(
+                    label: 'Nombre visible',
+                    value: safeDisplayText(user?.nickname ?? '', fallback: 'Luna'),
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
                     label: 'Teléfono',
-                    value: user?.phoneMasked ?? 'No hay sesión activa',
+                    value: safePhoneDisplay(
+                      user?.phoneMasked ?? '',
+                      fallback: 'Sesión local',
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  FilledButton.tonal(
-                    onPressed: () {
-                      controller.signOut();
-                      if (context.mounted) {
-                        context.go('/');
-                      }
-                    },
-                    child: const Text('Cerrar sesión'),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    label: 'Modo actual',
+                    value: 'Local / Mock',
                   ),
                 ],
               ),
               const SizedBox(height: 14),
               _SectionCard(
-                title: 'Notificaciones',
-                children: [
-                  _SettingSwitch(
-                    title: 'Mensajes de chat',
-                    value: state.settings.chatMessagesNotifications,
-                    onChanged: (value) =>
-                        unawaited(controller.setChatMessagesNotifications(value)),
-                  ),
-                  _SettingSwitch(
-                    title: 'Actividades recomendadas',
-                    value: state.settings.recommendedActivitiesNotifications,
-                    onChanged: (value) => unawaited(
-                      controller.setRecommendedActivitiesNotifications(value),
-                    ),
-                  ),
-                  _SettingSwitch(
-                    title: 'Actividad por comenzar',
-                    value: state.settings.activityStartingSoonNotifications,
-                    onChanged: (value) => unawaited(
-                      controller.setActivityStartingSoonNotifications(value),
-                    ),
-                  ),
+                title: 'Preferencias',
+                children: const [
+                  _InfoRow(label: 'Idioma', value: 'Español'),
+                  SizedBox(height: 12),
+                  _InfoRow(label: 'Tema', value: 'Oscuro'),
                 ],
               ),
               const SizedBox(height: 14),
               _SectionCard(
-                title: 'Privacidad y seguridad',
+                title: 'Datos',
                 children: [
-                  _SettingSwitch(
-                    title: 'Ocultar ubicación precisa hasta 10 min antes',
-                    value: state.settings.hidePreciseLocationUntilUnlock,
-                    onChanged: (value) => unawaited(
-                      controller.setHidePreciseLocationUntilUnlock(value),
-                    ),
-                  ),
-                  _SettingSwitch(
-                    title: 'Permitir recomendaciones personalizadas',
-                    value: state.settings.personalizedRecommendations,
-                    onChanged: (value) => unawaited(
-                      controller.setPersonalizedRecommendations(value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _SectionCard(
-                title: 'Datos locales',
-                children: [
-                  Text(
-                    'Esto borra actividades, chats, guardadas, feedback, reportes y sesión local.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
+                  _InfoRow(label: 'Versión', value: kAppVisibleVersion),
                   const SizedBox(height: 12),
                   FilledButton(
                     style: FilledButton.styleFrom(
@@ -128,6 +89,16 @@ class SettingsScreen extends ConsumerWidget {
                       }
                     },
                     child: const Text('Borrar datos locales'),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton.tonal(
+                    onPressed: () {
+                      controller.signOut();
+                      if (context.mounted) {
+                        context.go('/');
+                      }
+                    },
+                    child: const Text('Cerrar sesión'),
                   ),
                 ],
               ),
@@ -229,41 +200,6 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SettingSwitch extends StatelessWidget {
-  const _SettingSwitch({
-    required this.title,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-          ),
-        ],
-      ),
     );
   }
 }
