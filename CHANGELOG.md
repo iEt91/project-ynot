@@ -1,3 +1,8 @@
+## v1.0.11.2
+- Fixed profile encoding fallback after local wipe and relogin
+- Sanitized restored profile fields to avoid mojibake in avatar, phone and bio
+- Added safe defaults for profile header display text
+
 ## v1.0.11.1
 - Fixed local data wipe so seed data does not come back after clearing
 - Empty states remain empty after logging in again post-wipe

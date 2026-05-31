@@ -15,6 +15,7 @@ import '../models/chat_message.dart';
 import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
 import '../utils/app_logger.dart';
+import '../utils/formatters.dart';
 
 enum AppStage { booting, phoneAuth, otpEntry, onboarding, ready }
 
@@ -178,8 +179,8 @@ class AppController extends ChangeNotifier {
         restoredMessages,
         allowSeedData: allowSeedData,
         phoneMasked: restoredPhone == null
-            ? 'SesiÃ³n local'
-            : _maskPhone(restoredPhone),
+            ? 'Sesión local'
+            : safePhoneDisplay(restoredPhone),
       );
       AppLogger.log('AUTH', 'session_restored=true');
       return;
@@ -190,8 +191,8 @@ class AppController extends ChangeNotifier {
     final user = _buildDemoUser(
       localSession,
       phoneMasked: restoredPhone == null
-          ? 'SesiÃ³n local'
-          : _maskPhone(restoredPhone),
+          ? 'Sesión local'
+          : safePhoneDisplay(restoredPhone),
     );
 
     AppLogger.log('AUTH', 'session_restored=true');
@@ -247,12 +248,12 @@ class AppController extends ChangeNotifier {
 
     final user = _buildDemoUser(
       clientUid,
-      phoneMasked: _maskPhone(state.phoneInput),
+      phoneMasked: safePhoneDisplay(maskPhone(state.phoneInput)),
     );
 
     await _activateAuthenticatedState(
       user: user,
-      phoneMasked: _maskPhone(state.phoneInput),
+      phoneMasked: safePhoneDisplay(maskPhone(state.phoneInput)),
       clientUid: clientUid,
     );
     unawaited(_persistSnapshot());
@@ -273,12 +274,12 @@ class AppController extends ChangeNotifier {
 
     state = state.copyWith(
       user: currentUser.copyWith(
-        nickname: nickname,
-        avatarEmoji: avatarEmoji,
+        nickname: safeDisplayText(nickname, fallback: 'Luna'),
+        avatarEmoji: safeDisplayText(avatarEmoji, fallback: '🌙'),
         languages: languages,
         vibes: vibes,
         interests: interests,
-        bio: bio,
+        bio: safeDisplayText(bio, fallback: 'Pequeños momentos, juntos.'),
         profileComplete: true,
       ),
       stage: AppStage.ready,
@@ -1110,10 +1111,10 @@ class AppController extends ChangeNotifier {
   AppUser _buildDemoUser(String id, {required String phoneMasked}) {
     return AppUser(
       id: id,
-      phoneMasked: phoneMasked,
+      phoneMasked: safePhoneDisplay(phoneMasked),
       nickname: 'Luna',
-      avatarEmoji: 'ðŸŒ™',
-      bio: 'PequeÃ±os momentos, juntos.',
+      avatarEmoji: '🌙',
+      bio: 'Pequeños momentos, juntos.',
       languages: const ['Korean', 'English'],
       vibes: const ['Calm', 'Creative'],
       interests: const ['Coffee', 'Walks', 'Study'],
@@ -1634,16 +1635,6 @@ class AppController extends ChangeNotifier {
     }
 
     return true;
-  }
-
-  static String _maskPhone(String phone) {
-    final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    if (digits.length <= 4) {
-      return digits;
-    }
-
-    final last4 = digits.substring(digits.length - 4);
-    return 'â€¢â€¢â€¢â€¢ $last4';
   }
 
   bool _hasActiveCreatedActivity(String userId) {

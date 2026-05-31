@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
 import 'package:ynot_mobile/src/core/models/activity.dart';
+import 'package:ynot_mobile/src/core/models/app_user.dart';
 import 'package:ynot_mobile/src/core/models/moderation_report.dart';
 import 'package:ynot_mobile/src/core/models/private_feedback.dart';
 import 'package:ynot_mobile/src/core/state/app_controller.dart';
@@ -816,6 +817,26 @@ void main() {
         'Persisted',
       );
       expect(secondController.state.feedbackEntries, hasLength(1));
+    });
+
+    test('restored profile text is sanitized to safe defaults', () {
+      final user = AppUser.fromJson({
+        'id': 'client_001',
+        'phoneMasked': 'â€¢â€¢â€¢â€¢ 5679',
+        'nickname': 'PequeÃ±a Luna',
+        'avatarEmoji': 'ðŸŒ™',
+        'bio': 'PequeÃ±os momentos, juntos.',
+        'languages': const ['Korean'],
+        'vibes': const ['Calm'],
+        'interests': const ['Coffee'],
+        'status': 'trusted',
+        'profileComplete': true,
+      });
+
+      expect(user.phoneMasked, 'Sesión local');
+      expect(user.nickname, 'Luna');
+      expect(user.avatarEmoji, '🌙');
+      expect(user.bio, 'Pequeños momentos, juntos.');
     });
   });
 }

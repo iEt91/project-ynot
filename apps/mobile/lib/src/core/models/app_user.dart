@@ -1,3 +1,5 @@
+﻿import '../utils/formatters.dart';
+
 enum UserStatus { newUser, trusted, watchlist, limited, shadowbanned, banned }
 
 class AppUser {
@@ -50,13 +52,17 @@ class AppUser {
   }
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
+    final rawPhone = json['phoneMasked'] as String? ?? '';
+    final rawNickname = json['nickname'] as String? ?? '';
+    final rawAvatar = json['avatarEmoji'] as String? ?? '🌙';
+    final rawBio = json['bio'] as String? ?? '';
     return AppUser(
       id: json['id'] as String? ?? '',
-      phoneMasked: json['phoneMasked'] as String? ?? '',
-      nickname: json['nickname'] as String? ?? '',
-      avatarEmoji: json['avatarEmoji'] as String? ?? '🌙',
+      phoneMasked: safePhoneDisplay(rawPhone),
+      nickname: safeDisplayText(rawNickname, fallback: 'Luna'),
+      avatarEmoji: safeDisplayText(rawAvatar, fallback: '🌙'),
       photoUrl: json['photoUrl'] as String?,
-      bio: json['bio'] as String? ?? '',
+      bio: safeDisplayText(rawBio, fallback: 'Pequeños momentos, juntos.'),
       languages: (json['languages'] as List<dynamic>? ?? const []).cast<String>(),
       vibes: (json['vibes'] as List<dynamic>? ?? const []).cast<String>(),
       interests: (json['interests'] as List<dynamic>? ?? const []).cast<String>(),
@@ -96,6 +102,15 @@ class AppUser {
       profileComplete: profileComplete ?? this.profileComplete,
       createdActivityCount: createdActivityCount ?? this.createdActivityCount,
       attendingActivityCount: attendingActivityCount ?? this.attendingActivityCount,
+    );
+  }
+
+  AppUser sanitizedForDisplay() {
+    return copyWith(
+      phoneMasked: safePhoneDisplay(phoneMasked),
+      nickname: safeDisplayText(nickname, fallback: 'Luna'),
+      avatarEmoji: safeDisplayText(avatarEmoji, fallback: '🌙'),
+      bio: safeDisplayText(bio, fallback: 'Pequeños momentos, juntos.'),
     );
   }
 }

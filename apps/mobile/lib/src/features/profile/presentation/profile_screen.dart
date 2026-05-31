@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/state/app_controller.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -16,7 +17,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
-    final user = state.user;
+    final user = state.user?.sanitizedForDisplay();
 
     return KawaiiScene(
       child: ListView(
@@ -45,7 +46,7 @@ class ProfileScreen extends ConsumerWidget {
                     )
                   else
                     KawaiiAvatar(
-                      emoji: user.avatarEmoji,
+                      emoji: safeDisplayText(user.avatarEmoji, fallback: '🌙'),
                       size: 82,
                       accentColor: YnotTheme.primary,
                     ),
@@ -55,25 +56,31 @@ class ProfileScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user.nickname.isEmpty ? 'Tu nombre mágico' : user.nickname,
+                          safeDisplayText(user.nickname, fallback: 'Luna'),
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          user.phoneMasked,
+                          safePhoneDisplay(user.phoneMasked),
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                         ),
-                        if (user.bio.isNotEmpty) ...[
+                        if (safeDisplayText(
+                              user.bio,
+                              fallback: 'Pequeños momentos, juntos.',
+                            ).isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Text(
-                            user.bio,
+                            safeDisplayText(
+                              user.bio,
+                              fallback: 'Pequeños momentos, juntos.',
+                            ),
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                                ),
                           ),
                         ],
                         const SizedBox(height: 10),
