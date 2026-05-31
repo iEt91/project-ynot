@@ -6,6 +6,7 @@ import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
+import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/status_pill.dart';
 
@@ -45,13 +46,13 @@ class ActivitiesScreen extends ConsumerWidget {
               child: activities.isEmpty
                   ? Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Text(
-                          'A\u00fan no hay planes aqu\u00ed. Prueba otro filtro o crea un momento nuevo.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: KawaiiEmptyState(
+                          emoji: '✨',
+                          title: 'No hay actividades disponibles',
+                          message: 'Prueba otro filtro o crea un momento nuevo para llenar el mapa.',
+                          ctaLabel: 'Crear actividad',
+                          onCtaPressed: () => context.push('/create-activity'),
                         ),
                       ),
                     )

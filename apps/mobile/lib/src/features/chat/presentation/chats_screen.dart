@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +8,7 @@ import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
+import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 
 class ChatsScreen extends ConsumerWidget {
@@ -51,7 +52,13 @@ class ChatsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           if (joinedActivities.isEmpty)
-            _EmptyChats(onDiscover: () => context.go('/'))
+            KawaiiEmptyState(
+              emoji: '💬',
+              title: 'No tienes chats activos',
+              message: 'Entra a una actividad, confirma tu asistencia y su chat aparecerá aquí.',
+              ctaLabel: 'Explorar actividades',
+              onCtaPressed: () => context.go('/'),
+            )
           else
             ...joinedActivities.map(
               (activity) => Padding(
@@ -172,39 +179,5 @@ class _ChatRow extends StatelessWidget {
       'Music' => const Color(0xFF63D2FF),
       _ => YnotTheme.primary,
     };
-  }
-}
-
-class _EmptyChats extends StatelessWidget {
-  const _EmptyChats({required this.onDiscover});
-
-  final VoidCallback onDiscover;
-
-  @override
-  Widget build(BuildContext context) {
-    return KawaiiCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Todavía no hay chats abiertos',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Entra a una actividad, confirma tu asistencia y verás cómo aparece su espacio temporal.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: onDiscover,
-            child: const Text('Explorar actividades'),
-          ),
-        ],
-      ),
-    );
   }
 }

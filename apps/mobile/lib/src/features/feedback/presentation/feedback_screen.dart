@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +9,7 @@ import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
+import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/status_pill.dart';
 
@@ -145,13 +146,10 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
               ),
               const SizedBox(height: 14),
               if (!hasSelectableTargets)
-                KawaiiCard(
-                  child: Text(
-                    'Todavía no hay otras personas para calificar en esta actividad.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
+                const KawaiiEmptyState(
+                  emoji: '🌸',
+                  title: 'No hay personas para evaluar',
+                  message: 'En cuanto haya asistentes confirmados, podrás dejar feedback privado aquí.',
                 )
               else
                 ...targets.map((target) {
@@ -190,9 +188,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
-                                      target.userId == currentUser.id
-                                          ? 'Tú'
-                                          : 'Feedback privado de esta persona',
+                                      target.userId == currentUser.id ? 'Tú' : 'Feedback privado de esta persona',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                                           ),
@@ -236,61 +232,60 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                 }),
               const SizedBox(height: 8),
               FilledButton(
-                onPressed:
-                    (!_saving && hasSelectableTargets && hasPendingSelection)
-                        ? () async {
-                            setState(() => _saving = true);
-                            try {
-                              final controller = ref.read(appControllerProvider);
-                              var savedCount = 0;
-                              for (final target in targets) {
-                                final existing = _existingEntry(
-                                  state.feedbackEntries,
-                                  activityId: activity.id,
-                                  reviewerUserId: currentUser.id,
-                                  reviewedUserId: target.userId,
-                                );
-                                if (existing != null) {
-                                  continue;
-                                }
+                onPressed: (!_saving && hasSelectableTargets && hasPendingSelection)
+                    ? () async {
+                        setState(() => _saving = true);
+                        try {
+                          final controller = ref.read(appControllerProvider);
+                          var savedCount = 0;
+                          for (final target in targets) {
+                            final existing = _existingEntry(
+                              state.feedbackEntries,
+                              activityId: activity.id,
+                              reviewerUserId: currentUser.id,
+                              reviewedUserId: target.userId,
+                            );
+                            if (existing != null) {
+                              continue;
+                            }
 
-                                final selected = _selectedByTargetId[target.userId];
-                                if (selected == null) {
-                                  continue;
-                                }
+                            final selected = _selectedByTargetId[target.userId];
+                            if (selected == null) {
+                              continue;
+                            }
 
-                                final success = await controller.submitPrivateFeedback(
-                                  activityId: activity.id,
-                                  reviewerUserId: currentUser.id,
-                                  reviewedUserId: target.userId,
-                                  selectedFeedback: selected,
-                                );
-                                if (success) {
-                                  savedCount += 1;
-                                }
-                              }
-
-                              if (!context.mounted) return;
-                              if (savedCount == 0) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Selecciona al menos una opción antes de enviar.'),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Feedback guardado.')),
-                              );
-                              context.pop();
-                            } finally {
-                              if (mounted) {
-                                setState(() => _saving = false);
-                              }
+                            final success = await controller.submitPrivateFeedback(
+                              activityId: activity.id,
+                              reviewerUserId: currentUser.id,
+                              reviewedUserId: target.userId,
+                              selectedFeedback: selected,
+                            );
+                            if (success) {
+                              savedCount += 1;
                             }
                           }
-                        : null,
+
+                          if (!context.mounted) return;
+                          if (savedCount == 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Selecciona al menos una opción antes de enviar.'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Feedback guardado.')),
+                          );
+                          context.pop();
+                        } finally {
+                          if (mounted) {
+                            setState(() => _saving = false);
+                          }
+                        }
+                      }
+                    : null,
                 child: Text(_saving ? 'Guardando...' : 'Guardar feedback'),
               ),
             ],
@@ -386,7 +381,7 @@ class _FeedbackOptionButton extends StatelessWidget {
                 label.split(' ').skip(1).join(' '),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),

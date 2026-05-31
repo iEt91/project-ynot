@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../shared/widgets/activity_card.dart';
+import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
 import 'profile_back_button.dart';
@@ -23,8 +24,7 @@ class MyActivitiesScreen extends ConsumerWidget {
         : state.activities
             .where(
               (activity) =>
-                  activity.creatorId == user.id &&
-                  activity.isActiveLifecycle,
+                  activity.creatorId == user.id && activity.isActiveLifecycle,
             )
             .toList(growable: false);
     final participatingActive = user == null
@@ -54,14 +54,17 @@ class MyActivitiesScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               _ActivitySection(
                 title: 'Creadas activas',
-                emptyText: 'Aún no tienes actividades activas creadas.',
+                emptyEmoji: '???',
+                emptyTitle: 'No tienes actividades creadas',
+                emptyMessage: 'Crea tu primera actividad para verla aquí.',
                 activities: createdActive,
               ),
               const SizedBox(height: 14),
               _ActivitySection(
                 title: 'Participando activamente',
-                emptyText:
-                    'Todavía no estás participando en ninguna actividad.',
+                emptyEmoji: '??',
+                emptyTitle: 'No estás participando aún',
+                emptyMessage: 'Únete a una actividad para verla en este espacio.',
                 activities: participatingActive,
               ),
             ],
@@ -75,12 +78,16 @@ class MyActivitiesScreen extends ConsumerWidget {
 class _ActivitySection extends StatelessWidget {
   const _ActivitySection({
     required this.title,
-    required this.emptyText,
+    required this.emptyEmoji,
+    required this.emptyTitle,
+    required this.emptyMessage,
     required this.activities,
   });
 
   final String title;
-  final String emptyText;
+  final String emptyEmoji;
+  final String emptyTitle;
+  final String emptyMessage;
   final List<Activity> activities;
 
   @override
@@ -99,11 +106,10 @@ class _ActivitySection extends StatelessWidget {
           ),
         ),
         if (activities.isEmpty)
-          Text(
-            emptyText,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+          KawaiiEmptyState(
+            emoji: emptyEmoji,
+            title: emptyTitle,
+            message: emptyMessage,
           )
         else
           ...activities.map(
@@ -122,3 +128,4 @@ class _ActivitySection extends StatelessWidget {
     );
   }
 }
+

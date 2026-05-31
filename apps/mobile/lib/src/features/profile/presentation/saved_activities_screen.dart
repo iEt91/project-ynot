@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +6,7 @@ import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../shared/widgets/activity_card.dart';
 import '../../../shared/widgets/kawaii_card.dart';
+import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
 import 'profile_back_button.dart';
@@ -39,16 +40,12 @@ class SavedActivitiesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               if (user == null)
-                const KawaiiCard(child: Text('No encontramos una sesiÃ³n activa.'))
+                const KawaiiCard(child: Text('No encontramos una sesión activa.'))
               else if (activities.isEmpty)
-                KawaiiCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Todavía no guardaste actividades.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
+                const KawaiiEmptyState(
+                  emoji: '??',
+                  title: 'Todavía no guardaste actividades',
+                  message: 'Guarda un plan para volver a encontrarlo cuando quieras.',
                 )
               else
                 ...activities.map(
@@ -81,3 +78,4 @@ class _SavedActivityRow extends StatelessWidget {
     );
   }
 }
+

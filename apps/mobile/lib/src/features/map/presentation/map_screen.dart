@@ -14,6 +14,7 @@ import '../../../shared/widgets/google_activity_map.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_bottom_nav.dart';
 import '../../../shared/widgets/kawaii_card.dart';
+import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -112,6 +113,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             onActivityTap: _selectActivity,
                           ),
                   ),
+                  if (activities.isEmpty && _selectedActivity == null)
+                    Positioned(
+                      left: 18,
+                      right: 18,
+                      top: 18,
+                      child: IgnorePointer(
+                        ignoring: false,
+                        child: KawaiiEmptyState(
+                          emoji: '🌙',
+                          title: 'No hay actividades cercanas',
+                          message: 'Crea un momento nuevo y aparecerá aquí en el mapa.',
+                          ctaLabel: 'Crear actividad',
+                          onCtaPressed: () => context.push(
+                            '/create-activity',
+                            extra: _cameraTarget,
+                          ),
+                        ),
+                      ),
+                    ),
                   if (_selectedActivity != null)
                     Positioned(
                       left: 12,

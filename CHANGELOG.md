@@ -1,3 +1,8 @@
+## v1.0.11.0
+- Consistent beautiful empty states across the app
+- No activities, chats, saved, history, feedback and map states now feel intentional
+- Shared empty state component with soft CTA where useful
+
 ## v1.0.10.0
 - Visual cleanup to remove white and gray glow effects
 - Darker shared card surfaces across the app
