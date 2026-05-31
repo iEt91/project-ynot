@@ -74,7 +74,7 @@ Future<void> showActivitySearchSheet(
 }) {
   return showGeneralDialog<void>(
     context: context,
-    barrierDismissible: true,
+    barrierDismissible: false,
     barrierLabel: 'Buscar actividad',
     barrierColor: Colors.black.withValues(alpha: 0.72),
     transitionDuration: const Duration(milliseconds: 160),
@@ -93,6 +93,16 @@ Future<void> showActivitySearchSheet(
 
               return Stack(
                 children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        Navigator.of(dialogContext).pop();
+                      },
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
                   Positioned(
                     left: 18,
                     right: 18,
@@ -100,56 +110,66 @@ Future<void> showActivitySearchSheet(
                     child: FractionallySizedBox(
                       widthFactor: 0.92,
                       alignment: Alignment.topCenter,
-                      child: KawaiiCard(
-                        padding: const EdgeInsets.all(14),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxHeight: maxHeight),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ActivitySearchField(
-                                value: state.activitySearchQuery,
-                                autofocus: true,
-                                onChanged: (value) {
-                                  controller.setActivitySearchQuery(value);
-                                  onChanged?.call();
-                                },
-                                onDismiss: () => Navigator.of(dialogContext).pop(),
-                                onClear: () {
-                                  onChanged?.call();
-                                },
-                              ),
-                              if (query.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                if (hasResults)
-                                  Flexible(
-                                    child: ListView.separated(
-                                      shrinkWrap: true,
-                                      padding: EdgeInsets.zero,
-                                      itemCount: results.length,
-                                      separatorBuilder: (context, index) =>
-                                          Divider(
-                                        height: 1,
-                                        thickness: 1,
-                                        color: YnotTheme.border.withValues(alpha: 0.8),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {},
+                        child: KawaiiCard(
+                          padding: const EdgeInsets.all(14),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxHeight: maxHeight),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ActivitySearchField(
+                                  value: state.activitySearchQuery,
+                                  autofocus: true,
+                                  onChanged: (value) {
+                                    controller.setActivitySearchQuery(value);
+                                    onChanged?.call();
+                                  },
+                                  onDismiss: () {
+                                    FocusManager.instance.primaryFocus?.unfocus();
+                                    Navigator.of(dialogContext).pop();
+                                  },
+                                  onClear: () {
+                                    onChanged?.call();
+                                  },
+                                ),
+                                if (query.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  if (hasResults)
+                                    Flexible(
+                                      child: ListView.separated(
+                                        shrinkWrap: true,
+                                        padding: EdgeInsets.zero,
+                                        itemCount: results.length,
+                                        separatorBuilder: (context, index) =>
+                                            Divider(
+                                          height: 1,
+                                          thickness: 1,
+                                          color: YnotTheme.border
+                                              .withValues(alpha: 0.8),
+                                        ),
+                                        itemBuilder: (context, index) {
+                                          final activity = results[index];
+                                          return _SearchResultTile(
+                                            activity: activity,
+                                            onTap: () {
+                                              FocusManager.instance.primaryFocus
+                                                  ?.unfocus();
+                                              Navigator.of(dialogContext).pop();
+                                              onActivitySelected?.call(activity);
+                                            },
+                                          );
+                                        },
                                       ),
-                                      itemBuilder: (context, index) {
-                                        final activity = results[index];
-                                        return _SearchResultTile(
-                                          activity: activity,
-                                          onTap: () {
-                                            Navigator.of(dialogContext).pop();
-                                            onActivitySelected?.call(activity);
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  )
-                                else
-                                  const _SearchEmptyState(),
+                                    )
+                                  else
+                                    const _SearchEmptyState(),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                       ),
