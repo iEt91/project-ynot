@@ -220,6 +220,90 @@ void main() {
       expect(secondController.state.activities, hasLength(added));
     });
 
+    test('restored demo activities are sanitized on load', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+      mockStore.snapshot = LocalMockSnapshot(
+        user: AppUser(
+          id: 'client_001',
+          phoneMasked: '•••• 5679',
+          nickname: 'Luna',
+          avatarEmoji: '🌙',
+          bio: 'Pequeños momentos, juntos.',
+          languages: const ['Spanish'],
+          vibes: const ['Calm'],
+          interests: const ['Coffee'],
+          status: UserStatus.trusted,
+          profileComplete: true,
+          createdActivityCount: 0,
+          attendingActivityCount: 0,
+        ),
+        activities: [
+          Activity(
+            id: 'seed_6',
+            creatorId: 'seed_creator_yura',
+            creatorLabel: 'Yura',
+            activityType: ActivityType.publicEvent,
+            visibility: ActivityVisibility.publicActivity,
+            title: '🌸 Archive Walk',
+            description: 'Paseo que ya pasó y ahora vive en el historial.',
+            category: 'Walks',
+            vibe: 'Calm',
+            zone: 'Seoul',
+            status: ActivityStatus.archived,
+            realLat: 37.5666,
+            realLng: 126.978,
+            displayLat: 37.5669,
+            displayLng: 126.9776,
+            locationPrivacyRadiusM: 140,
+            exactLocationUnlockAt: DateTime(2026, 6, 1, 15, 0),
+            startTime: DateTime(2026, 6, 1, 12, 0),
+            endTime: DateTime(2026, 6, 1, 14, 0),
+            maxPeople: 8,
+            confirmedCount: 5,
+            pendingCount: 0,
+            feedbackTargets: [
+              const ActivityFeedbackTarget(
+                userId: 'seed_creator_yura',
+                label: 'Yura',
+                emoji: '🌸',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_ren',
+                label: 'Ren',
+                emoji: '✨',
+              ),
+            ],
+            myStatus: ParticipantStatus.attended,
+            isMine: false,
+            lastMessagePreview: 'Yura: Gracias por venir 💫',
+          ),
+        ],
+        messagesByActivityId: const {},
+        savedActivityIds: const [],
+        activityFilters: const {},
+        settings: const {},
+        reports: const [],
+        feedbackEntries: const [],
+      );
+
+      final controller = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(controller.state.activities, hasLength(1));
+      expect(controller.state.activities.first.title, '🌸 Archive Walk');
+      expect(controller.state.activities.first.description,
+          'Paseo que ya pasó y ahora vive en el historial.');
+      expect(controller.state.activities.first.lastMessagePreview,
+          'Yura: Gracias por venir 💫');
+      expect(controller.state.activities.first.feedbackTargets.first.emoji, '🌸');
+    });
+
     test(
       'create activity updates local state and is visible in the map/list',
       () async {

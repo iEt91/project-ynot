@@ -1244,13 +1244,13 @@ class AppController extends ChangeNotifier {
 
   String _categoryEmoji(String category) {
     return switch (category) {
-      'Coffee' => 'â˜•',
-      'Study' => 'ðŸ“š',
-      'Walks' => 'ðŸŒ™',
-      'Food' => 'ðŸœ',
-      'Art' => 'ðŸŽ¨',
-      'Music' => 'ðŸŽµ',
-      _ => 'ðŸŒ™',
+      'Coffee' => '☕',
+      'Study' => '📚',
+      'Walks' => '🌙',
+      'Food' => '🍜',
+      'Art' => '🎨',
+      'Music' => '🎵',
+      _ => '🌙',
     };
   }
 
@@ -1341,9 +1341,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Mina',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: 'â˜• CafÃ© & Talk',
-        description:
-            'Un rato suave para charlar sin presiÃ³n y compartir una taza.',
+        title: '☕ Café & Talk',
+        description: 'Un rato suave para charlar sin presión y compartir una taza.',
         category: 'Coffee',
         vibe: 'Calm',
         zone: 'Hongdae',
@@ -1363,22 +1362,22 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_mina',
             label: 'Mina',
-            emoji: 'â˜•',
+            emoji: '☕',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_soojin',
             label: 'Soojin',
-            emoji: 'âœ¨',
+            emoji: '✨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_hana',
             label: 'Hana',
-            emoji: 'ðŸŒ™',
+            emoji: '🌙',
           ),
         ],
         myStatus: null,
         isMine: false,
-        lastMessagePreview: 'Soojin: Â¿Ya llegaron?',
+        lastMessagePreview: 'Soojin: ¿Ya llegaron?',
       ),
       Activity(
         id: 'seed_2',
@@ -1386,8 +1385,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Jisoo',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: 'ðŸ“š Study Together',
-        description: 'Mesa tranquila, mÃºsica suave y enfoque bonito.',
+        title: '📚 Study Together',
+        description: 'Mesa tranquila, música suave y enfoque bonito.',
         category: 'Study',
         vibe: 'Productive',
         zone: 'Gangnam',
@@ -1407,17 +1406,17 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_jisoo',
             label: 'Jisoo',
-            emoji: 'ðŸ“š',
+            emoji: '📚',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_jiyoon',
             label: 'Jiyoon',
-            emoji: 'âœ¨',
+            emoji: '✨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_mina',
             label: 'Mina',
-            emoji: 'ðŸŒ¸',
+            emoji: '🌸',
           ),
         ],
         myStatus: null,
@@ -1430,8 +1429,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Aria',
         activityType: ActivityType.publicEvent,
         visibility: ActivityVisibility.publicActivity,
-        title: 'ðŸŒ™ Night Walk',
-        description: 'Caminata suave junto al rÃ­o con vibra calm y segura.',
+        title: '🌙 Night Walk',
+        description: 'Caminata suave junto al río con vibra calm y segura.',
         category: 'Walks',
         vibe: 'Calm',
         zone: 'Yeouido',
@@ -1451,17 +1450,17 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_aria',
             label: 'Aria',
-            emoji: 'ðŸŒ™',
+            emoji: '🌙',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_juno',
             label: 'Juno',
-            emoji: 'âœ¨',
+            emoji: '✨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_minsu',
             label: 'Minsu',
-            emoji: 'ðŸ™‚',
+            emoji: '🙂',
           ),
         ],
         myStatus: ParticipantStatus.confirmed,
@@ -1474,7 +1473,7 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Nari',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: 'ðŸŽ¨ Tiny Art Club',
+        title: '🎨 Tiny Art Club',
         description: 'Dibujo, stickers y charla suave cerca del centro.',
         category: 'Art',
         vibe: 'Creative',
@@ -1495,12 +1494,12 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_nari',
             label: 'Nari',
-            emoji: 'ðŸŽ¨',
+            emoji: '🎨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_dami',
             label: 'Dami',
-            emoji: 'ðŸ™‚',
+            emoji: '🙂',
           ),
         ],
         myStatus: ParticipantStatus.attended,
@@ -1512,8 +1511,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Sora',
         activityType: ActivityType.userActivity,
         visibility: ActivityVisibility.publicActivity,
-        title: 'ðŸœ Late Food Run',
-        description: 'Buscar algo rico y caminar un poco despuÃ©s.',
+        title: '🍜 Late Food Run',
+        description: 'Buscar algo rico y caminar un poco después.',
         category: 'Food',
         vibe: 'Social',
         zone: 'Myeongdong',
@@ -1533,17 +1532,17 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_sora',
             label: 'Sora',
-            emoji: 'ðŸœ',
+            emoji: '🍜',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_yuna',
             label: 'Yuna',
-            emoji: 'âœ¨',
+            emoji: '✨',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_jiho',
             label: 'Jiho',
-            emoji: 'ðŸŒ™',
+            emoji: '🌙',
           ),
         ],
         myStatus: null,
@@ -1555,8 +1554,8 @@ class AppController extends ChangeNotifier {
         creatorLabel: 'Yura',
         activityType: ActivityType.publicEvent,
         visibility: ActivityVisibility.publicActivity,
-        title: 'ðŸŒ¸ Archive Walk',
-        description: 'Paseo que ya pasÃ³ y ahora vive en el historial.',
+        title: '🌸 Archive Walk',
+        description: 'Paseo que ya pasó y ahora vive en el historial.',
         category: 'Walks',
         vibe: 'Calm',
         zone: 'Seoul',
@@ -1576,17 +1575,17 @@ class AppController extends ChangeNotifier {
           const ActivityFeedbackTarget(
             userId: 'seed_creator_yura',
             label: 'Yura',
-            emoji: 'ðŸŒ¸',
+            emoji: '🌸',
           ),
           const ActivityFeedbackTarget(
             userId: 'seed_participant_ren',
             label: 'Ren',
-            emoji: 'âœ¨',
+            emoji: '✨',
           ),
         ],
         myStatus: ParticipantStatus.attended,
         isMine: false,
-        lastMessagePreview: 'Yura: Gracias por venir ðŸ’«',
+        lastMessagePreview: 'Yura: Gracias por venir 💫',
       ),
     ];
   }
@@ -1610,8 +1609,199 @@ class AppController extends ChangeNotifier {
   }
 
   String _feedbackPlaceholderEmoji(int index) {
-    const emojis = ['ðŸŒ¸', 'âœ¨', 'ðŸ™‚', 'ðŸ«§', 'ðŸŒ™', 'ðŸ’«'];
+    const emojis = ['🌸', '✨', '🙂', '🫧', '🌙', '💫'];
     return emojis[index % emojis.length];
+  }
+
+  Activity _sanitizeActivityForDisplay(Activity activity) {
+    final sanitizedTargets = activity.feedbackTargets
+        .map(
+          (target) => ActivityFeedbackTarget(
+            userId: target.userId,
+            label: safeDisplayText(target.label, fallback: 'Persona'),
+            emoji: safeDisplayText(target.emoji, fallback: '🌙'),
+          ),
+        )
+        .toList(growable: false);
+
+    final sanitized = activity.copyWith(
+      creatorLabel: safeDisplayText(activity.creatorLabel, fallback: 'Luna'),
+      title: safeDisplayText(activity.title, fallback: 'Actividad'),
+      description: safeDisplayText(
+        activity.description,
+        fallback: 'Un momento bonito para compartir.',
+      ),
+      category: _sanitizeCategory(activity.category),
+      vibe: safeDisplayText(activity.vibe, fallback: 'Calm'),
+      zone: safeDisplayText(activity.zone, fallback: 'Seoul'),
+      lastMessagePreview: safeDisplayText(activity.lastMessagePreview, fallback: ''),
+      feedbackTargets: sanitizedTargets,
+    );
+
+    if (sanitized.id == 'seed_1') {
+      return sanitized.copyWith(
+        title: '☕ Café & Talk',
+        description: 'Un rato suave para charlar sin presión y compartir una taza.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_mina',
+            label: 'Mina',
+            emoji: '☕',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_soojin',
+            label: 'Soojin',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_hana',
+            label: 'Hana',
+            emoji: '🌙',
+          ),
+        ],
+        lastMessagePreview: 'Soojin: ¿Ya llegaron?',
+      );
+    }
+    if (sanitized.id == 'seed_2') {
+      return sanitized.copyWith(
+        title: '📚 Study Together',
+        description: 'Mesa tranquila, música suave y enfoque bonito.',
+        category: 'Study',
+        vibe: 'Productive',
+        zone: 'Gangnam',
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_jisoo',
+            label: 'Jisoo',
+            emoji: '📚',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_jiyoon',
+            label: 'Jiyoon',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_mina',
+            label: 'Mina',
+            emoji: '🌸',
+          ),
+        ],
+        lastMessagePreview: 'Jiyoon: Yo llevo apuntes.',
+      );
+    }
+    if (sanitized.id == 'seed_3') {
+      return sanitized.copyWith(
+        title: '🌙 Night Walk',
+        description: 'Caminata suave junto al río con vibra calm y segura.',
+        category: 'Walks',
+        vibe: 'Calm',
+        zone: 'Yeouido',
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_aria',
+            label: 'Aria',
+            emoji: '🌙',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_juno',
+            label: 'Juno',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_minsu',
+            label: 'Minsu',
+            emoji: '🙂',
+          ),
+        ],
+        lastMessagePreview: 'Aria: Nos vemos en la entrada.',
+      );
+    }
+    if (sanitized.id == 'seed_4') {
+      return sanitized.copyWith(
+        title: '🎨 Tiny Art Club',
+        description: 'Dibujo, stickers y charla suave cerca del centro.',
+        category: 'Art',
+        vibe: 'Creative',
+        zone: 'Insadong',
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_nari',
+            label: 'Nari',
+            emoji: '🎨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_dami',
+            label: 'Dami',
+            emoji: '🙂',
+          ),
+        ],
+      );
+    }
+    if (sanitized.id == 'seed_5') {
+      return sanitized.copyWith(
+        title: '🍜 Late Food Run',
+        description: 'Buscar algo rico y caminar un poco después.',
+        category: 'Food',
+        vibe: 'Social',
+        zone: 'Myeongdong',
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_sora',
+            label: 'Sora',
+            emoji: '🍜',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_yuna',
+            label: 'Yuna',
+            emoji: '✨',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_jiho',
+            label: 'Jiho',
+            emoji: '🌙',
+          ),
+        ],
+      );
+    }
+    if (sanitized.id == 'seed_6') {
+      return sanitized.copyWith(
+        title: '🌸 Archive Walk',
+        description: 'Paseo que ya pasó y ahora vive en el historial.',
+        category: 'Walks',
+        vibe: 'Calm',
+        zone: 'Seoul',
+        feedbackTargets: [
+          const ActivityFeedbackTarget(
+            userId: 'seed_creator_yura',
+            label: 'Yura',
+            emoji: '🌸',
+          ),
+          const ActivityFeedbackTarget(
+            userId: 'seed_participant_ren',
+            label: 'Ren',
+            emoji: '✨',
+          ),
+        ],
+        lastMessagePreview: 'Yura: Gracias por venir 💫',
+      );
+    }
+
+    return sanitized;
+  }
+
+  String _sanitizeCategory(String category) {
+    return switch (category) {
+      'Coffee' => 'Coffee',
+      'Study' => 'Study',
+      'Walks' => 'Walks',
+      'Food' => 'Food',
+      'Art' => 'Art',
+      'Music' => 'Music',
+      _ => 'Walks',
+    };
   }
 
   List<Activity> _updateActivity(
@@ -1720,15 +1910,16 @@ class AppController extends ChangeNotifier {
 
     final hydratedActivities = snapshot.activities
         .map((activity) {
-          if (activity.creatorId.isNotEmpty) {
-            return activity;
+          final normalized = _sanitizeActivityForDisplay(activity);
+          if (normalized.creatorId.isNotEmpty) {
+            return normalized;
           }
 
-          if (activity.isMine) {
-            return activity.copyWith(creatorId: user.id);
+          if (normalized.isMine) {
+            return normalized.copyWith(creatorId: user.id);
           }
 
-          return activity.copyWith(creatorId: 'legacy_seed_${activity.id}');
+          return normalized.copyWith(creatorId: 'legacy_seed_${normalized.id}');
         })
         .toList(growable: false);
 

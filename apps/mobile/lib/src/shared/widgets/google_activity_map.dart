@@ -13,6 +13,7 @@ class GoogleActivityMap extends StatefulWidget {
     required this.activities,
     this.interactive = false,
     this.selectedLocation,
+    this.focusLocation,
     this.onLocationSelected,
     this.onActivityTap,
     this.onMapInteraction,
@@ -26,6 +27,7 @@ class GoogleActivityMap extends StatefulWidget {
   final List<Activity> activities;
   final bool interactive;
   final LatLng? selectedLocation;
+  final LatLng? focusLocation;
   final ValueChanged<LatLng>? onLocationSelected;
   final ValueChanged<Activity>? onActivityTap;
   final VoidCallback? onMapInteraction;
@@ -77,6 +79,22 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
         );
       }
       _queueRefresh();
+    }
+    if (widget.focusLocation != oldWidget.focusLocation) {
+      final controller = _controller;
+      final focusLocation = widget.focusLocation;
+      if (controller != null && focusLocation != null) {
+        controller.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: focusLocation,
+              zoom: 15.5,
+              bearing: 0,
+              tilt: 0,
+            ),
+          ),
+        );
+      }
     }
   }
 

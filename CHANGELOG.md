@@ -1,3 +1,8 @@
+## v1.0.16.2
+- Map search now shows matching activity results in a compact dropdown while typing
+- Tapping a search result centers the map and opens the selected activity card
+- Demo activity seed text was sanitized to keep Café, emojis and preview strings readable
+
 ## v1.0.16.1
 - Activity search moved into a compact overlay below the header
 - Search button now sits next to filters and shows an active state

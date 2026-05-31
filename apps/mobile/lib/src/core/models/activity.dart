@@ -1,3 +1,5 @@
+import '../utils/formatters.dart';
+
 enum ActivityStatus {
   draft,
   pendingModeration,
@@ -58,8 +60,14 @@ class ActivityFeedbackTarget {
   factory ActivityFeedbackTarget.fromJson(Map<String, dynamic> json) {
     return ActivityFeedbackTarget(
       userId: json['userId'] as String? ?? '',
-      label: json['label'] as String? ?? '',
-      emoji: json['emoji'] as String? ?? '🌙',
+      label: safeDisplayText(
+        json['label'] as String? ?? '',
+        fallback: 'Persona',
+      ),
+      emoji: safeDisplayText(
+        json['emoji'] as String? ?? '',
+        fallback: '🌙',
+      ),
     );
   }
 }
@@ -252,18 +260,33 @@ class Activity {
       id: json['id'] as String? ?? '',
       creatorId:
           json['creatorId'] as String? ?? json['creator_id'] as String? ?? '',
-      creatorLabel: json['creatorLabel'] as String? ?? '',
+      creatorLabel: safeDisplayText(
+        json['creatorLabel'] as String? ?? '',
+        fallback: 'Luna',
+      ),
       activityType: ActivityType.values.byName(
         json['activityType'] as String? ?? ActivityType.userActivity.name,
       ),
       visibility: ActivityVisibility.values.byName(
         json['visibility'] as String? ?? ActivityVisibility.publicActivity.name,
       ),
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      category: json['category'] as String? ?? '',
-      vibe: json['vibe'] as String? ?? '',
-      zone: json['zone'] as String? ?? '',
+      title: safeDisplayText(
+        json['title'] as String? ?? '',
+        fallback: 'Actividad',
+      ),
+      description: safeDisplayText(
+        json['description'] as String? ?? '',
+        fallback: 'Un momento bonito para compartir.',
+      ),
+      category: _safeCategory(json['category'] as String?),
+      vibe: safeDisplayText(
+        json['vibe'] as String? ?? '',
+        fallback: 'Calm',
+      ),
+      zone: safeDisplayText(
+        json['zone'] as String? ?? '',
+        fallback: 'Seoul',
+      ),
       status: _parseStatus(json['status'] as String?),
       realLat: (json['realLat'] as num?)?.toDouble() ?? 0,
       realLng: (json['realLng'] as num?)?.toDouble() ?? 0,
@@ -293,7 +316,10 @@ class Activity {
           ? null
           : ParticipantStatus.values.byName(json['myStatus'] as String),
       isMine: json['isMine'] as bool? ?? false,
-      lastMessagePreview: json['lastMessagePreview'] as String? ?? '',
+      lastMessagePreview: safeDisplayText(
+        json['lastMessagePreview'] as String? ?? '',
+        fallback: '',
+      ),
       lastMessageAt: json['lastMessageAt'] == null
           ? null
           : DateTime.tryParse(json['lastMessageAt'] as String),
@@ -316,6 +342,18 @@ class Activity {
       'DRAFT' => ActivityStatus.draft,
       'PENDING_MODERATION' => ActivityStatus.pendingModeration,
       _ => ActivityStatus.open,
+    };
+  }
+
+  static String _safeCategory(String? rawCategory) {
+    return switch (rawCategory) {
+      'Coffee' => 'Coffee',
+      'Study' => 'Study',
+      'Walks' => 'Walks',
+      'Food' => 'Food',
+      'Art' => 'Art',
+      'Music' => 'Music',
+      _ => 'Walks',
     };
   }
 }

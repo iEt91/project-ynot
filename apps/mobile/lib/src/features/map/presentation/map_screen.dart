@@ -30,6 +30,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Activity? _selectedActivity;
   DateTime _previewDismissGuardUntil = DateTime.fromMillisecondsSinceEpoch(0);
   LatLng _cameraTarget = const LatLng(37.5666, 126.9780);
+  LatLng? _mapFocusTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +84,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     onPressed: () => showActivitySearchSheet(
                       context,
                       onChanged: _dismissSelectedActivity,
+                      onActivitySelected: _focusSearchActivity,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -111,6 +113,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                               setState(() => _cameraTarget = position);
                             },
                             previewDismissGuardUntil: _previewDismissGuardUntil,
+                            focusLocation: _mapFocusTarget,
                           )
                         : _FallbackMap(
                             activities: activities,
@@ -127,10 +130,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         child: KawaiiEmptyState(
                           emoji: '✨',
                           title: searchQuery.isNotEmpty
-                              ? 'No encontramos actividades con esa b?squeda.'
+                              ? 'No encontramos actividades con esa búsqueda.'
                               : 'No encontramos actividades con esos filtros.',
                           message: searchQuery.isNotEmpty
-                              ? 'Prueba otra palabra clave o limpia la b?squeda para ver m?s momentos.'
+                              ? 'Prueba otra palabra clave o limpia la búsqueda para ver más momentos.'
                               : 'Prueba limpiar filtros o crea un momento nuevo para llenar el mapa.',
                           ctaLabel: 'Crear actividad',
                           onCtaPressed: () => context.push(
@@ -191,6 +194,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _dismissSelectedActivity() {
     if (_selectedActivity == null) return;
     setState(() => _selectedActivity = null);
+  }
+
+  void _focusSearchActivity(Activity activity) {
+    setState(() {
+      _selectedActivity = activity;
+      _mapFocusTarget = LatLng(activity.displayLat, activity.displayLng);
+      _previewDismissGuardUntil =
+          DateTime.now().add(const Duration(milliseconds: 600));
+    });
   }
 }
 

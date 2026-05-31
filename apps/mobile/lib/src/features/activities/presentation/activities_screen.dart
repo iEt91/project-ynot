@@ -40,7 +40,15 @@ class ActivitiesScreen extends ConsumerWidget {
                   const Spacer(),
                   ActivitySearchHeaderButton(
                     active: state.activitySearchQuery.trim().isNotEmpty,
-                    onPressed: () => showActivitySearchSheet(context),
+                    onPressed: () => showActivitySearchSheet(
+                      context,
+                      onActivitySelected: (activity) {
+                        final route = activity.isJoinedOrConfirmed
+                            ? '/chat/${activity.id}'
+                            : '/activity/${activity.id}';
+                        context.push(route);
+                      },
+                    ),
                   ),
                   const SizedBox(width: 8),
                   ActivityFiltersHeaderButton(
