@@ -197,7 +197,7 @@ class AppController extends ChangeNotifier {
 
     AppLogger.log('AUTH', 'session_restored=true');
     state = state.copyWith(
-      stage: AppStage.ready,
+      stage: _stageForUser(user),
       user: user,
       activities: allowSeedData ? _seedActivities() : const [],
       chatMessages: const {},
@@ -272,13 +272,22 @@ class AppController extends ChangeNotifier {
     final currentUser = state.user;
     if (currentUser == null) return;
 
+    final sanitizedInterests = interests
+        .map((interest) => interest.trim())
+        .where((interest) => interest.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    final safeInterests = sanitizedInterests.isEmpty
+        ? const ['Coffee']
+        : sanitizedInterests;
+
     state = state.copyWith(
       user: currentUser.copyWith(
         nickname: safeDisplayText(nickname, fallback: 'Luna'),
         avatarEmoji: safeDisplayText(avatarEmoji, fallback: '🌙'),
         languages: languages,
         vibes: vibes,
-        interests: interests,
+        interests: safeInterests,
         bio: safeDisplayText(bio, fallback: 'Pequeños momentos, juntos.'),
         profileComplete: true,
       ),
@@ -417,7 +426,7 @@ class AppController extends ChangeNotifier {
 
     state = state.copyWith(
       user: user,
-      stage: AppStage.ready,
+      stage: _stageForUser(user),
       activities: allowSeedData ? _seedActivities() : const [],
       chatMessages: const {},
       savedActivityIds: const {},
@@ -1138,12 +1147,12 @@ class AppController extends ChangeNotifier {
       phoneMasked: safePhoneDisplay(phoneMasked),
       nickname: 'Luna',
       avatarEmoji: '🌙',
-      bio: 'Pequeños momentos, juntos.',
-      languages: const ['Korean', 'English'],
-      vibes: const ['Calm', 'Creative'],
-      interests: const ['Coffee', 'Walks', 'Study'],
+      bio: '',
+      languages: const [],
+      vibes: const [],
+      interests: const [],
       status: UserStatus.trusted,
-      profileComplete: true,
+      profileComplete: false,
       createdActivityCount: 0,
       attendingActivityCount: 0,
     );
@@ -1608,7 +1617,7 @@ class AppController extends ChangeNotifier {
       ..addAll(hydratedSavedActivityIds);
 
     state = state.copyWith(
-      stage: AppStage.ready,
+      stage: _stageForUser(user),
       user: user,
       activities: snapshot.activities.isEmpty && allowSeedData
           ? _seedActivities()
@@ -1659,6 +1668,10 @@ class AppController extends ChangeNotifier {
     }
 
     return true;
+  }
+
+  AppStage _stageForUser(AppUser user) {
+    return user.profileComplete ? AppStage.ready : AppStage.onboarding;
   }
 
   bool _hasActiveCreatedActivity(String userId) {

@@ -1,3 +1,8 @@
+## v1.0.14.0
+- Profile onboarding after first login in mock/local mode
+- Required onboarding for name, avatar and at least one interest before entering the app
+- Profile setup saves locally and still allows later editing from Perfil
+
 ## v1.0.13.0
 - Editable profile screen in mock/local mode
 - Local profile changes persist across restarts

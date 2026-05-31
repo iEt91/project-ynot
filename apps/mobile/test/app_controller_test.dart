@@ -10,24 +10,18 @@ import 'package:ynot_mobile/src/core/state/app_controller.dart';
 
 void main() {
   group('AppController mock flows', () {
-    test('existing local session restores the app on startup', () async {
-      final controller = await _buildController(
-        sessionStore: _TestSessionStore(
-          clientUid: 'persisted_client_001',
-          phone: '+82 10 1234 5678',
-        ),
-        mockStore: _TestMockStore(),
-      );
+    test('existing complete local session restores the app on startup', () async {
+      final controller = await _buildLoggedInController();
 
       expect(controller.state.stage, AppStage.ready);
       expect(controller.state.user, isNotNull);
-      expect(controller.state.user!.id, 'persisted_client_001');
+      expect(controller.state.user!.id, 'client_001');
       expect(controller.state.user!.phoneMasked, contains('5678'));
       expect(controller.state.activities, isNotEmpty);
     });
 
     test(
-      'login with demo code stores a local session and enters the app',
+      'login with demo code opens onboarding when profile is incomplete',
       () async {
         final store = _TestSessionStore();
         final controller = await _buildController(
@@ -42,10 +36,21 @@ void main() {
         controller.updateVerificationInput('000000');
         await controller.verifyCode();
 
-        expect(controller.state.stage, AppStage.ready);
+        expect(controller.state.stage, AppStage.onboarding);
         expect(controller.state.user, isNotNull);
         expect(store.savedClientUid, isNotNull);
         expect(store.savedPhone, '+82 10 0000 0000');
+
+        await controller.completeOnboarding(
+          nickname: 'Luna',
+          avatarEmoji: '🌙',
+          languages: const ['Korean'],
+          vibes: const ['Calm'],
+          interests: const ['Coffee'],
+        );
+
+        expect(controller.state.stage, AppStage.ready);
+        expect(controller.state.user!.profileComplete, isTrue);
       },
     );
 
@@ -199,12 +204,24 @@ void main() {
       controller.updateVerificationInput('000000');
       await controller.verifyCode();
 
-      expect(controller.state.stage, AppStage.ready);
+      expect(controller.state.stage, AppStage.onboarding);
       expect(controller.state.activities, isEmpty);
       expect(controller.filteredActivities(), isEmpty);
       expect(controller.state.chatMessages, isEmpty);
       expect(controller.savedActivities(), isEmpty);
       expect(controller.historyActivitiesForUser(controller.state.user!.id), isEmpty);
+
+      await controller.completeOnboarding(
+        nickname: 'Luna',
+        avatarEmoji: '🌙',
+        languages: const ['Korean'],
+        vibes: const ['Calm'],
+        interests: const ['Coffee'],
+      );
+
+      expect(controller.state.stage, AppStage.ready);
+      expect(controller.state.activities, isEmpty);
+      expect(controller.filteredActivities(), isEmpty);
     });
 
     test('joined or confirmed activities can open chat from the list', () {
@@ -894,12 +911,35 @@ Future<AppController> _buildController({
 }
 
 Future<AppController> _buildLoggedInController() async {
+  final mockStore = _TestMockStore();
+  mockStore.snapshot = LocalMockSnapshot(
+    user: AppUser(
+      id: 'client_001',
+      phoneMasked: '•••• 5678',
+      nickname: 'Luna',
+      avatarEmoji: '🌙',
+      bio: 'Pequeños momentos, juntos.',
+      languages: const ['Korean', 'English'],
+      vibes: const ['Calm', 'Creative'],
+      interests: const ['Coffee', 'Walks', 'Study'],
+      status: UserStatus.trusted,
+      profileComplete: true,
+      createdActivityCount: 0,
+      attendingActivityCount: 0,
+    ),
+    activities: const [],
+    messagesByActivityId: const {},
+    savedActivityIds: const [],
+    settings: const {},
+    reports: const [],
+    feedbackEntries: const [],
+  );
   return _buildController(
     sessionStore: _TestSessionStore(
       clientUid: 'client_001',
       phone: '+82 10 1234 5678',
     ),
-    mockStore: _TestMockStore(),
+    mockStore: mockStore,
   );
 }
 
