@@ -6,6 +6,7 @@ import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../shared/widgets/activity_filters_sheet.dart';
+import '../../../shared/widgets/activity_search_field.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -16,6 +17,7 @@ class ActivitiesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appStateProvider);
     final activities = ref.read(appControllerProvider).filteredActivities();
 
     return KawaiiScene(
@@ -42,6 +44,15 @@ class ActivitiesScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+              child: ActivitySearchField(
+                value: state.activitySearchQuery,
+                onChanged: (value) {
+                  ref.read(appControllerProvider).setActivitySearchQuery(value);
+                },
+              ),
+            ),
             Expanded(
               child: activities.isEmpty
                   ? Align(
@@ -50,9 +61,12 @@ class ActivitiesScreen extends ConsumerWidget {
                         padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
                         child: KawaiiEmptyState(
                           emoji: '✨',
-                          title: 'No encontramos actividades con esos filtros.',
-                          message:
-                              'Prueba limpiar filtros o crea un momento nuevo para llenar el mapa.',
+                          title: state.activitySearchQuery.trim().isNotEmpty
+                              ? 'No encontramos actividades con esa búsqueda.'
+                              : 'No encontramos actividades con esos filtros.',
+                          message: state.activitySearchQuery.trim().isNotEmpty
+                              ? 'Prueba otra palabra clave o limpia la búsqueda para ver más momentos.'
+                              : 'Prueba limpiar filtros o crea un momento nuevo para llenar el mapa.',
                           ctaLabel: 'Crear actividad',
                           onCtaPressed: () => context.push('/create-activity'),
                         ),

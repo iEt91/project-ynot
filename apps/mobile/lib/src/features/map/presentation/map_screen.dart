@@ -11,6 +11,7 @@ import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/google_maps_support.dart';
 import '../../../shared/widgets/activity_filters_sheet.dart';
+import '../../../shared/widgets/activity_search_field.dart';
 import '../../../shared/widgets/google_activity_map.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_bottom_nav.dart';
@@ -41,6 +42,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final selectedActivity = _selectedActivity;
     final isSelectedSaved =
         selectedActivity != null && state.savedActivityIds.contains(selectedActivity.id);
+    final searchQuery = state.activitySearchQuery.trim();
 
     return KawaiiScene(
       child: SafeArea(
@@ -85,6 +87,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+              child: ActivitySearchField(
+                value: state.activitySearchQuery,
+                onChanged: (value) {
+                  ref.read(appControllerProvider).setActivitySearchQuery(value);
+                  _dismissSelectedActivity();
+                },
+              ),
+            ),
             Expanded(
               child: Stack(
                 children: [
@@ -116,9 +128,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         ignoring: false,
                         child: KawaiiEmptyState(
                           emoji: '✨',
-                          title: 'No encontramos actividades con esos filtros.',
-                          message:
-                              'Prueba limpiar filtros o crea un momento nuevo para llenar el mapa.',
+                          title: searchQuery.isNotEmpty
+                              ? 'No encontramos actividades con esa b?squeda.'
+                              : 'No encontramos actividades con esos filtros.',
+                          message: searchQuery.isNotEmpty
+                              ? 'Prueba otra palabra clave o limpia la b?squeda para ver m?s momentos.'
+                              : 'Prueba limpiar filtros o crea un momento nuevo para llenar el mapa.',
                           ctaLabel: 'Crear actividad',
                           onCtaPressed: () => context.push(
                             '/create-activity',

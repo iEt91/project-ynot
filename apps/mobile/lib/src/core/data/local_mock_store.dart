@@ -15,6 +15,7 @@ class LocalMockSnapshot {
     required this.messagesByActivityId,
     required this.savedActivityIds,
     required this.activityFilters,
+    this.searchQuery = '',
     required this.settings,
     required this.reports,
     required this.feedbackEntries,
@@ -25,6 +26,7 @@ class LocalMockSnapshot {
   final Map<String, List<ChatMessage>> messagesByActivityId;
   final List<String> savedActivityIds;
   final Map<String, dynamic> activityFilters;
+  final String searchQuery;
   final Map<String, dynamic> settings;
   final List<ModerationReport> reports;
   final List<PrivateFeedbackEntry> feedbackEntries;
@@ -43,6 +45,7 @@ class LocalMockSnapshot {
       ),
       'savedActivityIds': List<String>.from(savedActivityIds),
       'activityFilters': activityFilters,
+      'searchQuery': searchQuery,
       'settings': settings,
       'reports': reports.map((report) => report.toJson()).toList(growable: false),
       'feedbackEntries': feedbackEntries
@@ -83,6 +86,7 @@ class LocalMockSnapshot {
       activityFilters: Map<String, dynamic>.from(
         json['activityFilters'] as Map<String, dynamic>? ?? const {},
       ),
+      searchQuery: json['searchQuery'] as String? ?? '',
       settings: Map<String, dynamic>.from(
         json['settings'] as Map<String, dynamic>? ?? const {},
       ),

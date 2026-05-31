@@ -129,6 +129,69 @@ void main() {
       expect(secondController.filteredActivities(), isNotEmpty);
     });
 
+    test('activity search persists and applies to results', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore()
+        ..snapshot = LocalMockSnapshot(
+          user: AppUser(
+            id: 'client_001',
+            phoneMasked: '•••• 5678',
+            nickname: 'Luna',
+            avatarEmoji: '🌙',
+            bio: 'Pequeños momentos, juntos.',
+            languages: const ['Korean', 'English'],
+            vibes: const ['Calm', 'Creative'],
+            interests: const ['Coffee', 'Walks', 'Study'],
+            status: UserStatus.trusted,
+            profileComplete: true,
+            createdActivityCount: 0,
+            attendingActivityCount: 0,
+          ),
+          activities: const [],
+          messagesByActivityId: const {},
+          savedActivityIds: const [],
+          activityFilters: const {},
+          searchQuery: '',
+          settings: const {},
+          reports: const [],
+          feedbackEntries: const [],
+        );
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final now = DateTime.now();
+      await firstController.createActivity(
+        title: 'Morning Coffee',
+        description: 'Search helper test.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        startTime: DateTime(now.year, now.month, now.day, 10, 0),
+        duration: const Duration(hours: 2),
+        maxPeople: 4,
+        realLat: 37.5563,
+        realLng: 126.9228,
+        visibility: ActivityVisibility.privateActivity,
+      );
+
+      firstController.setActivitySearchQuery('helper test');
+      expect(firstController.filteredActivities(), hasLength(1));
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.activitySearchQuery, 'helper test');
+      expect(secondController.filteredActivities(), hasLength(1));
+    });
+
     test(
       'create activity updates local state and is visible in the map/list',
       () async {

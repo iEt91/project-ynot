@@ -10,6 +10,7 @@ class ActivityDiscoveryFilters {
     required this.timeSlot,
     required this.categories,
     required this.peopleRange,
+    required this.searchQuery,
   });
 
   factory ActivityDiscoveryFilters.initial() {
@@ -18,6 +19,7 @@ class ActivityDiscoveryFilters {
       timeSlot: null,
       categories: <String>{},
       peopleRange: null,
+      searchQuery: '',
     );
   }
 
@@ -25,15 +27,21 @@ class ActivityDiscoveryFilters {
   final ActivityTimeSlot? timeSlot;
   final Set<String> categories;
   final ActivityPeopleRange? peopleRange;
+  final String searchQuery;
 
   bool get isEmpty =>
-      !today && timeSlot == null && categories.isEmpty && peopleRange == null;
+      !today &&
+      timeSlot == null &&
+      categories.isEmpty &&
+      peopleRange == null &&
+      searchQuery.trim().isEmpty;
 
   ActivityDiscoveryFilters copyWith({
     bool? today,
     Object? timeSlot = _unset,
     Set<String>? categories,
     Object? peopleRange = _unset,
+    Object? searchQuery = _unset,
   }) {
     return ActivityDiscoveryFilters(
       today: today ?? this.today,
@@ -41,6 +49,8 @@ class ActivityDiscoveryFilters {
       categories: categories ?? this.categories,
       peopleRange:
           peopleRange == _unset ? this.peopleRange : peopleRange as ActivityPeopleRange?,
+      searchQuery:
+          searchQuery == _unset ? this.searchQuery : searchQuery as String,
     );
   }
 
@@ -64,6 +74,7 @@ class ActivityDiscoveryFilters {
       'timeSlot': timeSlot?.name,
       'categories': categories.toList(growable: false),
       'peopleRange': peopleRange?.name,
+      'searchQuery': searchQuery,
     };
   }
 
@@ -76,6 +87,7 @@ class ActivityDiscoveryFilters {
       timeSlot: _timeSlotFromName(json['timeSlot'] as String?),
       categories: categories,
       peopleRange: _peopleRangeFromName(json['peopleRange'] as String?),
+      searchQuery: json['searchQuery'] as String? ?? '',
     );
   }
 }

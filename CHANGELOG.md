@@ -1,3 +1,8 @@
+## v1.0.16.0
+- Compact activity search added to Map and Activities
+- Search combines with existing filters and persists locally
+- Empty states now distinguish between filters and search
+
 ## v1.0.15.3
 - Activities empty-state card now wraps its content instead of stretching toward the footer
 - Compact top-aligned empty state keeps the same dark kawaii style

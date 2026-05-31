@@ -29,6 +29,7 @@ class AppState {
     required this.savedActivityIds,
     required this.settings,
     required this.activityFilters,
+    required this.activitySearchQuery,
     required this.reports,
     required this.feedbackEntries,
     this.user,
@@ -47,6 +48,7 @@ class AppState {
       savedActivityIds: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
+      activitySearchQuery: '',
       reports: const [],
       feedbackEntries: const [],
     );
@@ -60,6 +62,7 @@ class AppState {
   final Set<String> savedActivityIds;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
+  final String activitySearchQuery;
   final List<ModerationReport> reports;
   final List<PrivateFeedbackEntry> feedbackEntries;
   final String phoneInput;
@@ -76,6 +79,7 @@ class AppState {
     Set<String>? savedActivityIds,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
+    String? activitySearchQuery,
     List<ModerationReport>? reports,
     List<PrivateFeedbackEntry>? feedbackEntries,
     String? phoneInput,
@@ -92,6 +96,7 @@ class AppState {
       savedActivityIds: savedActivityIds ?? this.savedActivityIds,
       settings: settings ?? this.settings,
       activityFilters: activityFilters ?? this.activityFilters,
+      activitySearchQuery: activitySearchQuery ?? this.activitySearchQuery,
       reports: reports ?? this.reports,
       feedbackEntries: feedbackEntries ?? this.feedbackEntries,
       phoneInput: phoneInput ?? this.phoneInput,
@@ -1077,8 +1082,11 @@ class AppController extends ChangeNotifier {
         .toList(growable: false);
 
     final filters = state.activityFilters;
+    final query = state.activitySearchQuery.trim().toLowerCase();
     if (filters.isEmpty) {
-      return visibleActivities;
+      return query.isEmpty
+          ? visibleActivities
+          : visibleActivities.where((activity) => _matchesSearchQuery(activity, query)).toList(growable: false);
     }
 
     return visibleActivities.where((activity) {
@@ -1104,8 +1112,17 @@ class AppController extends ChangeNotifier {
         return false;
       }
 
+      if (query.isNotEmpty && !_matchesSearchQuery(activity, query)) {
+        return false;
+      }
+
       return true;
     }).toList(growable: false);
+  }
+
+  void setActivitySearchQuery(String query) {
+    state = state.copyWith(activitySearchQuery: query);
+    unawaited(_persistSnapshot());
   }
 
   void toggleTodayFilter() {
@@ -1170,6 +1187,21 @@ class AppController extends ChangeNotifier {
         activity.maxPeople >= 5 && activity.maxPeople <= 8,
       ActivityPeopleRange.ninePlus => activity.maxPeople >= 9,
     };
+  }
+
+  bool _matchesSearchQuery(Activity activity, String query) {
+    if (query.isEmpty) {
+      return true;
+    }
+
+    final haystack = <String>[
+      activity.title,
+      activity.description,
+      activity.zone,
+      activity.category,
+      activity.vibe,
+    ].join(' ').toLowerCase();
+    return haystack.contains(query);
   }
 
   List<Activity> activeActivitiesForUser(String userId) {
@@ -1638,6 +1670,7 @@ class AppController extends ChangeNotifier {
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
         activityFilters: state.activityFilters.toJson(),
+        searchQuery: state.activitySearchQuery,
         settings: state.settings.toJson(),
         reports: state.reports,
         feedbackEntries: state.feedbackEntries,
@@ -1696,6 +1729,7 @@ class AppController extends ChangeNotifier {
     final hydratedFilters = snapshot.activityFilters.isEmpty
         ? ActivityDiscoveryFilters.initial()
         : ActivityDiscoveryFilters.fromJson(snapshot.activityFilters);
+    final hydratedSearchQuery = snapshot.searchQuery;
 
     _savedActivityIds
       ..clear()
@@ -1711,6 +1745,7 @@ class AppController extends ChangeNotifier {
       savedActivityIds: hydratedSavedActivityIds,
       settings: hydratedSettings,
       activityFilters: hydratedFilters,
+      activitySearchQuery: hydratedSearchQuery,
       reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
       errorMessage: null,
