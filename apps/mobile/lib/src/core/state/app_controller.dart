@@ -1591,6 +1591,24 @@ class AppController extends ChangeNotifier {
     ];
   }
 
+  Future<int> loadDemoActivities() async {
+    final existingIds = state.activities.map((activity) => activity.id).toSet();
+    final demoActivities = _seedActivities()
+        .where((activity) => !existingIds.contains(activity.id))
+        .toList(growable: false);
+
+    if (demoActivities.isEmpty) {
+      return 0;
+    }
+
+    final nextActivities = [...state.activities, ...demoActivities]
+      ..sort((left, right) => left.startTime.compareTo(right.startTime));
+
+    state = state.copyWith(activities: nextActivities);
+    await _persistSnapshot();
+    return demoActivities.length;
+  }
+
   String _feedbackPlaceholderEmoji(int index) {
     const emojis = ['ðŸŒ¸', 'âœ¨', 'ðŸ™‚', 'ðŸ«§', 'ðŸŒ™', 'ðŸ’«'];
     return emojis[index % emojis.length];

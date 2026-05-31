@@ -192,6 +192,34 @@ void main() {
       expect(secondController.filteredActivities(), hasLength(1));
     });
 
+    test('manual demo data loads and persists after restart', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+        mockSeedDisabledAfterWipe: true,
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(firstController.state.activities, isEmpty);
+
+      final added = await firstController.loadDemoActivities();
+      expect(added, greaterThanOrEqualTo(4));
+      expect(added, lessThanOrEqualTo(6));
+      expect(firstController.state.activities, hasLength(added));
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.activities, hasLength(added));
+    });
+
     test(
       'create activity updates local state and is visible in the map/list',
       () async {
@@ -1083,7 +1111,11 @@ Future<AppController> _buildLoggedInController() async {
 }
 
 class _TestSessionStore extends LocalSessionStore {
-  _TestSessionStore({this.clientUid, this.phone});
+  _TestSessionStore({
+    this.clientUid,
+    this.phone,
+    this.mockSeedDisabledAfterWipe = false,
+  });
 
   String? clientUid;
   String? phone;

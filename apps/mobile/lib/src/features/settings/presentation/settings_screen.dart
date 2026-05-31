@@ -75,6 +75,23 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   _InfoRow(label: 'Versión', value: kAppVisibleVersion),
                   const SizedBox(height: 12),
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      final count = await controller.loadDemoActivities();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            count > 0
+                                ? 'Se cargaron $count actividades demo.'
+                                : 'Los datos demo ya estaban cargados.',
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Cargar datos demo'),
+                  ),
+                  const SizedBox(height: 10),
                   FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.redAccent.withValues(alpha: 0.20),

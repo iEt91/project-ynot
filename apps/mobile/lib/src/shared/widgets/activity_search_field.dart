@@ -7,12 +7,16 @@ class ActivitySearchField extends StatefulWidget {
     super.key,
     required this.value,
     required this.onChanged,
+    this.onDismiss,
+    this.autofocus = false,
     this.onClear,
   });
 
   final String value;
   final ValueChanged<String> onChanged;
   final VoidCallback? onClear;
+  final VoidCallback? onDismiss;
+  final bool autofocus;
 
   @override
   State<ActivitySearchField> createState() => _ActivitySearchFieldState();
@@ -57,6 +61,7 @@ class _ActivitySearchFieldState extends State<ActivitySearchField> {
             child: TextField(
               controller: _controller,
               onChanged: widget.onChanged,
+              autofocus: widget.autofocus,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -70,18 +75,23 @@ class _ActivitySearchFieldState extends State<ActivitySearchField> {
               ),
             ),
           ),
-          if (hasText)
-            IconButton(
-              onPressed: () {
-                _controller.clear();
-                widget.onClear?.call();
-                widget.onChanged('');
-              },
-              icon: const Icon(Icons.close_rounded),
-              color: Colors.white70,
-              tooltip: 'Limpiar búsqueda',
-              visualDensity: VisualDensity.compact,
+          IconButton(
+            onPressed: () {
+              if (_controller.text.trim().isEmpty) {
+                widget.onDismiss?.call();
+                return;
+              }
+              _controller.clear();
+              widget.onClear?.call();
+              widget.onChanged('');
+            },
+            icon: Icon(
+              hasText ? Icons.close_rounded : Icons.close_rounded,
             ),
+            color: Colors.white70,
+            tooltip: hasText ? 'Limpiar búsqueda' : 'Cerrar',
+            visualDensity: VisualDensity.compact,
+          ),
         ],
       ),
     );

@@ -1,3 +1,8 @@
+## v1.0.16.1
+- Activity search moved into a compact overlay below the header
+- Search button now sits next to filters and shows an active state
+- Added manual demo data loading from settings for local testing
+
 ## v1.0.16.0
 - Compact activity search added to Map and Activities
 - Search combines with existing filters and persists locally

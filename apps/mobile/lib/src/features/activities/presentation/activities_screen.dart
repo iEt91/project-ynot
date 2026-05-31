@@ -6,7 +6,7 @@ import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/geo.dart';
 import '../../../shared/widgets/activity_filters_sheet.dart';
-import '../../../shared/widgets/activity_search_field.dart';
+import '../../../shared/widgets/activity_search_sheet.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -38,19 +38,15 @@ class ActivitiesScreen extends ConsumerWidget {
                         ),
                   ),
                   const Spacer(),
+                  ActivitySearchHeaderButton(
+                    active: state.activitySearchQuery.trim().isNotEmpty,
+                    onPressed: () => showActivitySearchSheet(context),
+                  ),
+                  const SizedBox(width: 8),
                   ActivityFiltersHeaderButton(
                     onPressed: () => showActivityFiltersSheet(context),
                   ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
-              child: ActivitySearchField(
-                value: state.activitySearchQuery,
-                onChanged: (value) {
-                  ref.read(appControllerProvider).setActivitySearchQuery(value);
-                },
               ),
             ),
             Expanded(
