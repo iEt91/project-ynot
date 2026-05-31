@@ -1,3 +1,8 @@
+## v1.0.15.3
+- Activities empty-state card now wraps its content instead of stretching toward the footer
+- Compact top-aligned empty state keeps the same dark kawaii style
+- Filter logic, modal behavior and map layout remain unchanged
+
 ## v1.0.15.2
 - Map header now keeps the version badge next to the title and moves the filters button to the right
 - Activities empty state is now compact and content-sized instead of tall and centered

@@ -24,6 +24,7 @@ class KawaiiEmptyState extends StatelessWidget {
     return KawaiiCard(
       padding: const EdgeInsets.all(18),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
