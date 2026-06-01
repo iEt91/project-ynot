@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/geo.dart';
+import '../../../shared/widgets/app_screen_header.dart';
 import '../../../shared/widgets/activity_filters_sheet.dart';
 import '../../../shared/widgets/activity_search_sheet.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
@@ -26,33 +27,36 @@ class ActivitiesScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
-              child: Row(
-                children: [
-                  Text(
-                    'Actividades',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                    ),
+            AppScreenHeader(
+              title: 'Actividades',
+              actions: [
+                ActivitySearchHeaderButton(
+                  active: state.activitySearchQuery.trim().isNotEmpty,
+                  onPressed: () => showActivitySearchSheet(
+                    context,
+                    onActivitySelected: (activity) {
+                      context.push('/activity/${activity.id}');
+                    },
                   ),
-                  const Spacer(),
-                  ActivitySearchHeaderButton(
-                    active: state.activitySearchQuery.trim().isNotEmpty,
-                    onPressed: () => showActivitySearchSheet(
-                      context,
-                      onActivitySelected: (activity) {
-                        context.push('/activity/${activity.id}');
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ActivityFiltersHeaderButton(
-                    onPressed: () => showActivityFiltersSheet(context),
-                  ),
-                ],
-              ),
+                ),
+                ActivityFiltersHeaderButton(
+                  active: !state.activityFilters.isEmpty,
+                  onPressed: () => showActivityFiltersSheet(context),
+                ),
+                NotificationBellButton(
+                  unreadCount: state.notifications
+                      .where((notification) => !notification.isRead)
+                      .length,
+                  onTap: () async {
+                    await ref
+                        .read(appControllerProvider)
+                        .refreshNotifications();
+                    if (context.mounted) {
+                      context.push('/notifications');
+                    }
+                  },
+                ),
+              ],
             ),
             Expanded(
               child: activities.isEmpty

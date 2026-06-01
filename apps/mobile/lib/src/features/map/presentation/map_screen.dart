@@ -10,6 +10,7 @@ import '../../../core/constants/app_version.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/google_maps_support.dart';
+import '../../../shared/widgets/app_screen_header.dart';
 import '../../../shared/widgets/activity_filters_sheet.dart';
 import '../../../shared/widgets/activity_search_sheet.dart';
 import '../../../shared/widgets/google_activity_map.dart';
@@ -38,12 +39,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final controller = ref.read(appControllerProvider);
     final activities = ref.read(appControllerProvider).filteredActivities();
     final bottomPadding =
-        MediaQuery.of(context).padding.bottom + KawaiiBottomNav.dockHeight + 12.0;
+        MediaQuery.of(context).padding.bottom +
+        KawaiiBottomNav.dockHeight +
+        12.0;
     final fabBottom = bottomPadding + 12.0;
     final selectedActivity = _selectedActivity;
     final isSelectedSaved =
-        selectedActivity != null && state.savedActivityIds.contains(selectedActivity.id);
+        selectedActivity != null &&
+        state.savedActivityIds.contains(selectedActivity.id);
     final searchQuery = state.activitySearchQuery.trim();
+    final unreadNotifications = state.notifications
+        .where((notification) => !notification.isRead)
+        .length;
 
     return KawaiiScene(
       child: SafeArea(
@@ -51,51 +58,35 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
-              child: Row(
-                children: [
-                  Text(
-                    'Mapa',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
-                        ),
+            AppScreenHeader(
+              title: 'Mapa',
+              versionLabel: kAppVisibleVersion,
+              actions: [
+                ActivitySearchHeaderButton(
+                  active: searchQuery.isNotEmpty,
+                  onPressed: () => showActivitySearchSheet(
+                    context,
+                    onChanged: _dismissSelectedActivity,
+                    onActivitySelected: _focusSearchActivity,
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: YnotTheme.surface2.withValues(alpha: 0.96),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: YnotTheme.border),
-                    ),
-                    child: Text(
-                      kAppVisibleVersion,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                    ),
+                ),
+                ActivityFiltersHeaderButton(
+                  active: !state.activityFilters.isEmpty,
+                  onPressed: () => showActivityFiltersSheet(
+                    context,
+                    onChanged: _dismissSelectedActivity,
                   ),
-                  const Spacer(),
-                  ActivitySearchHeaderButton(
-                    active: searchQuery.isNotEmpty,
-                    onPressed: () => showActivitySearchSheet(
-                      context,
-                      onChanged: _dismissSelectedActivity,
-                      onActivitySelected: _focusSearchActivity,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ActivityFiltersHeaderButton(
-                    onPressed: () => showActivityFiltersSheet(
-                      context,
-                      onChanged: _dismissSelectedActivity,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                NotificationBellButton(
+                  unreadCount: unreadNotifications,
+                  onTap: () async {
+                    await controller.refreshNotifications();
+                    if (context.mounted) {
+                      context.push('/notifications');
+                    }
+                  },
+                ),
+              ],
             ),
             Expanded(
               child: Stack(
@@ -155,9 +146,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           selectedActivity,
                         ),
                         onToggleSave: () async {
-                          await controller.toggleSavedActivity(selectedActivity.id);
+                          await controller.toggleSavedActivity(
+                            selectedActivity.id,
+                          );
                         },
-                        onTap: () => context.push('/activity/${selectedActivity.id}'),
+                        onTap: () =>
+                            context.push('/activity/${selectedActivity.id}'),
                       ),
                     ),
                   if (_selectedActivity == null)
@@ -190,7 +184,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _selectActivity(Activity activity) {
     setState(() {
       _selectedActivity = activity;
-      _previewDismissGuardUntil = DateTime.now().add(const Duration(milliseconds: 450));
+      _previewDismissGuardUntil = DateTime.now().add(
+        const Duration(milliseconds: 450),
+      );
     });
   }
 
@@ -203,8 +199,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     setState(() {
       _selectedActivity = activity;
       _mapFocusTarget = LatLng(activity.displayLat, activity.displayLng);
-      _previewDismissGuardUntil =
-          DateTime.now().add(const Duration(milliseconds: 600));
+      _previewDismissGuardUntil = DateTime.now().add(
+        const Duration(milliseconds: 600),
+      );
     });
   }
 }
@@ -250,27 +247,28 @@ class _SelectedActivityCard extends StatelessWidget {
                 Text(
                   activity.title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${_formatHour(activity.startTime)} · ${activity.zone}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _MiniMeta(text: locationLabel),
-                  _MiniMeta(
-                    text: '${activity.confirmedCount}/${activity.maxPeople} asistentes',
-                  ),
-                  _MiniMeta(text: activity.vibe),
-                ],
+                  runSpacing: 8,
+                  children: [
+                    _MiniMeta(text: locationLabel),
+                    _MiniMeta(
+                      text:
+                          '${activity.confirmedCount}/${activity.maxPeople} asistentes',
+                    ),
+                    _MiniMeta(text: activity.vibe),
+                  ],
                 ),
               ],
             ),
@@ -286,10 +284,7 @@ class _SelectedActivityCard extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 10),
-              FilledButton(
-                onPressed: onTap,
-                child: const Text('Ver detalle'),
-              ),
+              FilledButton(onPressed: onTap, child: const Text('Ver detalle')),
             ],
           ),
         ],
@@ -333,19 +328,16 @@ class _MiniMeta extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
 }
 
 class _SaveBubbleButton extends StatelessWidget {
-  const _SaveBubbleButton({
-    required this.saved,
-    required this.onTap,
-  });
+  const _SaveBubbleButton({required this.saved, required this.onTap});
 
   final bool saved;
   final VoidCallback? onTap;
@@ -355,7 +347,9 @@ class _SaveBubbleButton extends StatelessWidget {
     final background = saved
         ? Colors.pinkAccent.withValues(alpha: 0.22)
         : YnotTheme.surface2.withValues(alpha: 0.96);
-    final border = saved ? Colors.pinkAccent.withValues(alpha: 0.42) : YnotTheme.border;
+    final border = saved
+        ? Colors.pinkAccent.withValues(alpha: 0.42)
+        : YnotTheme.border;
     final iconColor = saved ? Colors.pinkAccent : Colors.white;
 
     return InkWell(
@@ -380,10 +374,7 @@ class _SaveBubbleButton extends StatelessWidget {
 }
 
 class _FallbackMap extends StatelessWidget {
-  const _FallbackMap({
-    required this.activities,
-    required this.onActivityTap,
-  });
+  const _FallbackMap({required this.activities, required this.onActivityTap});
 
   final List<Activity> activities;
   final ValueChanged<Activity> onActivityTap;
@@ -400,11 +391,7 @@ class _FallbackMap extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _NightCityPainter(),
-            ),
-          ),
+          Positioned.fill(child: CustomPaint(painter: _NightCityPainter())),
           ...activities.take(5).map((activity) {
             final normalizedX = _normalize(activity.displayLng, 126.91, 127.05);
             final normalizedY = _normalize(activity.displayLat, 37.47, 37.60);
@@ -424,9 +411,9 @@ class _FallbackMap extends StatelessWidget {
                     Text(
                       activity.title,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
@@ -479,7 +466,8 @@ class _NightCityPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
     );
 
-    final blocksPaint = Paint()..color = const Color(0xFF0F172A).withValues(alpha: 0.32);
+    final blocksPaint = Paint()
+      ..color = const Color(0xFF0F172A).withValues(alpha: 0.32);
     final blocks = <Rect>[
       Rect.fromLTWH(24, 26, 72, 54),
       Rect.fromLTWH(122, 18, 92, 72),
@@ -534,12 +522,23 @@ class _NightCityPainter extends CustomPainter {
     canvas.drawPath(
       Path()
         ..moveTo(size.width * 0.12, size.height - 18)
-        ..quadraticBezierTo(size.width * 0.20, size.height * 0.74, size.width * 0.40, size.height * 0.70)
-        ..quadraticBezierTo(size.width * 0.63, size.height * 0.66, size.width * 0.88, size.height * 0.72),
+        ..quadraticBezierTo(
+          size.width * 0.20,
+          size.height * 0.74,
+          size.width * 0.40,
+          size.height * 0.70,
+        )
+        ..quadraticBezierTo(
+          size.width * 0.63,
+          size.height * 0.66,
+          size.width * 0.88,
+          size.height * 0.72,
+        ),
       roadPaint,
     );
 
-    final waterPaint = Paint()..color = const Color(0xFF102D4F).withValues(alpha: 0.18);
+    final waterPaint = Paint()
+      ..color = const Color(0xFF102D4F).withValues(alpha: 0.18);
     canvas.drawOval(
       Rect.fromLTWH(size.width * 0.08, size.height * 0.18, 96, 42),
       waterPaint,
@@ -549,7 +548,8 @@ class _NightCityPainter extends CustomPainter {
       waterPaint,
     );
 
-    final parkPaint = Paint()..color = const Color(0xFF1E4D38).withValues(alpha: 0.18);
+    final parkPaint = Paint()
+      ..color = const Color(0xFF1E4D38).withValues(alpha: 0.18);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(size.width * 0.62, size.height * 0.10, 86, 58),

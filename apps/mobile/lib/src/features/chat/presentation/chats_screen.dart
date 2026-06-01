@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +6,7 @@ import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/app_screen_header.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
@@ -16,70 +17,88 @@ class ChatsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final joinedActivities = ref.watch(appStateProvider).activities.where((activity) {
-      return activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
-          activity.myStatus == ParticipantStatus.confirmed;
-    }).toList();
+    final state = ref.watch(appStateProvider);
+    final joinedActivities = state.activities
+        .where(
+          (activity) =>
+              activity.myStatus ==
+                  ParticipantStatus.joinedPendingConfirmation ||
+              activity.myStatus == ParticipantStatus.confirmed,
+        )
+        .toList(growable: false);
+    final unreadNotifications = state.notifications
+        .where((notification) => !notification.isRead)
+        .length;
 
     return KawaiiScene(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 92),
-        children: [
-          Text(
-            'Chats',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                ),
-          ),
-          const SizedBox(height: 14),
-          KawaiiCard(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                const Text('✨', style: TextStyle(fontSize: 22)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Estos chats desaparecen al terminar la actividad.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 92),
+          children: [
+            AppScreenHeader(
+              title: 'Chats',
+              actions: [
+                NotificationBellButton(
+                  unreadCount: unreadNotifications,
+                  onTap: () async {
+                    await ref
+                        .read(appControllerProvider)
+                        .refreshNotifications();
+                    if (context.mounted) {
+                      context.push('/notifications');
+                    }
+                  },
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          if (joinedActivities.isEmpty)
-            KawaiiEmptyState(
-              emoji: '💬',
-              title: 'No tienes chats activos',
-              message: 'Entra a una actividad, confirma tu asistencia y su chat aparecerá aquí.',
-              ctaLabel: 'Explorar actividades',
-              onCtaPressed: () => context.go('/'),
-            )
-          else
-            ...joinedActivities.map(
-              (activity) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _ChatRow(
-                  activity: activity,
-                  onTap: () => context.push('/chat/${activity.id}'),
-                ),
+            const SizedBox(height: 14),
+            KawaiiCard(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  const Text('✨', style: TextStyle(fontSize: 22)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Estos chats desaparecen al terminar la actividad.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-        ],
+            const SizedBox(height: 12),
+            if (joinedActivities.isEmpty)
+              KawaiiEmptyState(
+                emoji: '💬',
+                title: 'No tienes chats activos',
+                message:
+                    'Entra a una actividad, confirma tu asistencia y su chat aparecerá aquí.',
+                ctaLabel: 'Explorar actividades',
+                onCtaPressed: () => context.go('/'),
+              )
+            else
+              ...joinedActivities.map(
+                (activity) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _ChatRow(
+                    activity: activity,
+                    onTap: () => context.push('/chat/${activity.id}'),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _ChatRow extends StatelessWidget {
-  const _ChatRow({
-    required this.activity,
-    required this.onTap,
-  });
+  const _ChatRow({required this.activity, required this.onTap});
 
   final Activity activity;
   final VoidCallback onTap;
@@ -112,19 +131,21 @@ class _ChatRow extends StatelessWidget {
                       Expanded(
                         child: Text(
                           activity.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),
                       Text(
-                        activity.myStatus == ParticipantStatus.confirmed ? 'Abierto' : 'En espera',
+                        activity.myStatus == ParticipantStatus.confirmed
+                            ? 'Abierto'
+                            : 'En espera',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: activity.myStatus == ParticipantStatus.confirmed
-                                  ? Colors.pinkAccent
-                                  : Theme.of(context).colorScheme.secondary,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          color:
+                              activity.myStatus == ParticipantStatus.confirmed
+                              ? Colors.pinkAccent
+                              : Theme.of(context).colorScheme.secondary,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
@@ -132,8 +153,8 @@ class _ChatRow extends StatelessWidget {
                   Text(
                     '${activity.zone} · ${formatTimeOfDay(activity.startTime)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -143,18 +164,20 @@ class _ChatRow extends StatelessWidget {
                           preview,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: Colors.white),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        activity.unreadMessageCount > 0 ? '${activity.unreadMessageCount} nuevos' : 'En vivo',
+                        activity.unreadMessageCount > 0
+                            ? '${activity.unreadMessageCount} nuevos'
+                            : 'En vivo',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
@@ -162,7 +185,10 @@ class _ChatRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Text('›', style: TextStyle(fontSize: 28, color: Colors.white70)),
+            const Text(
+              '›',
+              style: TextStyle(fontSize: 28, color: Colors.white70),
+            ),
           ],
         ),
       ),

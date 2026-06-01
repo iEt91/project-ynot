@@ -1,3 +1,8 @@
+## v1.0.25.1
+- Main screens now share a compact header with icons only for search, filters and notifications
+- Notification access moved into the main header on Mapa, Actividades and Chats for quicker access
+- The notifications bell now stays consistent and keeps the unread badge visible across the app
+
 ## v1.0.25.0
 - Added a local in-app notifications center with unread badge, read state, and persistence after restart
 - Notifications now cover chat messages, upcoming activities, attendance changes, activity completion, and feedback availability

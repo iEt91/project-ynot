@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
 import '../../core/state/app_controller.dart';
+import 'app_screen_header.dart';
 import 'activity_filters_bar.dart';
 import 'kawaii_card.dart';
 
@@ -10,40 +11,19 @@ class ActivityFiltersHeaderButton extends StatelessWidget {
   const ActivityFiltersHeaderButton({
     super.key,
     required this.onPressed,
+    this.active = false,
   });
 
   final VoidCallback onPressed;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: YnotTheme.surface2.withValues(alpha: 0.88),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: YnotTheme.border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.tune_rounded, size: 17, color: Colors.white),
-              const SizedBox(width: 6),
-              Text(
-                'Filtros',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return HeaderIconButton(
+      icon: Icons.tune_rounded,
+      onTap: onPressed,
+      active: active,
+      hasDot: active,
     );
   }
 }
@@ -87,9 +67,7 @@ Future<void> showActivityFiltersSheet(
                               children: [
                                 Text(
                                   'FILTROS',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
+                                  style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(
                                         fontWeight: FontWeight.w900,
                                         letterSpacing: 0.4,
@@ -97,7 +75,8 @@ Future<void> showActivityFiltersSheet(
                                 ),
                                 const Spacer(),
                                 IconButton(
-                                  onPressed: () => Navigator.of(sheetContext).pop(),
+                                  onPressed: () =>
+                                      Navigator.of(sheetContext).pop(),
                                   icon: const Icon(Icons.close_rounded),
                                   tooltip: 'Cerrar',
                                 ),
@@ -140,9 +119,13 @@ Future<void> showActivityFiltersSheet(
                                       onChanged?.call();
                                     },
                                     style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: YnotTheme.border),
+                                      side: const BorderSide(
+                                        color: YnotTheme.border,
+                                      ),
                                       foregroundColor: Colors.white70,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(18),
                                       ),
@@ -153,11 +136,14 @@ Future<void> showActivityFiltersSheet(
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: FilledButton(
-                                    onPressed: () => Navigator.of(sheetContext).pop(),
+                                    onPressed: () =>
+                                        Navigator.of(sheetContext).pop(),
                                     style: FilledButton.styleFrom(
                                       backgroundColor: YnotTheme.primary,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(18),
                                       ),
