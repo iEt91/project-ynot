@@ -138,7 +138,7 @@ class AppController extends ChangeNotifier {
   }) {
     _state = AppState.initial().copyWith(
       stage: AppStage.booting,
-      demoMode: demoModeOverride ?? true,
+      demoMode: demoModeOverride ?? AppEnvironment.isDemoMode,
     );
     _sessionStore = sessionStore ?? LocalSessionStore();
     _mockStore = mockStore ?? LocalMockStore();
@@ -501,7 +501,7 @@ class AppController extends ChangeNotifier {
     final phone = state.phoneInput.trim();
     if (phone.isEmpty || phone.length < 6) {
       state = state.copyWith(
-        errorMessage: 'Escribe un nÃºmero de telÃ©fono vÃ¡lido.',
+        errorMessage: 'Escribe un número de teléfono válido.',
       );
       return;
     }
@@ -746,7 +746,7 @@ class AppController extends ChangeNotifier {
     final currentUser = state.user;
     if (currentUser == null) {
       state = state.copyWith(
-        errorMessage: 'Inicia sesiÃ³n para crear una actividad.',
+        errorMessage: 'Inicia sesión para crear una actividad.',
       );
       return;
     }
@@ -756,7 +756,7 @@ class AppController extends ChangeNotifier {
       creatorId: currentUser.id,
       creatorLabel: state.user?.nickname.isNotEmpty == true
           ? state.user!.nickname
-          : 'TÃº',
+          : 'Tú',
       isMine: true,
       title: title,
       description: description,
@@ -1100,7 +1100,7 @@ class AppController extends ChangeNotifier {
       chatId: chatId,
       activityId: activityId,
       senderId: user.id,
-      senderName: user.nickname.isNotEmpty ? user.nickname : 'TÃº',
+      senderName: user.nickname.isNotEmpty ? user.nickname : 'Tú',
       senderEmoji: user.avatarEmoji,
       content: text,
       createdAt: DateTime.now(),
@@ -1374,7 +1374,7 @@ class AppController extends ChangeNotifier {
   String? creationRestrictionMessage() {
     final currentUser = state.user;
     if (currentUser == null) {
-      return 'Inicia sesiÃ³n para crear una actividad.';
+      return 'Inicia sesión para crear una actividad.';
     }
 
     if (_hasActiveCreatedActivity(currentUser.id)) {

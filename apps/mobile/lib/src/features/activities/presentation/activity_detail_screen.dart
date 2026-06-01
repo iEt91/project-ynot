@@ -74,7 +74,7 @@ class ActivityDetailScreen extends ConsumerWidget {
               _TopBar(
                 title: activity.title,
                 subtitle:
-                    '${formatTimeRange(activity.startTime, activity.endTime)} · ${activity.zone}',
+                    '${formatTimeRange(activity.startTime, activity.endTime)} Â· ${activity.zone}',
                 onBack: () => context.pop(),
                 isSaved:
                     state.savedActivityIds.contains(activity.id) &&
@@ -261,7 +261,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                         KawaiiAvatar(
                           emoji: safeDisplayText(
                             organizerProfile?.avatarEmoji ?? activity.emoji,
-                            fallback: '🌙',
+                                fallback: '🌙',
                           ),
                           size: 54,
                           accentColor: _categoryColor(activity.category),
@@ -318,19 +318,21 @@ class ActivityDetailScreen extends ConsumerWidget {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     if (confirmedAttendees.isEmpty)
                       Text(
-                        'Todav?a no hay asistentes confirmados aparte del organizador.',
+                        'Todavía no hay asistentes confirmados aparte del organizador.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                       )
                     else ...[
                       SizedBox(
-                      height: 112,
-                      child: ListView.separated(
+                        height: 134,
+                        child: ListView.separated(
                           scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 4),
                           itemCount: confirmedAttendees.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(width: 10),
@@ -359,8 +361,8 @@ class ActivityDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         activity.isFull
-                            ? 'La actividad est? llena por ahora.'
-                            : 'Puedes ver una vista previa de qui?n viene.',
+                            ? 'La actividad está llena por ahora.'
+                            : 'Puedes ver una vista previa de quién viene.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
@@ -368,7 +370,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                     ],
                   ],
                 ),
-              ),
+                ),
               const SizedBox(height: 16),
               _ActionSection(
                 isCreator: isCreator,
@@ -766,9 +768,10 @@ class _AttendeeChip extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
-        child: Container(
-        width: 92,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      child: Container(
+        width: 108,
+        height: 134,
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: YnotTheme.surface2.withValues(alpha: 0.90),
           borderRadius: BorderRadius.circular(18),
@@ -776,10 +779,13 @@ class _AttendeeChip extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            KawaiiAvatar(emoji: emoji, size: 36, accentColor: Colors.pinkAccent),
-            const SizedBox(height: 6),
+            KawaiiAvatar(emoji: emoji, size: 42, accentColor: Colors.pinkAccent),
+            const SizedBox(height: 8),
+            if (isBlocked) ...[
+              const _BlockedBadge(),
+              const SizedBox(height: 6),
+            ],
             Text(
               label,
               maxLines: 1,
@@ -790,14 +796,43 @@ class _AttendeeChip extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            if (isBlocked) ...[
-              const SizedBox(height: 2),
-              StatusPill(
-                label: 'Bloqueado',
-                icon: '🔒',
-                color: const Color(0xFFFFD166),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlockedBadge extends StatelessWidget {
+  const _BlockedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 86),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFD166).withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFFFD166).withValues(alpha: 0.34),
+        ),
+      ),
+      child: const FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_rounded, size: 11, color: Color(0xFFFFD166)),
+            SizedBox(width: 4),
+            Text(
+              'Bloqueado',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
               ),
-            ],
+            ),
           ],
         ),
       ),

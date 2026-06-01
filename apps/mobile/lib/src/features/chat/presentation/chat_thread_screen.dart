@@ -201,14 +201,14 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'El chat no estÃ¡ disponible ahora mismo.',
+                        'El chat no está disponible ahora mismo.',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w800),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'ReÃºnete desde el detalle de la actividad para volver a entrar al chat.',
+                        'Reúnete desde el detalle de la actividad para volver a entrar al chat.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -348,9 +348,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                   context: context,
                                   builder: (dialogContext) {
                                     return AlertDialog(
-                                      title: const Text('Â¿Eliminar actividad?'),
+                                      title: const Text('¿Eliminar actividad?'),
                                       content: const Text(
-                                        'Esto eliminarÃ¡ la actividad del mapa, la lista y los chats. Esta acciÃ³n no se puede deshacer.',
+                                        'Esto eliminará la actividad del mapa, la lista y los chats. Esta acción no se puede deshacer.',
                                       ),
                                       actions: [
                                         TextButton(
@@ -472,23 +472,38 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           children: [
                             Positioned(
                               left: 0,
-                              child: _OpaqueAttendeeAvatar(emoji: 'â˜•'),
+                              child: _OpaqueAttendeeAvatar(
+                                icon: Icons.local_cafe_rounded,
+                                accentColor: Color(0xFFFF5DB8),
+                              ),
                             ),
                             Positioned(
                               left: 18,
-                              child: _OpaqueAttendeeAvatar(emoji: 'ðŸŒ™'),
+                              child: _OpaqueAttendeeAvatar(
+                                icon: Icons.nightlight_round,
+                                accentColor: Color(0xFF63D2FF),
+                              ),
                             ),
                             Positioned(
                               left: 36,
-                              child: _OpaqueAttendeeAvatar(emoji: 'âœ¨'),
+                              child: _OpaqueAttendeeAvatar(
+                                icon: Icons.auto_awesome_rounded,
+                                accentColor: Color(0xFFB18CFF),
+                              ),
                             ),
                             Positioned(
                               left: 54,
-                              child: _OpaqueAttendeeAvatar(emoji: 'ðŸ’¬'),
+                              child: _OpaqueAttendeeAvatar(
+                                icon: Icons.chat_bubble_rounded,
+                                accentColor: Color(0xFFFFB86B),
+                              ),
                             ),
                             Positioned(
                               left: 72,
-                              child: _OpaqueAttendeeAvatar(emoji: 'ðŸ¾'),
+                              child: _OpaqueAttendeeAvatar(
+                                icon: Icons.pets_rounded,
+                                accentColor: Color(0xFF63E6BE),
+                              ),
                             ),
                           ],
                         ),
@@ -550,7 +565,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     ? Center(
                         child: KawaiiCard(
                           child: Text(
-                            'TodavÃ­a no hay mensajes.',
+                            'Todavía no hay mensajes.',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(
@@ -886,9 +901,13 @@ class _IconOnlyButton extends StatelessWidget {
 }
 
 class _OpaqueAttendeeAvatar extends StatelessWidget {
-  const _OpaqueAttendeeAvatar({required this.emoji});
+  const _OpaqueAttendeeAvatar({
+    required this.icon,
+    required this.accentColor,
+  });
 
-  final String emoji;
+  final IconData icon;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -908,7 +927,7 @@ class _OpaqueAttendeeAvatar extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Text(emoji, style: const TextStyle(fontSize: 13)),
+      child: Icon(icon, size: 15, color: accentColor),
     );
   }
 }

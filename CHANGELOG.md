@@ -1,3 +1,8 @@
+## v1.0.20.2
+- Activity attendee cards were compacted to prevent overflow and keep blocked badges inside the card
+- Chat attendee avatars now use icon-only visuals so the header stays clean and readable
+- Demo activity strings were sanitized so seeded content keeps proper accents and emoji
+
 ## v1.0.20.1
 - Blocked users stay visible, but attendee chips now show a compact safety badge
 - Chats with blocked participants now warn once per chat unless the user dismisses them permanently
