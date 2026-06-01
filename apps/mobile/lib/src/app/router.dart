@@ -13,6 +13,7 @@ import '../features/profile/presentation/edit_profile_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/activity_history_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/my_activities_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/saved_activities_screen.dart';
+import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/feedback/presentation/feedback_screen.dart';
 import '../features/reports/presentation/report_screen.dart';
@@ -104,6 +105,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/edit-profile',
         builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/profile/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return PublicProfileScreen(userId: id);
+        },
       ),
       GoRoute(
         path: '/settings',

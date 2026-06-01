@@ -295,7 +295,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                             final messenger = ScaffoldMessenger.of(context);
                             messenger.showSnackBar(
                               const SnackBar(
-                                content: Text('Actividad eliminada.'),
+                              content: Text('Actividad eliminada.'),
                               ),
                             );
                             if (!context.mounted) return;
@@ -585,6 +585,9 @@ class _ChatMessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMe = message.isMe;
+    final openProfile = message.senderId.isEmpty
+        ? null
+        : () => context.push('/profile/${message.senderId}');
 
     final bubbleColor = isMe
         ? LinearGradient(
@@ -638,10 +641,13 @@ class _ChatMessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
-            KawaiiAvatar(
-              emoji: message.senderEmoji,
-              size: 34,
-              accentColor: accentColor,
+            GestureDetector(
+              onTap: openProfile,
+              child: KawaiiAvatar(
+                emoji: message.senderEmoji,
+                size: 34,
+                accentColor: accentColor,
+              ),
             ),
             const SizedBox(width: 10),
           ],
@@ -653,11 +659,14 @@ class _ChatMessageBubble extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 5),
-                  child: Text(
-                    message.senderName,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
+                  child: GestureDetector(
+                    onTap: openProfile,
+                    child: Text(
+                      message.senderName,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
@@ -692,10 +701,13 @@ class _ChatMessageBubble extends StatelessWidget {
           ),
           if (isMe) ...[
             const SizedBox(width: 10),
-            KawaiiAvatar(
-              emoji: message.senderEmoji,
-              size: 34,
-              accentColor: accentColor,
+            GestureDetector(
+              onTap: openProfile,
+              child: KawaiiAvatar(
+                emoji: message.senderEmoji,
+                size: 34,
+                accentColor: accentColor,
+              ),
             ),
           ],
         ],

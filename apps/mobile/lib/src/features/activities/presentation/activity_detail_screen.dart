@@ -59,6 +59,7 @@ class ActivityDetailScreen extends ConsumerWidget {
         isActiveMember && !isCreator && !activity.isFinishedOrArchived;
     final canOpenChat = isActiveMember;
     final isFull = activity.isFull && !isActiveMember;
+    final organizerProfile = controller.publicProfileForUserId(activity.creatorId);
     final confirmedAttendees = controller.confirmedAttendeesForActivity(
       activity,
     );
@@ -247,41 +248,53 @@ class ActivityDetailScreen extends ConsumerWidget {
               const SizedBox(height: 14),
               _SectionCard(
                 title: 'Organizador',
-                child: Row(
-                  children: [
-                    KawaiiAvatar(
-                      emoji: currentUser != null && isCreator
-                          ? currentUser.avatarEmoji
-                          : '🌙',
-                      size: 54,
-                      accentColor: _categoryColor(activity.category),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.creatorLabel,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => context.push('/profile/${activity.creatorId}'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        KawaiiAvatar(
+                          emoji: safeDisplayText(
+                            organizerProfile?.avatarEmoji ?? activity.emoji,
+                            fallback: '??',
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            isCreator
-                                ? 'Tú organizas este plan'
-                                : 'Organizador de la actividad',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                          size: 54,
+                          accentColor: _categoryColor(activity.category),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                safeDisplayText(
+                                  organizerProfile?.nickname ??
+                                      activity.creatorLabel,
+                                  fallback: 'Luna',
                                 ),
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                isCreator
+                                    ? 'T? organizas este plan'
+                                    : 'Organizador de la actividad',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -299,10 +312,9 @@ class ActivityDetailScreen extends ConsumerWidget {
                   children: [
                     if (confirmedAttendees.isEmpty)
                       Text(
-                        'Todavía no hay asistentes confirmados aparte del organizador.',
+                        'Todav?a no hay asistentes confirmados aparte del organizador.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color:
-                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                       )
                     else ...[
@@ -315,9 +327,19 @@ class ActivityDetailScreen extends ConsumerWidget {
                               const SizedBox(width: 10),
                           itemBuilder: (context, index) {
                             final attendee = confirmedAttendees[index];
+                            final attendeeProfile = controller.publicProfileForUserId(
+                              attendee.userId,
+                            );
                             return _AttendeeChip(
-                              emoji: attendee.emoji,
-                              label: attendee.label,
+                              emoji: safeDisplayText(
+                                attendeeProfile?.avatarEmoji ?? attendee.emoji,
+                                fallback: '??',
+                              ),
+                              label: safeDisplayText(
+                                attendeeProfile?.nickname ?? attendee.label,
+                                fallback: attendee.label,
+                              ),
+                              onTap: () => context.push('/profile/${attendee.userId}'),
                             );
                           },
                         ),
@@ -325,11 +347,10 @@ class ActivityDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         activity.isFull
-                            ? 'La actividad está llena por ahora.'
-                            : 'Puedes ver una vista previa de quién viene.',
+                            ? 'La actividad est? llena por ahora.'
+                            : 'Puedes ver una vista previa de qui?n viene.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color:
-                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                       ),
                     ],
@@ -681,37 +702,42 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _AttendeeChip extends StatelessWidget {
-  const _AttendeeChip({required this.emoji, required this.label});
+  const _AttendeeChip({required this.emoji, required this.label, this.onTap});
 
   final String emoji;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 72,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: YnotTheme.surface2.withValues(alpha: 0.90),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: YnotTheme.border),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          KawaiiAvatar(emoji: emoji, size: 38, accentColor: Colors.pinkAccent),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: YnotTheme.surface2.withValues(alpha: 0.90),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: YnotTheme.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            KawaiiAvatar(emoji: emoji, size: 38, accentColor: Colors.pinkAccent),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

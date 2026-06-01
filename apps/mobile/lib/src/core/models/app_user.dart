@@ -106,11 +106,21 @@ class AppUser {
   }
 
   AppUser sanitizedForDisplay() {
+    List<String> sanitizeList(List<String> values) {
+      return values
+          .map((value) => safeDisplayText(value, fallback: ''))
+          .where((value) => value.trim().isNotEmpty)
+          .toList(growable: false);
+    }
+
     return copyWith(
       phoneMasked: safePhoneDisplay(phoneMasked),
       nickname: safeDisplayText(nickname, fallback: 'Luna'),
       avatarEmoji: safeDisplayText(avatarEmoji, fallback: '🌙'),
       bio: safeDisplayText(bio, fallback: 'Pequeños momentos, juntos.'),
+      languages: sanitizeList(languages),
+      vibes: sanitizeList(vibes),
+      interests: sanitizeList(interests),
     );
   }
 }

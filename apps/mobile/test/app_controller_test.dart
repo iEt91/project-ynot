@@ -24,6 +24,24 @@ void main() {
       },
     );
 
+    test('public profiles resolve current and demo users', () async {
+      final controller = await _buildLoggedInController();
+
+      final current = controller.publicProfileForUserId(
+        controller.state.user!.id,
+      );
+      expect(current, isNotNull);
+      expect(current!.nickname, 'Luna');
+      expect(current.avatarEmoji, '🌙');
+
+      final demo = controller.publicProfileForUserId('seed_creator_mina');
+      expect(demo, isNotNull);
+      expect(demo!.nickname, 'Mina');
+      expect(demo.languages, isNotEmpty);
+      expect(demo.vibes, isNotEmpty);
+      expect(demo.interests, isNotEmpty);
+    });
+
     test(
       'login with demo code opens onboarding when profile is incomplete',
       () async {

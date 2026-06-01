@@ -1,3 +1,8 @@
+## v1.0.19.0
+- Public user profiles are now available from activity detail and chat avatars/names
+- Profiles show avatar, bio, languages, vibes and interests without exposing private data
+- Demo users now have local public profile data so profile taps feel complete in mock mode
+
 ## v1.0.18.0
 - Attendance actions now adapt to the user state more clearly in activity detail
 - The creator is auto-joined and auto-confirmed, and cannot leave their own activity
