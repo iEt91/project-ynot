@@ -18,6 +18,7 @@ import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/feedback/presentation/feedback_screen.dart';
 import '../features/reports/presentation/report_screen.dart';
+import '../features/reports/presentation/report_user_participant_selector_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -61,6 +62,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             targetType: request.targetType,
             targetId: request.targetId,
           );
+        },
+      ),
+      GoRoute(
+        path: '/activity/:id/report-user-selector',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return ReportUserParticipantSelectorScreen(activityId: id);
         },
       ),
       GoRoute(

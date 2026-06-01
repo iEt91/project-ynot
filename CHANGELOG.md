@@ -1,3 +1,8 @@
+## v1.0.23.0
+- Added a chat participant selector so reports can target organizers, attendees, and chat participants instead of only the organizer
+- The report flow now opens the existing report screen for the selected user
+- Report history remains hidden from users
+
 ## v1.0.22.2
 - Removed the user-facing sent reports history screen from settings
 - Reports remain internal moderation data and still submit normally

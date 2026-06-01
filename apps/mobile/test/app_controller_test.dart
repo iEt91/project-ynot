@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
+import 'package:ynot_mobile/src/core/models/blocked_user.dart';
 import 'package:ynot_mobile/src/core/models/activity.dart';
 import 'package:ynot_mobile/src/core/models/activity_filters.dart';
 import 'package:ynot_mobile/src/core/models/app_user.dart';
+import 'package:ynot_mobile/src/core/models/chat_message.dart';
 import 'package:ynot_mobile/src/core/models/moderation_report.dart';
 import 'package:ynot_mobile/src/core/models/private_feedback.dart';
 import 'package:ynot_mobile/src/core/state/app_controller.dart';
@@ -1370,6 +1372,127 @@ void main() {
         ReportReason.badAttitude,
       );
     });
+
+    test(
+      'reportable participants include organizer attendees blocked and chat senders',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final activity = Activity(
+          id: 'activity_report_selector',
+          creatorId: 'seed_creator_mina',
+          creatorLabel: 'Mina',
+          activityType: ActivityType.userActivity,
+          visibility: ActivityVisibility.publicActivity,
+          title: 'Selector Test',
+          description: 'Actividad para probar el selector.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Hongdae',
+          status: ActivityStatus.open,
+          realLat: 37.5563,
+          realLng: 126.9228,
+          displayLat: 37.5563,
+          displayLng: 126.9228,
+          locationPrivacyRadiusM: 120,
+          exactLocationUnlockAt: DateTime(2026, 6, 1, 18, 0),
+          startTime: DateTime(2026, 6, 1, 18, 0),
+          endTime: DateTime(2026, 6, 1, 20, 0),
+          maxPeople: 6,
+          confirmedCount: 3,
+          pendingCount: 0,
+          feedbackTargets: const [
+            ActivityFeedbackTarget(
+              userId: 'seed_creator_mina',
+              label: 'Mina',
+              emoji: '☕',
+            ),
+            ActivityFeedbackTarget(
+              userId: 'seed_participant_soojin',
+              label: 'Soojin',
+              emoji: '✨',
+            ),
+          ],
+          myStatus: ParticipantStatus.confirmed,
+          isMine: false,
+        );
+        final mockStore = _TestMockStore()
+          ..snapshot = LocalMockSnapshot(
+            user: AppUser(
+              id: 'client_001',
+              phoneMasked: '•••• 5678',
+              nickname: 'Luna',
+              avatarEmoji: '🌙',
+              bio: 'Pequeños momentos, juntos.',
+              languages: const ['Korean', 'English'],
+              vibes: const ['Calm', 'Creative'],
+              interests: const ['Coffee', 'Walks', 'Study'],
+              status: UserStatus.trusted,
+              profileComplete: true,
+              createdActivityCount: 0,
+              attendingActivityCount: 0,
+            ),
+            activities: [activity],
+            messagesByActivityId: {
+              activity.id: [
+                ChatMessage(
+                  id: 'message_chat_only',
+                  chatId: activity.id,
+                  activityId: activity.id,
+                  senderId: 'chat_only_user',
+                  senderName: 'Chat Only',
+                  senderEmoji: '💬',
+                  content: 'Hola desde el chat',
+                  createdAt: DateTime(2026, 6, 1, 18, 10),
+                  isMe: false,
+                ),
+              ],
+            },
+            savedActivityIds: const [],
+            blockedUsers: [
+              BlockedUserEntry(
+                userId: 'seed_participant_soojin',
+                nickname: 'Soojin',
+                avatarEmoji: '✨',
+                blockedAt: DateTime(2026, 6, 1, 17, 0),
+              ),
+            ],
+            activityFilters: const {},
+            settings: const {},
+            reports: const [],
+            feedbackEntries: const [],
+          );
+        final controller = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        final participants = controller.reportableParticipantsForActivity(
+          activity,
+          controller.state.user!.id,
+        );
+
+        expect(
+          participants.map((participant) => participant.userId),
+          containsAll([
+            'seed_creator_mina',
+            'seed_participant_soojin',
+            'chat_only_user',
+          ]),
+        );
+        expect(
+          participants.any((participant) => participant.userId == 'client_001'),
+          isFalse,
+        );
+        final blocked = participants.firstWhere(
+          (participant) => participant.userId == 'seed_participant_soojin',
+        );
+        expect(blocked.isBlocked, isTrue);
+        expect(blocked.roleLabel, 'Asistente');
+      },
+    );
 
     test('sent reports history can be cleared locally', () async {
       final sessionStore = _TestSessionStore(

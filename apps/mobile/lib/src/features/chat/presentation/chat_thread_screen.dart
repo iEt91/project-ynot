@@ -322,12 +322,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                             break;
                           case _ChatAction.reportUser:
                             context.push(
-                              '/activity/${activity.id}/report',
-                              extra: ReportRequest(
-                                activityId: activity.id,
-                                targetType: ReportTargetType.user,
-                                targetId: activity.creatorId,
-                              ),
+                              '/activity/${activity.id}/report-user-selector',
                             );
                             break;
                           case _ChatAction.leaveEvent:

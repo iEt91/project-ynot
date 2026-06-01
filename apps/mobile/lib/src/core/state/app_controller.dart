@@ -16,6 +16,7 @@ import '../models/app_user.dart';
 import '../models/chat_message.dart';
 import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
+import '../models/reportable_participant.dart';
 import '../utils/app_logger.dart';
 import '../utils/formatters.dart';
 
@@ -1343,6 +1344,71 @@ class AppController extends ChangeNotifier {
       (target) =>
           target.userId != activity.creatorId && isUserBlocked(target.userId),
     );
+  }
+
+  List<ReportableParticipant> reportableParticipantsForActivity(
+    Activity activity,
+    String currentUserId,
+  ) {
+    final participants = <String, ReportableParticipant>{};
+
+    void upsert({
+      required String userId,
+      required String displayName,
+      required String avatarEmoji,
+      required bool isOrganizer,
+    }) {
+      if (userId.isEmpty || userId == currentUserId) {
+        return;
+      }
+
+      final existing = participants[userId];
+      final resolved = ReportableParticipant(
+        userId: userId,
+        displayName: safeDisplayText(displayName, fallback: 'Usuario'),
+        avatarEmoji: safeDisplayText(avatarEmoji, fallback: '🌙'),
+        isOrganizer: existing?.isOrganizer == true || isOrganizer,
+        isBlocked: existing?.isBlocked == true || isUserBlocked(userId),
+      );
+      participants[userId] = resolved;
+    }
+
+    upsert(
+      userId: activity.creatorId,
+      displayName: activity.creatorLabel,
+      avatarEmoji: activity.emoji,
+      isOrganizer: true,
+    );
+
+    for (final target in activity.feedbackTargets) {
+      upsert(
+        userId: target.userId,
+        displayName: target.label,
+        avatarEmoji: target.emoji,
+        isOrganizer: false,
+      );
+    }
+
+    for (final message in state.chatMessages[activity.id] ?? const <ChatMessage>[]) {
+      upsert(
+        userId: message.senderId,
+        displayName: message.senderName,
+        avatarEmoji: message.senderEmoji,
+        isOrganizer: false,
+      );
+    }
+
+    final ordered = participants.values.toList(growable: false);
+    ordered.sort((left, right) {
+      if (left.isOrganizer != right.isOrganizer) {
+        return left.isOrganizer ? -1 : 1;
+      }
+      if (left.isBlocked != right.isBlocked) {
+        return left.isBlocked ? 1 : -1;
+      }
+      return left.displayName.compareTo(right.displayName);
+    });
+    return ordered;
   }
 
   Future<bool> submitPrivateFeedback({
