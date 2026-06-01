@@ -29,6 +29,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appStateProvider);
+    final controller = ref.read(appControllerProvider);
     final activity = _findActivity(state.activities, widget.activityId);
     final currentUser = state.user;
 
@@ -193,6 +194,14 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                                           ),
                                     ),
+                                    if (controller.isUserBlocked(target.userId)) ...[
+                                      const SizedBox(height: 6),
+                                      const StatusPill(
+                                        label: 'Usuario bloqueado',
+                                        icon: '⚠️',
+                                        color: Color(0xFFFFD166),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),

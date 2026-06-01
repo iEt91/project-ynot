@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
+import '../../../core/models/app_user.dart';
 import '../../../core/models/chat_message.dart';
 import '../../../core/models/moderation_report.dart';
 import '../../../core/state/app_controller.dart';
@@ -215,8 +216,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
                         setState(() => _saving = true);
                         try {
-                          final success = await ref
-                              .read(appControllerProvider)
+                          final controller = ref.read(appControllerProvider);
+                          final success = await controller
                               .submitReport(
                                 reporterUserId: currentUser.id,
                                 targetType: widget.targetType,
@@ -242,6 +243,26 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                           messenger.showSnackBar(
                             const SnackBar(content: Text('Reporte enviado.')),
                           );
+                          if (widget.targetType == ReportTargetType.user) {
+                            final targetProfile =
+                                _resolveTargetProfile(activity, controller);
+                            if (targetProfile != null && context.mounted) {
+                              final shouldBlock = await _askBlockAfterReport(
+                                context,
+                              );
+                              if (shouldBlock) {
+                                await controller.blockUser(targetProfile);
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Usuario bloqueado.'),
+                                  ),
+                                );
+                              }
+                            }
+                          }
                           if (context.mounted) {
                             context.pop();
                           }
@@ -283,6 +304,95 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       }
     }
     return null;
+  }
+
+  AppUser? _resolveTargetProfile(
+    Activity activity,
+    AppController controller,
+  ) {
+    if (widget.targetType != ReportTargetType.user) {
+      return null;
+    }
+
+    final publicProfile = controller.publicProfileForUserId(widget.targetId);
+    if (publicProfile != null) {
+      return publicProfile;
+    }
+
+    if (activity.creatorId == widget.targetId) {
+      return AppUser(
+        id: activity.creatorId,
+        phoneMasked: 'Sesión local',
+        nickname: safeDisplayText(activity.creatorLabel, fallback: 'Luna'),
+        avatarEmoji: safeDisplayText(activity.emoji, fallback: '🌙'),
+        bio: '',
+        languages: const [],
+        vibes: const [],
+        interests: const [],
+        status: UserStatus.trusted,
+        profileComplete: false,
+        createdActivityCount: 0,
+        attendingActivityCount: 0,
+      );
+    }
+
+    for (final target in activity.feedbackTargets) {
+      if (target.userId == widget.targetId) {
+        return AppUser(
+          id: target.userId,
+          phoneMasked: 'Sesión local',
+          nickname: safeDisplayText(target.label, fallback: 'Usuario'),
+          avatarEmoji: safeDisplayText(target.emoji, fallback: '🌙'),
+          bio: '',
+          languages: const [],
+          vibes: const [],
+          interests: const [],
+          status: UserStatus.trusted,
+          profileComplete: false,
+          createdActivityCount: 0,
+          attendingActivityCount: 0,
+        );
+      }
+    }
+
+    return AppUser(
+      id: widget.targetId,
+      phoneMasked: 'Sesión local',
+      nickname: 'Usuario',
+      avatarEmoji: '🌙',
+      bio: '',
+      languages: const [],
+      vibes: const [],
+      interests: const [],
+      status: UserStatus.trusted,
+      profileComplete: false,
+      createdActivityCount: 0,
+      attendingActivityCount: 0,
+    );
+  }
+
+  Future<bool> _askBlockAfterReport(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: YnotTheme.surface2,
+          title: const Text('¿También quieres bloquear a esta persona?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('No'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Bloquear'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
   }
 
   String _targetDescription(AppState state, Activity activity) {

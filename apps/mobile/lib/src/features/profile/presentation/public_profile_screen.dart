@@ -142,7 +142,7 @@ class PublicProfileScreen extends ConsumerWidget {
           backgroundColor: YnotTheme.surface2,
           title: const Text('¿Bloquear usuario?'),
           content: const Text(
-            'Dejarás de ver a esta persona en búsquedas, asistentes y recomendaciones. Los chats existentes seguirán visibles por ahora.',
+            'Seguirás viendo su participación en actividades y chats por seguridad. Quedará marcado como bloqueado en tu cuenta.',
           ),
           actions: [
             TextButton(

@@ -63,6 +63,13 @@ class ActivityDetailScreen extends ConsumerWidget {
     final confirmedAttendees = controller.confirmedAttendeesForActivity(
       activity,
     );
+    final blockedParticipantIds = <String>{
+      if (controller.isUserBlocked(activity.creatorId)) activity.creatorId,
+      ...confirmedAttendees
+          .where((attendee) => controller.isUserBlocked(attendee.userId))
+          .map((attendee) => attendee.userId),
+    };
+    final hasBlockedParticipants = blockedParticipantIds.isNotEmpty;
 
     return Scaffold(
       body: KawaiiScene(
@@ -300,6 +307,12 @@ class ActivityDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 14),
+              if (hasBlockedParticipants) ...[
+                _WarningBanner(
+                  text: 'Hay usuarios bloqueados en esta actividad.',
+                ),
+                const SizedBox(height: 14),
+              ],
               _SectionCard(
                 title: 'Asistentes',
                 trailing: Text(
@@ -341,6 +354,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                                 attendeeProfile?.nickname ?? attendee.label,
                                 fallback: attendee.label,
                               ),
+                              isBlocked: controller.isUserBlocked(attendee.userId),
                               onTap: attendeeProfile == null
                                   ? null
                                   : () => context.push('/profile/${attendee.userId}'),
@@ -380,6 +394,14 @@ class ActivityDetailScreen extends ConsumerWidget {
                       )
                     : null,
                 onJoin: () async {
+                  if (hasBlockedParticipants) {
+                    final proceed = await _confirmJoinDespiteBlockedUsers(
+                      context,
+                    );
+                    if (!proceed || !context.mounted) {
+                      return;
+                    }
+                  }
                   await controller.joinActivity(activity.id);
                   if (!context.mounted) return;
                   final updated = ref
@@ -452,6 +474,33 @@ class ActivityDetailScreen extends ConsumerWidget {
     ).showSnackBar(const SnackBar(content: Text('Actividad eliminada.')));
     if (!context.mounted) return;
     context.go('/');
+  }
+
+  Future<bool> _confirmJoinDespiteBlockedUsers(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: YnotTheme.surface2,
+          title: const Text('Hay un usuario bloqueado en esta actividad'),
+          content: const Text(
+            'Alguien que bloqueaste participa en esta actividad. Puedes unirte igualmente o volver atrás.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Volver'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Unirme de todas formas'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
   }
 
   Color _categoryColor(String category) {
@@ -706,10 +755,16 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _AttendeeChip extends StatelessWidget {
-  const _AttendeeChip({required this.emoji, required this.label, this.onTap});
+  const _AttendeeChip({
+    required this.emoji,
+    required this.label,
+    required this.isBlocked,
+    this.onTap,
+  });
 
   final String emoji;
   final String label;
+  final bool isBlocked;
   final VoidCallback? onTap;
 
   @override
@@ -718,7 +773,7 @@ class _AttendeeChip extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Container(
-        width: 72,
+        width: 80,
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: YnotTheme.surface2.withValues(alpha: 0.90),
@@ -740,8 +795,60 @@ class _AttendeeChip extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (isBlocked) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Usuario bloqueado',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: const Color(0xFFFFD166),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _WarningBanner extends StatelessWidget {
+  const _WarningBanner({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return KawaiiCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFD166).withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFFD166).withValues(alpha: 0.35)),
+            ),
+            alignment: Alignment.center,
+            child: const Text('⚠️', style: TextStyle(fontSize: 14)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

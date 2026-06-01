@@ -1,6 +1,7 @@
 ## v1.0.20.0
-- Users can now block other users from public profiles
-- Blocked users are hidden from search, attendees and public profile navigation
+- Users can now block other users from public profiles or report flows
+- Blocked users stay visible in attendee lists and chats, but are marked for safety
+- Reporting a user can optionally offer a block confirmation
 - A new settings screen lists blocked users and allows unblocking them
 
 ## v1.0.19.0

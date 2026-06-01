@@ -26,6 +26,7 @@ class ChatThreadScreen extends ConsumerStatefulWidget {
 
 class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   final _messageController = TextEditingController();
+  final Set<String> _revealedBlockedMessageIds = {};
   bool _loadingMessages = true;
 
   @override
@@ -56,6 +57,16 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     );
     _messageController.dispose();
     super.dispose();
+  }
+
+  void _showBlockedMessage(String messageId) {
+    if (_revealedBlockedMessageIds.contains(messageId)) {
+      return;
+    }
+
+    setState(() {
+      _revealedBlockedMessageIds.add(messageId);
+    });
   }
 
   @override
@@ -478,6 +489,16 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                           message.senderId,
                                         ) !=
                                         null,
+                                isBlockedSender:
+                                    !message.isMe &&
+                                    controller.isUserBlocked(message.senderId),
+                                isRevealedBlockedMessage:
+                                    _revealedBlockedMessageIds.contains(
+                                      message.id,
+                                    ),
+                                onShowBlockedMessage: () => _showBlockedMessage(
+                                  message.id,
+                                ),
                               ),
                             ),
                           ),
@@ -583,12 +604,18 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.message,
     required this.accentColor,
     required this.canOpenProfile,
+    required this.isBlockedSender,
+    required this.isRevealedBlockedMessage,
+    required this.onShowBlockedMessage,
   });
 
   final String activityId;
   final ChatMessage message;
   final Color accentColor;
   final bool canOpenProfile;
+  final bool isBlockedSender;
+  final bool isRevealedBlockedMessage;
+  final VoidCallback onShowBlockedMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -596,6 +623,8 @@ class _ChatMessageBubble extends StatelessWidget {
     final openProfile = !canOpenProfile
         ? null
         : () => context.push('/profile/${message.senderId}');
+    final isCollapsedBlockedMessage =
+        isBlockedSender && !isRevealedBlockedMessage;
 
     final bubbleColor = isMe
         ? LinearGradient(
@@ -690,12 +719,41 @@ class _ChatMessageBubble extends StatelessWidget {
                       color: YnotTheme.border,
                     ),
                   ),
-                  child: Text(
-                    message.content,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.white),
-                  ),
+                  child: isCollapsedBlockedMessage
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Mensaje oculto de usuario bloqueado',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: Colors.white),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            TextButton(
+                              onPressed: onShowBlockedMessage,
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text('Mostrar'),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          message.content,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.white),
+                        ),
                 ),
                 const SizedBox(height: 4),
                 Text(

@@ -43,7 +43,7 @@ void main() {
     });
 
     test(
-      'blocking a creator hides their activities and public profile, and persists after restart',
+      'blocking a creator persists and keeps their activity visible',
       () async {
         final sessionStore = _TestSessionStore(
           clientUid: 'client_001',
@@ -59,31 +59,38 @@ void main() {
             controller.publicProfileForUserId('seed_creator_mina');
         expect(creatorProfile, isNotNull);
 
+        final creatorActivities = controller.filteredActivities()
+            .where((activity) => activity.creatorId == 'seed_creator_mina')
+            .toList();
+        expect(creatorActivities, isNotEmpty);
+
         final blocked = await controller.blockUser(creatorProfile!);
         expect(blocked, isTrue);
-        expect(controller.publicProfileForUserId('seed_creator_mina'), isNull);
+        expect(controller.publicProfileForUserId('seed_creator_mina'), isNotNull);
         expect(
           controller.filteredActivities().any(
             (activity) => activity.creatorId == 'seed_creator_mina',
           ),
-          isFalse,
+          isTrue,
         );
+        expect(controller.blockedUsers.any((entry) => entry.userId == 'seed_creator_mina'), isTrue);
 
         final restored = await _buildController(
           sessionStore: sessionStore,
           mockStore: mockStore,
         );
-        expect(restored.publicProfileForUserId('seed_creator_mina'), isNull);
+        expect(restored.publicProfileForUserId('seed_creator_mina'), isNotNull);
         expect(
           restored.filteredActivities().any(
             (activity) => activity.creatorId == 'seed_creator_mina',
           ),
-          isFalse,
+          isTrue,
         );
+        expect(restored.blockedUsers.any((entry) => entry.userId == 'seed_creator_mina'), isTrue);
       },
     );
 
-    test('blocking an attendee hides them from attendee lists and allows unblocking', () async {
+    test('blocking an attendee keeps them visible in attendees and unblock works', () async {
       final controller = await _buildLoggedInController();
       final attendeeProfile =
           controller.publicProfileForUserId('seed_participant_soojin');
@@ -101,12 +108,16 @@ void main() {
 
       final blocked = await controller.blockUser(attendeeProfile!);
       expect(blocked, isTrue);
-      expect(controller.publicProfileForUserId('seed_participant_soojin'), isNull);
+      expect(controller.publicProfileForUserId('seed_participant_soojin'), isNotNull);
       expect(
         controller.confirmedAttendeesForActivity(activity).any(
               (target) => target.userId == 'seed_participant_soojin',
             ),
-        isFalse,
+        isTrue,
+      );
+      expect(
+        controller.blockedUsers.any((entry) => entry.userId == 'seed_participant_soojin'),
+        isTrue,
       );
 
       await controller.unblockUser('seed_participant_soojin');

@@ -1246,7 +1246,6 @@ class AppController extends ChangeNotifier {
     Activity activity,
     String currentUserId,
   ) {
-    final blockedIds = _blockedUsers.map((entry) => entry.userId).toSet();
     final baseTargets = activity.feedbackTargets.isEmpty
         ? [
             ActivityFeedbackTarget(
@@ -1258,21 +1257,14 @@ class AppController extends ChangeNotifier {
         : activity.feedbackTargets;
 
     final targets = baseTargets
-        .where(
-          (target) =>
-              target.userId != currentUserId &&
-              !blockedIds.contains(target.userId),
-        )
+        .where((target) => target.userId != currentUserId)
         .toList(growable: true);
     final currentUserIncluded = baseTargets.any(
       (target) => target.userId == currentUserId,
     );
-    final blockedCount = baseTargets
-        .where((target) => blockedIds.contains(target.userId))
-        .length;
     final desiredCount = currentUserIncluded
-        ? max(0, activity.confirmedCount - 1 - blockedCount)
-        : max(0, activity.confirmedCount - blockedCount);
+        ? max(0, activity.confirmedCount - 1)
+        : max(0, activity.confirmedCount);
     final totalCount = max(targets.length, desiredCount);
 
     for (var index = targets.length; index < totalCount; index++) {
@@ -1292,13 +1284,8 @@ class AppController extends ChangeNotifier {
   List<ActivityFeedbackTarget> confirmedAttendeesForActivity(
     Activity activity,
   ) {
-    final blockedIds = _blockedUsers.map((entry) => entry.userId).toSet();
     return activity.feedbackTargets
-        .where(
-          (target) =>
-              target.userId != activity.creatorId &&
-              !blockedIds.contains(target.userId),
-        )
+        .where((target) => target.userId != activity.creatorId)
         .toList(growable: false);
   }
 
@@ -1480,13 +1467,8 @@ class AppController extends ChangeNotifier {
   }
 
   List<Activity> filteredActivities() {
-    final blockedIds = _blockedUsers.map((entry) => entry.userId).toSet();
     final visibleActivities = state.activities
-        .where(
-          (activity) =>
-              activity.isActiveLifecycle &&
-              !blockedIds.contains(activity.creatorId),
-        )
+        .where((activity) => activity.isActiveLifecycle)
         .toList(growable: false);
 
     final filters = state.activityFilters;
@@ -1682,10 +1664,6 @@ class AppController extends ChangeNotifier {
   }
 
   AppUser? publicProfileForUserId(String userId) {
-    if (isUserBlocked(userId)) {
-      return null;
-    }
-
     final currentUser = state.user;
     if (currentUser != null && currentUser.id == userId) {
       return currentUser.sanitizedForDisplay();

@@ -36,15 +36,15 @@ class BlockedUsersScreen extends ConsumerWidget {
               const SizedBox(height: 14),
               const SectionHeader(
                 title: 'Usuarios bloqueados',
-                subtitle: 'Personas ocultas en búsquedas, asistentes y perfil público.',
+                subtitle: 'Personas bloqueadas en tu cuenta.',
               ),
               const SizedBox(height: 16),
               if (blockedUsers.isEmpty)
                 const KawaiiEmptyState(
                   emoji: '🌙',
-                  title: 'Aún no bloqueaste a nadie',
+                  title: 'No bloqueaste a nadie.',
                   message:
-                      'Cuando bloquees a una persona, aparecerá aquí para que puedas desbloquearla.',
+                      'Cuando bloquees a alguien, aparecerá aquí para que puedas desbloquearlo.',
                 )
               else
                 Column(
