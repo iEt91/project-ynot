@@ -47,11 +47,16 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
       );
     }
 
-    final targets = ref
-        .read(appControllerProvider)
-        .feedbackTargetsForActivity(activity, currentUser.id);
-    final hasSelectableTargets = targets.isNotEmpty;
-    final hasPendingSelection = targets.any((target) {
+    final targets = controller.feedbackTargetsForActivity(
+      activity,
+      currentUser.id,
+    );
+    final availableTargets = controller.availableFeedbackTargetsForActivity(
+      activity,
+      currentUser.id,
+    );
+    final hasSelectableTargets = availableTargets.isNotEmpty;
+    final hasPendingSelection = availableTargets.any((target) {
       return _existingEntry(
                 state.feedbackEntries,
                 activityId: activity.id,
@@ -160,7 +165,9 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                     reviewerUserId: currentUser.id,
                     reviewedUserId: target.userId,
                   );
-                  final selected = existing?.selectedFeedback ?? _selectedByTargetId[target.userId];
+                  final selected =
+                      existing?.selectedFeedback ?? _selectedByTargetId[target.userId];
+                  final isBlocked = controller.isUserBlocked(target.userId);
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -189,17 +196,25 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
-                                      target.userId == currentUser.id ? 'Tú' : 'Feedback privado de esta persona',
+                                      target.userId == currentUser.id
+                                          ? 'Tú'
+                                          : 'Feedback privado de esta persona',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                                           ),
                                     ),
-                                    if (controller.isUserBlocked(target.userId)) ...[
+                                    if (isBlocked) ...[
                                       const SizedBox(height: 6),
                                       const StatusPill(
-                                        label: 'Usuario bloqueado',
-                                        icon: '⚠️',
+                                        label: '🔒 Bloqueado',
                                         color: Color(0xFFFFD166),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'No puedes enviar feedback a una persona bloqueada.',
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
                                       ),
                                     ],
                                   ],
@@ -222,8 +237,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                                   (option) => _FeedbackOptionButton(
                                     label: option.label,
                                     selected: selected == option,
-                                    locked: existing != null,
-                                    onTap: existing != null
+                                    locked: existing != null || isBlocked,
+                                    onTap: (existing != null || isBlocked)
                                         ? null
                                         : () {
                                             setState(() {
@@ -240,6 +255,16 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                   );
                 }),
               const SizedBox(height: 8),
+              if (!hasSelectableTargets)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    'No hay personas disponibles para feedback.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
               FilledButton(
                 onPressed: (!_saving && hasSelectableTargets && hasPendingSelection)
                     ? () async {
@@ -247,7 +272,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                         try {
                           final controller = ref.read(appControllerProvider);
                           var savedCount = 0;
-                          for (final target in targets) {
+                          for (final target in availableTargets) {
                             final existing = _existingEntry(
                               state.feedbackEntries,
                               activityId: activity.id,
@@ -347,64 +372,67 @@ class _FeedbackOptionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = selected ? YnotTheme.mint : YnotTheme.border;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 132,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: selected
-              ? LinearGradient(
-                  colors: [
-                    YnotTheme.mint.withValues(alpha: 0.18),
-                    YnotTheme.primary.withValues(alpha: 0.10),
-                  ],
-                )
-              : null,
-          color: selected ? null : YnotTheme.surface2.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: accent.withValues(alpha: locked ? 0.7 : 1),
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: YnotTheme.mint.withValues(alpha: 0.18),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : const [],
-        ),
-        child: Row(
-          children: [
-            Text(
-              label.split(' ').first,
-              style: const TextStyle(fontSize: 15),
+    return Opacity(
+      opacity: locked ? 0.6 : 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 132,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? LinearGradient(
+                    colors: [
+                      YnotTheme.mint.withValues(alpha: 0.18),
+                      YnotTheme.primary.withValues(alpha: 0.10),
+                    ],
+                  )
+                : null,
+            color: selected ? null : YnotTheme.surface2.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: accent.withValues(alpha: locked ? 0.7 : 1),
             ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                label.split(' ').skip(1).join(' '),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: YnotTheme.mint.withValues(alpha: 0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
                     ),
+                  ]
+                : const [],
+          ),
+          child: Row(
+            children: [
+              Text(
+                label.split(' ').first,
+                style: const TextStyle(fontSize: 15),
               ),
-            ),
-            if (selected) ...[
               const SizedBox(width: 6),
-              Icon(
-                Icons.check_rounded,
-                size: 18,
-                color: locked ? YnotTheme.mint : Colors.white,
+              Expanded(
+                child: Text(
+                  label.split(' ').skip(1).join(' '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                ),
               ),
+              if (selected) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.check_rounded,
+                  size: 18,
+                  color: locked ? YnotTheme.mint : Colors.white,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

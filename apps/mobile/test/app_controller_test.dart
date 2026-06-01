@@ -1065,6 +1065,48 @@ void main() {
       );
     });
 
+    test('blocked users stay visible but cannot receive feedback', () async {
+      final controller = await _buildLoggedInController();
+      final activity = controller.state.activities.first;
+      final reviewerId = controller.state.user!.id;
+      final blockedTarget = activity.feedbackTargets.firstWhere(
+        (target) => target.userId != reviewerId,
+      );
+      final blockedProfile = controller.publicProfileForUserId(
+        blockedTarget.userId,
+      );
+
+      expect(blockedProfile, isNotNull);
+      await controller.blockUser(blockedProfile!);
+
+      final allTargets = controller.feedbackTargetsForActivity(
+        activity,
+        reviewerId,
+      );
+      final availableTargets = controller.availableFeedbackTargetsForActivity(
+        activity,
+        reviewerId,
+      );
+
+      expect(
+        allTargets.any((target) => target.userId == blockedTarget.userId),
+        isTrue,
+      );
+      expect(
+        availableTargets.any((target) => target.userId == blockedTarget.userId),
+        isFalse,
+      );
+      expect(
+        await controller.submitPrivateFeedback(
+          activityId: activity.id,
+          reviewerUserId: reviewerId,
+          reviewedUserId: blockedTarget.userId,
+          selectedFeedback: PrivateFeedbackOption.goodVibe,
+        ),
+        isFalse,
+      );
+    });
+
     test(
       'feedback targets expand to all confirmed attendees except the current user',
       () async {

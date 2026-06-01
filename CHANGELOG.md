@@ -1,3 +1,8 @@
+## v1.0.20.3
+- Feedback now shows blocked users for context but disables their rating buttons
+- The save feedback flow ignores blocked users and explains when no eligible people remain
+- Blocked feedback attempts are rejected in the controller for safety
+
 ## v1.0.20.2
 - Activity attendee cards were compacted to prevent overflow and keep blocked badges inside the card
 - Chat attendee avatars now use icon-only visuals so the header stays clean and readable

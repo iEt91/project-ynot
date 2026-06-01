@@ -1308,6 +1308,15 @@ class AppController extends ChangeNotifier {
     return targets;
   }
 
+  List<ActivityFeedbackTarget> availableFeedbackTargetsForActivity(
+    Activity activity,
+    String currentUserId,
+  ) {
+    return feedbackTargetsForActivity(activity, currentUserId)
+        .where((target) => !isUserBlocked(target.userId))
+        .toList(growable: false);
+  }
+
   List<ActivityFeedbackTarget> confirmedAttendeesForActivity(
     Activity activity,
   ) {
@@ -1338,6 +1347,10 @@ class AppController extends ChangeNotifier {
         reviewerUserId.isEmpty ||
         reviewedUserId.isEmpty ||
         reviewerUserId == reviewedUserId) {
+      return false;
+    }
+
+    if (isUserBlocked(reviewedUserId)) {
       return false;
     }
 
