@@ -1,3 +1,8 @@
+## v1.0.20.1
+- Blocked users stay visible, but attendee chips now show a compact safety badge
+- Chats with blocked participants now warn once per chat unless the user dismisses them permanently
+- Blocked messages remain hidden by default with a subtle reveal action
+
 ## v1.0.20.0
 - Users can now block other users from public profiles or report flows
 - Blocked users stay visible in attendee lists and chats, but are marked for safety

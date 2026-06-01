@@ -63,13 +63,7 @@ class ActivityDetailScreen extends ConsumerWidget {
     final confirmedAttendees = controller.confirmedAttendeesForActivity(
       activity,
     );
-    final blockedParticipantIds = <String>{
-      if (controller.isUserBlocked(activity.creatorId)) activity.creatorId,
-      ...confirmedAttendees
-          .where((attendee) => controller.isUserBlocked(attendee.userId))
-          .map((attendee) => attendee.userId),
-    };
-    final hasBlockedParticipants = blockedParticipantIds.isNotEmpty;
+    final hasBlockedParticipants = controller.hasBlockedParticipants(activity);
 
     return Scaffold(
       body: KawaiiScene(
@@ -334,8 +328,8 @@ class ActivityDetailScreen extends ConsumerWidget {
                       )
                     else ...[
                       SizedBox(
-                        height: 86,
-                        child: ListView.separated(
+                      height: 112,
+                      child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: confirmedAttendees.length,
                           separatorBuilder: (context, index) =>
@@ -772,18 +766,19 @@ class _AttendeeChip extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
-      child: Container(
-        width: 80,
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Container(
+        width: 92,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(
           color: YnotTheme.surface2.withValues(alpha: 0.90),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: YnotTheme.border),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            KawaiiAvatar(emoji: emoji, size: 38, accentColor: Colors.pinkAccent),
+            KawaiiAvatar(emoji: emoji, size: 36, accentColor: Colors.pinkAccent),
             const SizedBox(height: 6),
             Text(
               label,
@@ -797,16 +792,10 @@ class _AttendeeChip extends StatelessWidget {
             ),
             if (isBlocked) ...[
               const SizedBox(height: 2),
-              Text(
-                'Usuario bloqueado',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFFFFD166),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                    ),
+              StatusPill(
+                label: 'Bloqueado',
+                icon: '🔒',
+                color: const Color(0xFFFFD166),
               ),
             ],
           ],

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +14,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
+import '../../../shared/widgets/status_pill.dart';
 
 class ChatThreadScreen extends ConsumerStatefulWidget {
   const ChatThreadScreen({super.key, required this.activityId});
@@ -27,6 +28,7 @@ class ChatThreadScreen extends ConsumerStatefulWidget {
 class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   final _messageController = TextEditingController();
   final Set<String> _revealedBlockedMessageIds = {};
+  bool _hasShownBlockedWarningThisOpen = false;
   bool _loadingMessages = true;
 
   @override
@@ -44,6 +46,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     } finally {
       if (mounted) {
         setState(() => _loadingMessages = false);
+        _maybeShowBlockedUsersWarning();
       }
     }
   }
@@ -66,6 +69,76 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
 
     setState(() {
       _revealedBlockedMessageIds.add(messageId);
+    });
+  }
+
+  void _maybeShowBlockedUsersWarning() {
+    if (_hasShownBlockedWarningThisOpen) {
+      return;
+    }
+
+    final controller = ref.read(appControllerProvider);
+    final state = ref.read(appStateProvider);
+    final activity = state.activities
+        .where((item) => item.id == widget.activityId)
+        .firstOrNull;
+    if (activity == null ||
+        !controller.hasBlockedParticipants(activity) ||
+        controller.hasDismissedBlockedChatWarning(activity.id)) {
+      return;
+    }
+
+    _hasShownBlockedWarningThisOpen = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final shouldNotShowAgain = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              var noShowAgain = false;
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return AlertDialog(
+                    backgroundColor: YnotTheme.surface2,
+                    title: const Text('Usuario bloqueado presente'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'En este chat participa una persona que bloqueaste. Sus mensajes permanecerán ocultos.',
+                        ),
+                        const SizedBox(height: 12),
+                        CheckboxListTile(
+                          value: noShowAgain,
+                          onChanged: (value) {
+                            setState(() {
+                              noShowAgain = value ?? false;
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('No volver a mostrar en este chat'),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      FilledButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(noShowAgain),
+                        child: const Text('Aceptar'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ) ??
+          false;
+      if (!mounted) return;
+      if (shouldNotShowAgain) {
+        ref
+            .read(appControllerProvider)
+            .dismissBlockedChatWarning(activity.id);
+      }
     });
   }
 
@@ -113,6 +186,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
         !isRestricted &&
         (status == ParticipantStatus.joinedPendingConfirmation ||
             status == ParticipantStatus.confirmed);
+    final hasBlockedParticipants = controller.hasBlockedParticipants(activity);
 
     if (!canAccessChat) {
       return Scaffold(
@@ -127,14 +201,14 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'El chat no está disponible ahora mismo.',
+                        'El chat no estÃ¡ disponible ahora mismo.',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w800),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Reúnete desde el detalle de la actividad para volver a entrar al chat.',
+                        'ReÃºnete desde el detalle de la actividad para volver a entrar al chat.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -181,7 +255,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${formatTimeOfDay(activity.startTime)} · ${activity.zone}',
+                            '${formatTimeOfDay(activity.startTime)} Â· ${activity.zone}',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -274,9 +348,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                   context: context,
                                   builder: (dialogContext) {
                                     return AlertDialog(
-                                      title: const Text('¿Eliminar actividad?'),
+                                      title: const Text('Â¿Eliminar actividad?'),
                                       content: const Text(
-                                        'Esto eliminará la actividad del mapa, la lista y los chats. Esta acción no se puede deshacer.',
+                                        'Esto eliminarÃ¡ la actividad del mapa, la lista y los chats. Esta acciÃ³n no se puede deshacer.',
                                       ),
                                       actions: [
                                         TextButton(
@@ -371,6 +445,18 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                   ],
                 ),
               ),
+              if (hasBlockedParticipants) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: StatusPill(
+                      label: '⚠ Usuario bloqueado presente',
+                      color: const Color(0xFFFFD166),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -386,23 +472,23 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           children: [
                             Positioned(
                               left: 0,
-                              child: _OpaqueAttendeeAvatar(emoji: '☕'),
+                              child: _OpaqueAttendeeAvatar(emoji: 'â˜•'),
                             ),
                             Positioned(
                               left: 18,
-                              child: _OpaqueAttendeeAvatar(emoji: '🌙'),
+                              child: _OpaqueAttendeeAvatar(emoji: 'ðŸŒ™'),
                             ),
                             Positioned(
                               left: 36,
-                              child: _OpaqueAttendeeAvatar(emoji: '✨'),
+                              child: _OpaqueAttendeeAvatar(emoji: 'âœ¨'),
                             ),
                             Positioned(
                               left: 54,
-                              child: _OpaqueAttendeeAvatar(emoji: '💬'),
+                              child: _OpaqueAttendeeAvatar(emoji: 'ðŸ’¬'),
                             ),
                             Positioned(
                               left: 72,
-                              child: _OpaqueAttendeeAvatar(emoji: '🐾'),
+                              child: _OpaqueAttendeeAvatar(emoji: 'ðŸ¾'),
                             ),
                           ],
                         ),
@@ -464,7 +550,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     ? Center(
                         child: KawaiiCard(
                           child: Text(
-                            'Todavía no hay mensajes.',
+                            'TodavÃ­a no hay mensajes.',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(
@@ -848,3 +934,4 @@ extension _FirstOrNullExtension<T> on Iterable<T> {
     return iterator.current;
   }
 }
+

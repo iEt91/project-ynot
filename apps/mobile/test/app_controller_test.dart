@@ -130,6 +130,44 @@ void main() {
       );
     });
 
+    test('blocked chat warning dismissal persists per activity', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activity = firstController.state.activities.firstWhere(
+        (item) => item.id == 'seed_1',
+      );
+      final attendeeProfile =
+          firstController.publicProfileForUserId('seed_participant_soojin');
+      expect(attendeeProfile, isNotNull);
+      expect(await firstController.blockUser(attendeeProfile!), isTrue);
+      expect(firstController.hasBlockedParticipants(activity), isTrue);
+
+      firstController.dismissBlockedChatWarning(activity.id);
+      expect(
+        firstController.hasDismissedBlockedChatWarning(activity.id),
+        isTrue,
+      );
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(
+        secondController.hasDismissedBlockedChatWarning(activity.id),
+        isTrue,
+      );
+    });
+
     test(
       'login with demo code opens onboarding when profile is incomplete',
       () async {

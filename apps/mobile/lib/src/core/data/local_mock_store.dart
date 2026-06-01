@@ -16,6 +16,7 @@ class LocalMockSnapshot {
     required this.messagesByActivityId,
     required this.savedActivityIds,
     required this.blockedUsers,
+    this.dismissedBlockedChatWarningActivityIds = const [],
     required this.activityFilters,
     this.searchQuery = '',
     required this.settings,
@@ -28,6 +29,7 @@ class LocalMockSnapshot {
   final Map<String, List<ChatMessage>> messagesByActivityId;
   final List<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
+  final List<String> dismissedBlockedChatWarningActivityIds;
   final Map<String, dynamic> activityFilters;
   final String searchQuery;
   final Map<String, dynamic> settings;
@@ -49,6 +51,8 @@ class LocalMockSnapshot {
       'savedActivityIds': List<String>.from(savedActivityIds),
       'blockedUsers':
           blockedUsers.map((entry) => entry.toJson()).toList(growable: false),
+      'dismissedBlockedChatWarningActivityIds':
+          List<String>.from(dismissedBlockedChatWarningActivityIds),
       'activityFilters': activityFilters,
       'searchQuery': searchQuery,
       'settings': settings,
@@ -96,6 +100,11 @@ class LocalMockSnapshot {
             ),
           )
           .toList(growable: false),
+      dismissedBlockedChatWarningActivityIds:
+          (json['dismissedBlockedChatWarningActivityIds'] as List<dynamic>? ??
+                  const [])
+              .whereType<String>()
+              .toList(growable: false),
       activityFilters: Map<String, dynamic>.from(
         json['activityFilters'] as Map<String, dynamic>? ?? const {},
       ),
