@@ -1,3 +1,8 @@
+## v1.0.22.2
+- Removed the user-facing sent reports history screen from settings
+- Reports remain internal moderation data and still submit normally
+- After sending a report, the app now shows a simple private confirmation message
+
 ## v1.0.22.0
 - Added a private local screen to review sent reports from Perfil > Configuración
 - Each report now shows the target, reason, note, date and local send status

@@ -46,14 +46,6 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     final state = ref.watch(appStateProvider);
     final currentUser = state.user;
     final activity = _findActivity(state.activities, widget.activityId);
-    final existingReport = currentUser == null
-        ? null
-        : _existingReport(
-            state.reports,
-            reporterUserId: currentUser.id,
-            targetType: widget.targetType,
-            targetId: widget.targetId,
-          );
 
     if (currentUser == null || activity == null) {
       return Scaffold(
@@ -69,7 +61,6 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       );
     }
 
-    final resolvedReason = existingReport?.reason ?? _selectedReason;
     final targetDescription = _targetDescription(state, activity);
     final targetSubtitle = _targetSubtitle(state, activity);
     final targetEmoji = _targetEmoji(state, activity);
@@ -136,14 +127,6 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    if (existingReport != null) ...[
-                      const StatusPill(
-                        label: 'Ya enviado',
-                        icon: '🌸',
-                        color: YnotTheme.mint,
-                      ),
-                      const SizedBox(height: 12),
-                    ],
                     Text(
                       'Estás reportando',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -174,13 +157,10 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     .map(
                       (reason) => _ReportReasonButton(
                         reason: reason,
-                        selected: resolvedReason == reason,
-                        locked: existingReport != null,
-                        onTap: existingReport != null
-                            ? null
-                            : () {
-                                setState(() => _selectedReason = reason);
-                              },
+                        selected: _selectedReason == reason,
+                        onTap: () {
+                          setState(() => _selectedReason = reason);
+                        },
                       ),
                     )
                     .toList(growable: false),
@@ -202,7 +182,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               ),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: existingReport != null || _saving
+                onPressed: _saving
                     ? null
                     : () async {
                         if (_selectedReason == null) {
@@ -217,39 +197,29 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                         setState(() => _saving = true);
                         try {
                           final controller = ref.read(appControllerProvider);
-                          final success = await controller
-                              .submitReport(
-                                reporterUserId: currentUser.id,
-                                targetType: widget.targetType,
-                                targetId: widget.targetId,
-                                activityId: widget.activityId,
-                                reason: _selectedReason!,
-                                note: _noteController.text.trim().isEmpty
-                                    ? null
-                                    : _noteController.text.trim(),
-                              );
+                          final success = await controller.submitReport(
+                            reporterUserId: currentUser.id,
+                            targetType: widget.targetType,
+                            targetId: widget.targetId,
+                            activityId: widget.activityId,
+                            reason: _selectedReason!,
+                            note: _noteController.text.trim().isEmpty
+                                ? null
+                                : _noteController.text.trim(),
+                          );
 
                           if (!context.mounted) return;
-                          final messenger = ScaffoldMessenger.of(context);
-                          if (!success) {
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text('Este reporte ya fue enviado.'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Reporte enviado.')),
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Gracias. Revisaremos este reporte.'),
+                            ),
                           );
-                          if (widget.targetType == ReportTargetType.user) {
+
+                          if (success && widget.targetType == ReportTargetType.user) {
                             final targetProfile =
                                 _resolveTargetProfile(activity, controller);
                             if (targetProfile != null && context.mounted) {
-                              final shouldBlock = await _askBlockAfterReport(
-                                context,
-                              );
+                              final shouldBlock = await _askBlockAfterReport(context);
                               if (shouldBlock) {
                                 await controller.blockUser(targetProfile);
                                 if (!context.mounted) {
@@ -263,6 +233,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                               }
                             }
                           }
+
                           if (context.mounted) {
                             context.pop();
                           }
@@ -272,29 +243,13 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                           }
                         }
                       },
-                child: Text(_saving ? 'Enviando...' : existingReport != null ? 'Ya enviado' : 'Enviar reporte'),
+                child: Text(_saving ? 'Enviando...' : 'Enviar reporte'),
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  ModerationReport? _existingReport(
-    List<ModerationReport> reports, {
-    required String reporterUserId,
-    required ReportTargetType targetType,
-    required String targetId,
-  }) {
-    for (final report in reports) {
-      if (report.reporterUserId == reporterUserId &&
-          report.targetType == targetType &&
-          report.targetId == targetId) {
-        return report;
-      }
-    }
-    return null;
   }
 
   Activity? _findActivity(List<Activity> activities, String activityId) {
@@ -399,7 +354,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     return switch (widget.targetType) {
       ReportTargetType.activity => 'Actividad: ${activity.title}',
       ReportTargetType.user => 'Usuario: ${_targetUserName(state, activity)}',
-      ReportTargetType.message => 'Mensaje de: ${_targetMessage(state, activity)?.senderName ?? 'Usuario'}',
+      ReportTargetType.message =>
+        'Mensaje de: ${_targetMessage(state, activity)?.senderName ?? 'Usuario'}',
     };
   }
 
@@ -410,7 +366,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           ? 'Tú'
           : 'Participante de esta actividad',
       ReportTargetType.message =>
-          _targetMessage(state, activity)?.content ?? 'Mensaje seleccionado',
+        _targetMessage(state, activity)?.content ?? 'Mensaje seleccionado',
     };
   }
 
@@ -418,7 +374,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     return switch (widget.targetType) {
       ReportTargetType.activity => activity.emoji,
       ReportTargetType.user => activity.emoji,
-      ReportTargetType.message => _targetMessage(state, activity)?.senderEmoji ?? '💬',
+      ReportTargetType.message =>
+        _targetMessage(state, activity)?.senderEmoji ?? '💬',
     };
   }
 
@@ -457,7 +414,7 @@ class _TargetPreviewCard extends StatelessWidget {
     return KawaiiCard(
       padding: const EdgeInsets.all(14),
       gradient: LinearGradient(
-          colors: [
+        colors: [
           YnotTheme.surface2.withValues(alpha: 0.96),
           YnotTheme.surface.withValues(alpha: 0.88),
         ],
@@ -500,13 +457,11 @@ class _ReportReasonButton extends StatelessWidget {
   const _ReportReasonButton({
     required this.reason,
     required this.selected,
-    required this.locked,
     required this.onTap,
   });
 
   final ReportReason reason;
   final bool selected;
-  final bool locked;
   final VoidCallback? onTap;
 
   @override
@@ -531,9 +486,7 @@ class _ReportReasonButton extends StatelessWidget {
               : null,
           color: selected ? null : YnotTheme.surface2.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: accent.withValues(alpha: locked ? 0.7 : 1),
-          ),
+          border: Border.all(color: accent),
           boxShadow: selected
               ? [
                   BoxShadow(
@@ -561,10 +514,10 @@ class _ReportReasonButton extends StatelessWidget {
             ),
             if (selected) ...[
               const SizedBox(width: 6),
-              Icon(
+              const Icon(
                 Icons.check_rounded,
                 size: 18,
-                color: locked ? YnotTheme.mint : Colors.white,
+                color: Colors.white,
               ),
             ],
           ],
