@@ -14,6 +14,7 @@ import '../models/blocked_user.dart';
 import '../models/app_settings.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
+import '../models/in_app_notification.dart';
 import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
 import '../models/reportable_participant.dart';
@@ -30,6 +31,7 @@ class AppState {
     required this.chatMessages,
     required this.savedActivityIds,
     required this.blockedUsers,
+    required this.notifications,
     required this.dismissedBlockedChatWarningActivityIds,
     required this.settings,
     required this.activityFilters,
@@ -51,6 +53,7 @@ class AppState {
       chatMessages: const {},
       savedActivityIds: const {},
       blockedUsers: const [],
+      notifications: const [],
       dismissedBlockedChatWarningActivityIds: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
@@ -67,6 +70,7 @@ class AppState {
   final Map<String, List<ChatMessage>> chatMessages;
   final Set<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
+  final List<InAppNotification> notifications;
   final Set<String> dismissedBlockedChatWarningActivityIds;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
@@ -86,6 +90,7 @@ class AppState {
     Map<String, List<ChatMessage>>? chatMessages,
     Set<String>? savedActivityIds,
     List<BlockedUserEntry>? blockedUsers,
+    List<InAppNotification>? notifications,
     Set<String>? dismissedBlockedChatWarningActivityIds,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
@@ -105,6 +110,7 @@ class AppState {
       chatMessages: chatMessages ?? this.chatMessages,
       savedActivityIds: savedActivityIds ?? this.savedActivityIds,
       blockedUsers: blockedUsers ?? this.blockedUsers,
+      notifications: notifications ?? this.notifications,
       dismissedBlockedChatWarningActivityIds:
           dismissedBlockedChatWarningActivityIds ??
           this.dismissedBlockedChatWarningActivityIds,
@@ -385,6 +391,7 @@ class AppController extends ChangeNotifier {
 
   final Map<String, List<ChatMessage>> _messagesByActivityId = {};
   final Map<String, String> _chatIdsByActivityId = {};
+  final Set<String> _activeChatActivityIds = {};
   final Set<String> _joinedActivityIds = {};
   final Set<String> _confirmedAttendanceActivityIds = {};
   final Set<String> _savedActivityIds = {};
@@ -416,11 +423,68 @@ class AppController extends ChangeNotifier {
 
     if (_dismissedBlockedChatWarningActivityIds.add(activityId)) {
       state = state.copyWith(
-        dismissedBlockedChatWarningActivityIds:
-            Set<String>.unmodifiable(_dismissedBlockedChatWarningActivityIds),
+        dismissedBlockedChatWarningActivityIds: Set<String>.unmodifiable(
+          _dismissedBlockedChatWarningActivityIds,
+        ),
       );
       unawaited(_persistSnapshot());
     }
+  }
+
+  int get unreadNotificationCount {
+    return state.notifications
+        .where((notification) => !notification.isRead)
+        .length;
+  }
+
+  List<InAppNotification> notifications() {
+    final notifications = List<InAppNotification>.from(state.notifications);
+    notifications.sort(
+      (left, right) => right.createdAt.compareTo(left.createdAt),
+    );
+    return notifications;
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    if (notificationId.isEmpty) return;
+
+    var changed = false;
+    final updated = state.notifications
+        .map((item) {
+          if (item.id != notificationId || item.isRead) {
+            return item;
+          }
+          changed = true;
+          return item.copyWith(readAt: DateTime.now());
+        })
+        .toList(growable: false);
+
+    if (!changed) {
+      return;
+    }
+
+    state = state.copyWith(notifications: updated);
+    unawaited(_persistSnapshot());
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    if (state.notifications.isEmpty ||
+        state.notifications.every((item) => item.isRead)) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final updated = state.notifications
+        .map((item) => item.isRead ? item : item.copyWith(readAt: now))
+        .toList(growable: false);
+
+    state = state.copyWith(notifications: updated);
+    unawaited(_persistSnapshot());
+  }
+
+  Future<void> refreshNotifications() async {
+    _syncTimeBasedNotifications();
+    await _persistSnapshot();
   }
 
   Future<void> initialize() async {
@@ -612,12 +676,14 @@ class AppController extends ChangeNotifier {
     _savedActivityIds.clear();
     _blockedUsers.clear();
     _dismissedBlockedChatWarningActivityIds.clear();
+    _activeChatActivityIds.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
       activities: const [],
       chatMessages: const {},
       savedActivityIds: const {},
+      notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
       reports: const [],
@@ -637,12 +703,14 @@ class AppController extends ChangeNotifier {
     _joinedActivityIds.clear();
     _confirmedAttendanceActivityIds.clear();
     _savedActivityIds.clear();
+    _activeChatActivityIds.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
       activities: const [],
       chatMessages: const {},
       savedActivityIds: const {},
+      notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
       reports: const [],
@@ -720,6 +788,7 @@ class AppController extends ChangeNotifier {
       feedbackEntries: const [],
       errorMessage: null,
     );
+    _syncTimeBasedNotifications();
   }
 
   void setFilter(ActivityFilter filter) {
@@ -787,6 +856,7 @@ class AppController extends ChangeNotifier {
     _confirmedAttendanceActivityIds.add(created.id);
 
     AppLogger.log('ACTIVITY', 'created id=${created.id}');
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
   }
 
@@ -867,11 +937,13 @@ class AppController extends ChangeNotifier {
     if (!changed) return false;
 
     state = state.copyWith(activities: updated);
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
     return true;
   }
 
   Future<void> joinActivity(String activityId) async {
+    final before = _findActivity(activityId);
     final updated = _updateActivity(activityId, (activity) {
       final user = state.user;
       final isRestricted =
@@ -895,11 +967,31 @@ class AppController extends ChangeNotifier {
     });
 
     state = state.copyWith(activities: updated);
+    final after = _findActivity(activityId);
+    if (before != null &&
+        after != null &&
+        after.myStatus == ParticipantStatus.joinedPendingConfirmation &&
+        _notificationEnabledForType(InAppNotificationType.newAttendee)) {
+      final activityTitle = safeDisplayText(
+        after.title,
+        fallback: 'una actividad',
+      );
+      final userId = state.user?.id ?? '';
+      _createNotification(
+        type: InAppNotificationType.newAttendee,
+        activityId: activityId,
+        title: 'Nueva asistencia',
+        body: 'Te uniste a $activityTitle.',
+        dedupeKey: 'joined:$activityId:$userId',
+      );
+    }
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
   }
 
   Future<void> confirmAttendance(String activityId) async {
     final currentUser = state.user;
+    final before = _findActivity(activityId);
     final updated = _updateActivity(activityId, (activity) {
       if (activity.isFinishedOrArchived ||
           activity.myStatus != ParticipantStatus.joinedPendingConfirmation) {
@@ -930,6 +1022,22 @@ class AppController extends ChangeNotifier {
         attendingActivityCount: (state.user?.attendingActivityCount ?? 0) + 1,
       ),
     );
+    final after = _findActivity(activityId);
+    if (before != null &&
+        after != null &&
+        after.myStatus == ParticipantStatus.confirmed &&
+        _notificationEnabledForType(InAppNotificationType.newAttendee)) {
+      final activityTitle = safeDisplayText(after.title, fallback: 'Actividad');
+      final userId = currentUser?.id ?? '';
+      _createNotification(
+        type: InAppNotificationType.newAttendee,
+        activityId: activityId,
+        title: 'Asistencia confirmada',
+        body: '$activityTitle ya cuenta contigo.',
+        dedupeKey: 'confirmed:$activityId:$userId',
+      );
+    }
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
   }
 
@@ -994,6 +1102,7 @@ class AppController extends ChangeNotifier {
             )
           : state.user,
     );
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
   }
 
@@ -1058,12 +1167,17 @@ class AppController extends ChangeNotifier {
             : 0,
       ),
     );
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
   }
 
   Future<void> loadChatMessages(String activityId) async {
     AppLogger.log('CHAT', 'open activityId=$activityId');
+    if (activityId.isNotEmpty) {
+      _activeChatActivityIds.add(activityId);
+    }
     final chatId = _resolveChatId(activityId);
+    _markChatNotificationsRead(activityId);
     final messages = List<ChatMessage>.from(
       _messagesByActivityId[chatId] ?? const [],
     );
@@ -1073,10 +1187,17 @@ class AppController extends ChangeNotifier {
 
   Future<void> watchChatMessages(String activityId) async {
     // In-memory mock does not need a realtime subscription.
+    if (activityId.isNotEmpty) {
+      _activeChatActivityIds.add(activityId);
+      _markChatNotificationsRead(activityId);
+    }
   }
 
   Future<void> stopWatchingChatMessages(String activityId) async {
     // In-memory mock does not need a realtime subscription.
+    if (activityId.isNotEmpty) {
+      _activeChatActivityIds.remove(activityId);
+    }
   }
 
   Future<void> sendChatMessage(String activityId, String content) async {
@@ -1112,6 +1233,64 @@ class AppController extends ChangeNotifier {
     _messagesByActivityId[chatId] = messages;
     _setChatMessages(activityId, messages, chatId: chatId, source: 'mock');
     AppLogger.log('MESSAGE', 'sent activityId=$activityId');
+    unawaited(_persistSnapshot());
+  }
+
+  Future<void> receiveChatMessage({
+    required String activityId,
+    required String senderId,
+    required String senderName,
+    required String senderEmoji,
+    required String content,
+  }) async {
+    final activity = _findActivity(activityId);
+    if (activity == null || activity.isFinishedOrArchived) {
+      return;
+    }
+
+    final chatId = _resolveChatId(activityId);
+    final message = ChatMessage(
+      id: 'msg_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(9999)}',
+      chatId: chatId,
+      activityId: activityId,
+      senderId: senderId,
+      senderName: senderName,
+      senderEmoji: senderEmoji,
+      content: content.trim(),
+      createdAt: DateTime.now(),
+      isMe: false,
+    );
+
+    final messages = List<ChatMessage>.from(
+      _messagesByActivityId[chatId] ?? const [],
+    );
+    messages.add(message);
+    _messagesByActivityId[chatId] = messages;
+    final unreadMessageCount = _activeChatActivityIds.contains(activityId)
+        ? 0
+        : (activity.unreadMessageCount + 1);
+    _setChatMessages(
+      activityId,
+      messages,
+      chatId: chatId,
+      unreadMessageCount: unreadMessageCount,
+      source: 'mock',
+    );
+
+    if (!_activeChatActivityIds.contains(activityId) &&
+        _notificationEnabledForType(InAppNotificationType.newMessage)) {
+      final senderLabel = safeDisplayText(senderName, fallback: 'Alguien');
+      final messageContent = message.content;
+      final notificationId = message.id;
+      _createNotification(
+        type: InAppNotificationType.newMessage,
+        activityId: activityId,
+        title: 'Nuevo mensaje en chat',
+        body: '$senderLabel: $messageContent',
+        dedupeKey: 'chat_message:$activityId:$notificationId',
+      );
+    }
+
     unawaited(_persistSnapshot());
   }
 
@@ -1182,6 +1361,7 @@ class AppController extends ChangeNotifier {
 
   Future<bool> startActivity(String activityId) async {
     final currentUser = state.user;
+    final before = _findActivity(activityId);
     final updated = _updateActivity(activityId, (activity) {
       if (currentUser == null ||
           activity.creatorId != currentUser.id ||
@@ -1198,12 +1378,33 @@ class AppController extends ChangeNotifier {
     if (!changed) return false;
 
     state = state.copyWith(activities: updated);
+    final after = _findActivity(activityId);
+    if (before != null &&
+        after != null &&
+        after.status == ActivityStatus.ongoing &&
+        _notificationEnabledForType(
+          InAppNotificationType.activityStartingSoon,
+        )) {
+      final activityTitle = safeDisplayText(
+        after.title,
+        fallback: 'Tu actividad',
+      );
+      _createNotification(
+        type: InAppNotificationType.activityStartingSoon,
+        activityId: activityId,
+        title: 'Actividad empieza pronto',
+        body: '$activityTitle ya está en marcha.',
+        dedupeKey: 'starting_soon:$activityId',
+      );
+    }
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
     return true;
   }
 
   Future<bool> finishActivity(String activityId) async {
     final currentUser = state.user;
+    final before = _findActivity(activityId);
     final updated = _updateActivity(activityId, (activity) {
       if (currentUser == null ||
           activity.creatorId != currentUser.id ||
@@ -1222,6 +1423,34 @@ class AppController extends ChangeNotifier {
       activities: updated,
       savedActivityIds: Set<String>.from(_savedActivityIds),
     );
+    final after = _findActivity(activityId);
+    if (before != null && after != null) {
+      if (_notificationEnabledForType(InAppNotificationType.activityFinished)) {
+        final activityTitle = safeDisplayText(
+          after.title,
+          fallback: 'La actividad',
+        );
+        _createNotification(
+          type: InAppNotificationType.activityFinished,
+          activityId: activityId,
+          title: 'Actividad finalizada',
+          body: '$activityTitle pasó al historial.',
+          dedupeKey: 'finished:$activityId',
+        );
+      }
+      if (_notificationEnabledForType(
+        InAppNotificationType.feedbackAvailable,
+      )) {
+        _createNotification(
+          type: InAppNotificationType.feedbackAvailable,
+          activityId: activityId,
+          title: 'Feedback disponible',
+          body: 'Ya puedes valorar a las personas de esta actividad.',
+          dedupeKey: 'feedback:$activityId',
+        );
+      }
+    }
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
     return true;
   }
@@ -1246,6 +1475,7 @@ class AppController extends ChangeNotifier {
       activities: updated,
       savedActivityIds: Set<String>.from(_savedActivityIds),
     );
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
     return true;
   }
@@ -1319,9 +1549,10 @@ class AppController extends ChangeNotifier {
     Activity activity,
     String currentUserId,
   ) {
-    return feedbackTargetsForActivity(activity, currentUserId)
-        .where((target) => !isUserBlocked(target.userId))
-        .toList(growable: false);
+    return feedbackTargetsForActivity(
+      activity,
+      currentUserId,
+    ).where((target) => !isUserBlocked(target.userId)).toList(growable: false);
   }
 
   List<ActivityFeedbackTarget> confirmedAttendeesForActivity(
@@ -1386,7 +1617,8 @@ class AppController extends ChangeNotifier {
       );
     }
 
-    for (final message in state.chatMessages[activity.id] ?? const <ChatMessage>[]) {
+    for (final message
+        in state.chatMessages[activity.id] ?? const <ChatMessage>[]) {
       upsert(
         userId: message.senderId,
         displayName: message.senderName,
@@ -1492,6 +1724,7 @@ class AppController extends ChangeNotifier {
     _joinedActivityIds.remove(activityId);
     _confirmedAttendanceActivityIds.remove(activityId);
     _savedActivityIds.remove(activityId);
+    _removeNotificationsForActivity(activityId);
 
     final nextChatMessages = Map<String, List<ChatMessage>>.from(
       state.chatMessages,
@@ -1519,6 +1752,7 @@ class AppController extends ChangeNotifier {
         attendingActivityCount: attendingCount,
       ),
     );
+    _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
     return true;
   }
@@ -1680,10 +1914,7 @@ class AppController extends ChangeNotifier {
     unawaited(_persistSnapshot());
   }
 
-  Activity activityVisibleForCurrentUser(
-    Activity activity, {
-    DateTime? now,
-  }) {
+  Activity activityVisibleForCurrentUser(Activity activity, {DateTime? now}) {
     if (_canCurrentUserSeeExactLocation(activity, now: now)) {
       return activity.copyWith(
         displayLat: activity.realLat,
@@ -1694,17 +1925,11 @@ class AppController extends ChangeNotifier {
     return activity;
   }
 
-  bool canCurrentUserSeeExactLocation(
-    Activity activity, {
-    DateTime? now,
-  }) {
+  bool canCurrentUserSeeExactLocation(Activity activity, {DateTime? now}) {
     return _canCurrentUserSeeExactLocation(activity, now: now);
   }
 
-  String locationDisclosureLabel(
-    Activity activity, {
-    DateTime? now,
-  }) {
+  String locationDisclosureLabel(Activity activity, {DateTime? now}) {
     return _canCurrentUserSeeExactLocation(activity, now: now)
         ? 'Ubicación exacta'
         : 'Ubicación aproximada';
@@ -1887,17 +2112,14 @@ class AppController extends ChangeNotifier {
       ],
       myStatus: null,
       isMine: isMine,
-      );
+    );
   }
 
   Activity _activityVisibleForCurrentUser(Activity activity) {
     return activityVisibleForCurrentUser(activity);
   }
 
-  bool _canCurrentUserSeeExactLocation(
-    Activity activity, {
-    DateTime? now,
-  }) {
+  bool _canCurrentUserSeeExactLocation(Activity activity, {DateTime? now}) {
     final currentUser = state.user;
     if (currentUser == null) {
       return false;
@@ -1929,14 +2151,14 @@ class AppController extends ChangeNotifier {
     final rng = Random(seed);
     final radiusMeters =
         existingRadiusMeters != null && existingRadiusMeters > 0
-            ? existingRadiusMeters
-            : 100 + rng.nextInt(201);
+        ? existingRadiusMeters
+        : 100 + rng.nextInt(201);
     final offsetMeters = 100 + rng.nextDouble() * max(0, radiusMeters - 100);
     final angle = rng.nextDouble() * pi * 2;
     final deltaLat = (offsetMeters * cos(angle)) / 111320.0;
-    final metersPerLngDegree = (
-      111320.0 * cos(exactLat * pi / 180.0).abs().clamp(0.2, 1.0e9)
-    ).toDouble();
+    final metersPerLngDegree =
+        (111320.0 * cos(exactLat * pi / 180.0).abs().clamp(0.2, 1.0e9))
+            .toDouble();
     final deltaLng = (offsetMeters * sin(angle)) / metersPerLngDegree;
     return (
       latitude: exactLat + deltaLat,
@@ -1956,272 +2178,274 @@ class AppController extends ChangeNotifier {
   List<Activity> _seedActivities() {
     final now = DateTime.now();
     return [
-      Activity(
-        id: 'seed_1',
-        creatorId: 'seed_creator_mina',
-        creatorLabel: 'Mina',
-        activityType: ActivityType.userActivity,
-        visibility: ActivityVisibility.publicActivity,
-        title: '☕ Café & Talk',
-        description:
-            'Un rato suave para charlar sin presión y compartir una taza.',
-        category: 'Coffee',
-        vibe: 'Calm',
-        zone: 'Hongdae',
-        status: ActivityStatus.open,
-        realLat: 37.5563,
-        realLng: 126.9228,
-        displayLat: 37.5569,
-        displayLng: 126.9234,
-        locationPrivacyRadiusM: 180,
-        exactLocationUnlockAt: now.add(const Duration(minutes: 42)),
-        startTime: now.add(const Duration(hours: 1)),
-        endTime: now.add(const Duration(hours: 3)),
-        maxPeople: 6,
-        confirmedCount: 3,
-        pendingCount: 1,
-        feedbackTargets: [
-          const ActivityFeedbackTarget(
-            userId: 'seed_creator_mina',
-            label: 'Mina',
-            emoji: '☕',
+          Activity(
+            id: 'seed_1',
+            creatorId: 'seed_creator_mina',
+            creatorLabel: 'Mina',
+            activityType: ActivityType.userActivity,
+            visibility: ActivityVisibility.publicActivity,
+            title: '☕ Café & Talk',
+            description:
+                'Un rato suave para charlar sin presión y compartir una taza.',
+            category: 'Coffee',
+            vibe: 'Calm',
+            zone: 'Hongdae',
+            status: ActivityStatus.open,
+            realLat: 37.5563,
+            realLng: 126.9228,
+            displayLat: 37.5569,
+            displayLng: 126.9234,
+            locationPrivacyRadiusM: 180,
+            exactLocationUnlockAt: now.add(const Duration(minutes: 42)),
+            startTime: now.add(const Duration(hours: 1)),
+            endTime: now.add(const Duration(hours: 3)),
+            maxPeople: 6,
+            confirmedCount: 3,
+            pendingCount: 1,
+            feedbackTargets: [
+              const ActivityFeedbackTarget(
+                userId: 'seed_creator_mina',
+                label: 'Mina',
+                emoji: '☕',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_soojin',
+                label: 'Soojin',
+                emoji: '✨',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_hana',
+                label: 'Hana',
+                emoji: '🌙',
+              ),
+            ],
+            myStatus: null,
+            isMine: false,
+            lastMessagePreview: 'Soojin: ¿Ya llegaron?',
           ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_soojin',
-            label: 'Soojin',
-            emoji: '✨',
+          Activity(
+            id: 'seed_2',
+            creatorId: 'seed_creator_jisoo',
+            creatorLabel: 'Jisoo',
+            activityType: ActivityType.userActivity,
+            visibility: ActivityVisibility.publicActivity,
+            title: '📚 Study Together',
+            description: 'Mesa tranquila, música suave y enfoque bonito.',
+            category: 'Study',
+            vibe: 'Productive',
+            zone: 'Gangnam',
+            status: ActivityStatus.open,
+            realLat: 37.4981,
+            realLng: 127.0276,
+            displayLat: 37.4975,
+            displayLng: 127.0282,
+            locationPrivacyRadiusM: 150,
+            exactLocationUnlockAt: now.add(const Duration(minutes: 20)),
+            startTime: now.add(const Duration(minutes: 30)),
+            endTime: now.add(const Duration(hours: 2)),
+            maxPeople: 4,
+            confirmedCount: 2,
+            pendingCount: 0,
+            feedbackTargets: [
+              const ActivityFeedbackTarget(
+                userId: 'seed_creator_jisoo',
+                label: 'Jisoo',
+                emoji: '📚',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_jiyoon',
+                label: 'Jiyoon',
+                emoji: '✨',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_mina',
+                label: 'Mina',
+                emoji: '🌸',
+              ),
+            ],
+            myStatus: null,
+            isMine: false,
+            lastMessagePreview: 'Jiyoon: Yo llevo apuntes.',
           ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_hana',
-            label: 'Hana',
-            emoji: '🌙',
+          Activity(
+            id: 'seed_3',
+            creatorId: 'seed_creator_aria',
+            creatorLabel: 'Aria',
+            activityType: ActivityType.publicEvent,
+            visibility: ActivityVisibility.publicActivity,
+            title: '🌙 Night Walk',
+            description: 'Caminata suave junto al río con vibra calm y segura.',
+            category: 'Walks',
+            vibe: 'Calm',
+            zone: 'Yeouido',
+            status: ActivityStatus.ongoing,
+            realLat: 37.5219,
+            realLng: 126.9141,
+            displayLat: 37.5225,
+            displayLng: 126.9147,
+            locationPrivacyRadiusM: 220,
+            exactLocationUnlockAt: now.subtract(const Duration(minutes: 5)),
+            startTime: now.subtract(const Duration(minutes: 15)),
+            endTime: now.add(const Duration(hours: 1)),
+            maxPeople: 12,
+            confirmedCount: 8,
+            pendingCount: 2,
+            feedbackTargets: [
+              const ActivityFeedbackTarget(
+                userId: 'seed_creator_aria',
+                label: 'Aria',
+                emoji: '🌙',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_juno',
+                label: 'Juno',
+                emoji: '✨',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_minsu',
+                label: 'Minsu',
+                emoji: '🙂',
+              ),
+            ],
+            myStatus: ParticipantStatus.confirmed,
+            isMine: false,
+            lastMessagePreview: 'Aria: Nos vemos en la entrada.',
           ),
-        ],
-        myStatus: null,
-        isMine: false,
-        lastMessagePreview: 'Soojin: ¿Ya llegaron?',
-      ),
-      Activity(
-        id: 'seed_2',
-        creatorId: 'seed_creator_jisoo',
-        creatorLabel: 'Jisoo',
-        activityType: ActivityType.userActivity,
-        visibility: ActivityVisibility.publicActivity,
-        title: '📚 Study Together',
-        description: 'Mesa tranquila, música suave y enfoque bonito.',
-        category: 'Study',
-        vibe: 'Productive',
-        zone: 'Gangnam',
-        status: ActivityStatus.open,
-        realLat: 37.4981,
-        realLng: 127.0276,
-        displayLat: 37.4975,
-        displayLng: 127.0282,
-        locationPrivacyRadiusM: 150,
-        exactLocationUnlockAt: now.add(const Duration(minutes: 20)),
-        startTime: now.add(const Duration(minutes: 30)),
-        endTime: now.add(const Duration(hours: 2)),
-        maxPeople: 4,
-        confirmedCount: 2,
-        pendingCount: 0,
-        feedbackTargets: [
-          const ActivityFeedbackTarget(
-            userId: 'seed_creator_jisoo',
-            label: 'Jisoo',
-            emoji: '📚',
+          Activity(
+            id: 'seed_4',
+            creatorId: 'seed_creator_nari',
+            creatorLabel: 'Nari',
+            activityType: ActivityType.userActivity,
+            visibility: ActivityVisibility.publicActivity,
+            title: '🎨 Tiny Art Club',
+            description: 'Dibujo, stickers y charla suave cerca del centro.',
+            category: 'Art',
+            vibe: 'Creative',
+            zone: 'Insadong',
+            status: ActivityStatus.finished,
+            realLat: 37.5744,
+            realLng: 126.9838,
+            displayLat: 37.5749,
+            displayLng: 126.9832,
+            locationPrivacyRadiusM: 130,
+            exactLocationUnlockAt: now.add(const Duration(minutes: 58)),
+            startTime: now.add(const Duration(hours: 2)),
+            endTime: now.add(const Duration(hours: 4)),
+            maxPeople: 5,
+            confirmedCount: 1,
+            pendingCount: 0,
+            feedbackTargets: [
+              const ActivityFeedbackTarget(
+                userId: 'seed_creator_nari',
+                label: 'Nari',
+                emoji: '🎨',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_dami',
+                label: 'Dami',
+                emoji: '🙂',
+              ),
+            ],
+            myStatus: ParticipantStatus.attended,
+            isMine: false,
           ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_jiyoon',
-            label: 'Jiyoon',
-            emoji: '✨',
+          Activity(
+            id: 'seed_5',
+            creatorId: 'seed_creator_sora',
+            creatorLabel: 'Sora',
+            activityType: ActivityType.userActivity,
+            visibility: ActivityVisibility.publicActivity,
+            title: '🍜 Late Food Run',
+            description: 'Buscar algo rico y caminar un poco después.',
+            category: 'Food',
+            vibe: 'Social',
+            zone: 'Myeongdong',
+            status: ActivityStatus.full,
+            realLat: 37.5636,
+            realLng: 126.9826,
+            displayLat: 37.5639,
+            displayLng: 126.9821,
+            locationPrivacyRadiusM: 160,
+            exactLocationUnlockAt: now.add(const Duration(minutes: 8)),
+            startTime: now.add(const Duration(minutes: 18)),
+            endTime: now.add(const Duration(hours: 2)),
+            maxPeople: 4,
+            confirmedCount: 4,
+            pendingCount: 1,
+            feedbackTargets: [
+              const ActivityFeedbackTarget(
+                userId: 'seed_creator_sora',
+                label: 'Sora',
+                emoji: '🍜',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_yuna',
+                label: 'Yuna',
+                emoji: '✨',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_jiho',
+                label: 'Jiho',
+                emoji: '🌙',
+              ),
+            ],
+            myStatus: null,
+            isMine: false,
           ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_mina',
-            label: 'Mina',
-            emoji: '🌸',
+          Activity(
+            id: 'seed_6',
+            creatorId: 'seed_creator_yura',
+            creatorLabel: 'Yura',
+            activityType: ActivityType.publicEvent,
+            visibility: ActivityVisibility.publicActivity,
+            title: '🌸 Archive Walk',
+            description: 'Paseo que ya pasó y ahora vive en el historial.',
+            category: 'Walks',
+            vibe: 'Calm',
+            zone: 'Seoul',
+            status: ActivityStatus.archived,
+            realLat: 37.5666,
+            realLng: 126.978,
+            displayLat: 37.5669,
+            displayLng: 126.9776,
+            locationPrivacyRadiusM: 140,
+            exactLocationUnlockAt: now.subtract(const Duration(hours: 3)),
+            startTime: now.subtract(const Duration(hours: 4)),
+            endTime: now.subtract(const Duration(hours: 2)),
+            maxPeople: 8,
+            confirmedCount: 5,
+            pendingCount: 0,
+            feedbackTargets: [
+              const ActivityFeedbackTarget(
+                userId: 'seed_creator_yura',
+                label: 'Yura',
+                emoji: '🌸',
+              ),
+              const ActivityFeedbackTarget(
+                userId: 'seed_participant_ren',
+                label: 'Ren',
+                emoji: '✨',
+              ),
+            ],
+            myStatus: ParticipantStatus.attended,
+            isMine: false,
+            lastMessagePreview: 'Yura: Gracias por venir 💫',
           ),
-        ],
-        myStatus: null,
-        isMine: false,
-        lastMessagePreview: 'Jiyoon: Yo llevo apuntes.',
-      ),
-      Activity(
-        id: 'seed_3',
-        creatorId: 'seed_creator_aria',
-        creatorLabel: 'Aria',
-        activityType: ActivityType.publicEvent,
-        visibility: ActivityVisibility.publicActivity,
-        title: '🌙 Night Walk',
-        description: 'Caminata suave junto al río con vibra calm y segura.',
-        category: 'Walks',
-        vibe: 'Calm',
-        zone: 'Yeouido',
-        status: ActivityStatus.ongoing,
-        realLat: 37.5219,
-        realLng: 126.9141,
-        displayLat: 37.5225,
-        displayLng: 126.9147,
-        locationPrivacyRadiusM: 220,
-        exactLocationUnlockAt: now.subtract(const Duration(minutes: 5)),
-        startTime: now.subtract(const Duration(minutes: 15)),
-        endTime: now.add(const Duration(hours: 1)),
-        maxPeople: 12,
-        confirmedCount: 8,
-        pendingCount: 2,
-        feedbackTargets: [
-          const ActivityFeedbackTarget(
-            userId: 'seed_creator_aria',
-            label: 'Aria',
-            emoji: '🌙',
-          ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_juno',
-            label: 'Juno',
-            emoji: '✨',
-          ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_minsu',
-            label: 'Minsu',
-            emoji: '🙂',
-          ),
-        ],
-        myStatus: ParticipantStatus.confirmed,
-        isMine: false,
-        lastMessagePreview: 'Aria: Nos vemos en la entrada.',
-      ),
-      Activity(
-        id: 'seed_4',
-        creatorId: 'seed_creator_nari',
-        creatorLabel: 'Nari',
-        activityType: ActivityType.userActivity,
-        visibility: ActivityVisibility.publicActivity,
-        title: '🎨 Tiny Art Club',
-        description: 'Dibujo, stickers y charla suave cerca del centro.',
-        category: 'Art',
-        vibe: 'Creative',
-        zone: 'Insadong',
-        status: ActivityStatus.finished,
-        realLat: 37.5744,
-        realLng: 126.9838,
-        displayLat: 37.5749,
-        displayLng: 126.9832,
-        locationPrivacyRadiusM: 130,
-        exactLocationUnlockAt: now.add(const Duration(minutes: 58)),
-        startTime: now.add(const Duration(hours: 2)),
-        endTime: now.add(const Duration(hours: 4)),
-        maxPeople: 5,
-        confirmedCount: 1,
-        pendingCount: 0,
-        feedbackTargets: [
-          const ActivityFeedbackTarget(
-            userId: 'seed_creator_nari',
-            label: 'Nari',
-            emoji: '🎨',
-          ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_dami',
-            label: 'Dami',
-            emoji: '🙂',
-          ),
-        ],
-        myStatus: ParticipantStatus.attended,
-        isMine: false,
-      ),
-      Activity(
-        id: 'seed_5',
-        creatorId: 'seed_creator_sora',
-        creatorLabel: 'Sora',
-        activityType: ActivityType.userActivity,
-        visibility: ActivityVisibility.publicActivity,
-        title: '🍜 Late Food Run',
-        description: 'Buscar algo rico y caminar un poco después.',
-        category: 'Food',
-        vibe: 'Social',
-        zone: 'Myeongdong',
-        status: ActivityStatus.full,
-        realLat: 37.5636,
-        realLng: 126.9826,
-        displayLat: 37.5639,
-        displayLng: 126.9821,
-        locationPrivacyRadiusM: 160,
-        exactLocationUnlockAt: now.add(const Duration(minutes: 8)),
-        startTime: now.add(const Duration(minutes: 18)),
-        endTime: now.add(const Duration(hours: 2)),
-        maxPeople: 4,
-        confirmedCount: 4,
-        pendingCount: 1,
-        feedbackTargets: [
-          const ActivityFeedbackTarget(
-            userId: 'seed_creator_sora',
-            label: 'Sora',
-            emoji: '🍜',
-          ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_yuna',
-            label: 'Yuna',
-            emoji: '✨',
-          ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_jiho',
-            label: 'Jiho',
-            emoji: '🌙',
-          ),
-        ],
-        myStatus: null,
-        isMine: false,
-      ),
-      Activity(
-        id: 'seed_6',
-        creatorId: 'seed_creator_yura',
-        creatorLabel: 'Yura',
-        activityType: ActivityType.publicEvent,
-        visibility: ActivityVisibility.publicActivity,
-        title: '🌸 Archive Walk',
-        description: 'Paseo que ya pasó y ahora vive en el historial.',
-        category: 'Walks',
-        vibe: 'Calm',
-        zone: 'Seoul',
-        status: ActivityStatus.archived,
-        realLat: 37.5666,
-        realLng: 126.978,
-        displayLat: 37.5669,
-        displayLng: 126.9776,
-        locationPrivacyRadiusM: 140,
-        exactLocationUnlockAt: now.subtract(const Duration(hours: 3)),
-        startTime: now.subtract(const Duration(hours: 4)),
-        endTime: now.subtract(const Duration(hours: 2)),
-        maxPeople: 8,
-        confirmedCount: 5,
-        pendingCount: 0,
-        feedbackTargets: [
-          const ActivityFeedbackTarget(
-            userId: 'seed_creator_yura',
-            label: 'Yura',
-            emoji: '🌸',
-          ),
-          const ActivityFeedbackTarget(
-            userId: 'seed_participant_ren',
-            label: 'Ren',
-            emoji: '✨',
-          ),
-        ],
-        myStatus: ParticipantStatus.attended,
-        isMine: false,
-        lastMessagePreview: 'Yura: Gracias por venir 💫',
-      ),
-    ].map((activity) {
-      final approximate = _approximateLocationFor(
-        activityId: activity.id,
-        exactLat: activity.realLat,
-        exactLng: activity.realLng,
-        existingRadiusMeters: activity.locationPrivacyRadiusM,
-      );
-      return activity.copyWith(
-        displayLat: approximate.latitude,
-        displayLng: approximate.longitude,
-        locationPrivacyRadiusM: approximate.radiusMeters,
-      );
-    }).toList(growable: false);
+        ]
+        .map((activity) {
+          final approximate = _approximateLocationFor(
+            activityId: activity.id,
+            exactLat: activity.realLat,
+            exactLng: activity.realLng,
+            existingRadiusMeters: activity.locationPrivacyRadiusM,
+          );
+          return activity.copyWith(
+            displayLat: approximate.latitude,
+            displayLng: approximate.longitude,
+            locationPrivacyRadiusM: approximate.radiusMeters,
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<int> loadDemoActivities() async {
@@ -2238,6 +2462,7 @@ class AppController extends ChangeNotifier {
       ..sort((left, right) => left.startTime.compareTo(right.startTime));
 
     state = state.copyWith(activities: nextActivities);
+    _syncTimeBasedNotifications();
     await _persistSnapshot();
     return demoActivities.length;
   }
@@ -2460,6 +2685,7 @@ class AppController extends ChangeNotifier {
     String activityId,
     List<ChatMessage> messages, {
     String? chatId,
+    int unreadMessageCount = 0,
     String source = 'mock',
   }) {
     final resolvedChatId = chatId ?? _resolveChatId(activityId);
@@ -2484,12 +2710,127 @@ class AppController extends ChangeNotifier {
           return activity.copyWith(
             lastMessagePreview: preview,
             lastMessageAt: lastAt,
-            unreadMessageCount: 0,
+            unreadMessageCount: unreadMessageCount,
           );
         })
         .toList(growable: false);
 
     state = state.copyWith(chatMessages: next, activities: activities);
+  }
+
+  void _updateNotificationList(List<InAppNotification> notifications) {
+    state = state.copyWith(notifications: notifications);
+  }
+
+  void _upsertNotification(InAppNotification notification) {
+    final existingIndex = state.notifications.indexWhere(
+      (item) => item.dedupeKey == notification.dedupeKey,
+    );
+    final next = List<InAppNotification>.from(state.notifications);
+    if (existingIndex >= 0) {
+      final existing = next[existingIndex];
+      if (existing.isRead == notification.isRead &&
+          existing.title == notification.title &&
+          existing.body == notification.body) {
+        return;
+      }
+      next[existingIndex] = notification.copyWith(readAt: existing.readAt);
+    } else {
+      next.insert(0, notification);
+    }
+    _updateNotificationList(next);
+  }
+
+  void _removeNotificationsForActivity(String activityId) {
+    final next = state.notifications
+        .where((item) => item.activityId != activityId)
+        .toList(growable: false);
+    if (next.length == state.notifications.length) {
+      return;
+    }
+    _updateNotificationList(next);
+  }
+
+  void _markChatNotificationsRead(String activityId) {
+    if (activityId.isEmpty) return;
+    var changed = false;
+    final next = state.notifications
+        .map((item) {
+          if (item.activityId != activityId ||
+              item.type != InAppNotificationType.newMessage ||
+              item.isRead) {
+            return item;
+          }
+          changed = true;
+          return item.copyWith(readAt: DateTime.now());
+        })
+        .toList(growable: false);
+    if (!changed) {
+      return;
+    }
+    _updateNotificationList(next);
+  }
+
+  void _createNotification({
+    required InAppNotificationType type,
+    required String activityId,
+    required String title,
+    required String body,
+    required String dedupeKey,
+  }) {
+    _upsertNotification(
+      InAppNotification(
+        id: 'notification_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(9999)}',
+        type: type,
+        activityId: activityId,
+        title: title,
+        body: body,
+        createdAt: DateTime.now(),
+        dedupeKey: dedupeKey,
+      ),
+    );
+  }
+
+  bool _notificationEnabledForType(InAppNotificationType type) {
+    return switch (type) {
+      InAppNotificationType.newMessage =>
+        state.settings.chatMessagesNotifications,
+      InAppNotificationType.activityStartingSoon =>
+        state.settings.activityStartingSoonNotifications,
+      InAppNotificationType.newAttendee =>
+        state.settings.recommendedActivitiesNotifications,
+      InAppNotificationType.activityFinished =>
+        state.settings.recommendedActivitiesNotifications,
+      InAppNotificationType.feedbackAvailable =>
+        state.settings.recommendedActivitiesNotifications,
+    };
+  }
+
+  void _syncTimeBasedNotifications() {
+    final now = DateTime.now();
+    for (final activity in state.activities) {
+      if (!activity.isActiveLifecycle || activity.isFinishedOrArchived) {
+        continue;
+      }
+
+      final startSoon =
+          !now.isAfter(activity.startTime) &&
+          !now.isBefore(
+            activity.startTime.subtract(const Duration(minutes: 10)),
+          );
+      if (startSoon &&
+          _notificationEnabledForType(
+            InAppNotificationType.activityStartingSoon,
+          )) {
+        _createNotification(
+          type: InAppNotificationType.activityStartingSoon,
+          activityId: activity.id,
+          title: 'Actividad empieza pronto',
+          body: '${activity.title} comienza en breve.',
+          dedupeKey: 'starting_soon:${activity.id}',
+        );
+      }
+    }
   }
 
   String _resolveChatId(String activityId) {
@@ -2516,6 +2857,7 @@ class AppController extends ChangeNotifier {
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
         blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
+        notifications: state.notifications,
         dismissedBlockedChatWarningActivityIds:
             _dismissedBlockedChatWarningActivityIds.toList(growable: false),
         activityFilters: state.activityFilters.toJson(),
@@ -2615,12 +2957,15 @@ class AppController extends ChangeNotifier {
       reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
       blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
-      dismissedBlockedChatWarningActivityIds:
-          Set<String>.unmodifiable(
-            _dismissedBlockedChatWarningActivityIds,
-          ),
+      notifications: List<InAppNotification>.unmodifiable(
+        snapshot.notifications,
+      ),
+      dismissedBlockedChatWarningActivityIds: Set<String>.unmodifiable(
+        _dismissedBlockedChatWarningActivityIds,
+      ),
       errorMessage: null,
     );
+    _syncTimeBasedNotifications();
   }
 
   Map<String, List<ChatMessage>> _restoreMessagesMap(

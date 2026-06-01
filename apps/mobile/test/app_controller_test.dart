@@ -7,6 +7,7 @@ import 'package:ynot_mobile/src/core/models/activity.dart';
 import 'package:ynot_mobile/src/core/models/activity_filters.dart';
 import 'package:ynot_mobile/src/core/models/app_user.dart';
 import 'package:ynot_mobile/src/core/models/chat_message.dart';
+import 'package:ynot_mobile/src/core/models/in_app_notification.dart';
 import 'package:ynot_mobile/src/core/models/moderation_report.dart';
 import 'package:ynot_mobile/src/core/models/private_feedback.dart';
 import 'package:ynot_mobile/src/core/state/app_controller.dart';
@@ -57,25 +58,35 @@ void main() {
           mockStore: mockStore,
         );
 
-        final creatorProfile =
-            controller.publicProfileForUserId('seed_creator_mina');
+        final creatorProfile = controller.publicProfileForUserId(
+          'seed_creator_mina',
+        );
         expect(creatorProfile, isNotNull);
 
-        final creatorActivities = controller.filteredActivities()
+        final creatorActivities = controller
+            .filteredActivities()
             .where((activity) => activity.creatorId == 'seed_creator_mina')
             .toList();
         expect(creatorActivities, isNotEmpty);
 
         final blocked = await controller.blockUser(creatorProfile!);
         expect(blocked, isTrue);
-        expect(controller.publicProfileForUserId('seed_creator_mina'), isNotNull);
+        expect(
+          controller.publicProfileForUserId('seed_creator_mina'),
+          isNotNull,
+        );
         expect(
           controller.filteredActivities().any(
             (activity) => activity.creatorId == 'seed_creator_mina',
           ),
           isTrue,
         );
-        expect(controller.blockedUsers.any((entry) => entry.userId == 'seed_creator_mina'), isTrue);
+        expect(
+          controller.blockedUsers.any(
+            (entry) => entry.userId == 'seed_creator_mina',
+          ),
+          isTrue,
+        );
 
         final restored = await _buildController(
           sessionStore: sessionStore,
@@ -88,49 +99,66 @@ void main() {
           ),
           isTrue,
         );
-        expect(restored.blockedUsers.any((entry) => entry.userId == 'seed_creator_mina'), isTrue);
+        expect(
+          restored.blockedUsers.any(
+            (entry) => entry.userId == 'seed_creator_mina',
+          ),
+          isTrue,
+        );
       },
     );
 
-    test('blocking an attendee keeps them visible in attendees and unblock works', () async {
-      final controller = await _buildLoggedInController();
-      final attendeeProfile =
-          controller.publicProfileForUserId('seed_participant_soojin');
-      expect(attendeeProfile, isNotNull);
+    test(
+      'blocking an attendee keeps them visible in attendees and unblock works',
+      () async {
+        final controller = await _buildLoggedInController();
+        final attendeeProfile = controller.publicProfileForUserId(
+          'seed_participant_soojin',
+        );
+        expect(attendeeProfile, isNotNull);
 
-      final activity = controller.state.activities.firstWhere(
-        (item) => item.id == 'seed_1',
-      );
-      expect(
-        controller.confirmedAttendeesForActivity(activity).any(
-              (target) => target.userId == 'seed_participant_soojin',
-            ),
-        isTrue,
-      );
+        final activity = controller.state.activities.firstWhere(
+          (item) => item.id == 'seed_1',
+        );
+        expect(
+          controller
+              .confirmedAttendeesForActivity(activity)
+              .any((target) => target.userId == 'seed_participant_soojin'),
+          isTrue,
+        );
 
-      final blocked = await controller.blockUser(attendeeProfile!);
-      expect(blocked, isTrue);
-      expect(controller.publicProfileForUserId('seed_participant_soojin'), isNotNull);
-      expect(
-        controller.confirmedAttendeesForActivity(activity).any(
-              (target) => target.userId == 'seed_participant_soojin',
-            ),
-        isTrue,
-      );
-      expect(
-        controller.blockedUsers.any((entry) => entry.userId == 'seed_participant_soojin'),
-        isTrue,
-      );
+        final blocked = await controller.blockUser(attendeeProfile!);
+        expect(blocked, isTrue);
+        expect(
+          controller.publicProfileForUserId('seed_participant_soojin'),
+          isNotNull,
+        );
+        expect(
+          controller
+              .confirmedAttendeesForActivity(activity)
+              .any((target) => target.userId == 'seed_participant_soojin'),
+          isTrue,
+        );
+        expect(
+          controller.blockedUsers.any(
+            (entry) => entry.userId == 'seed_participant_soojin',
+          ),
+          isTrue,
+        );
 
-      await controller.unblockUser('seed_participant_soojin');
-      expect(controller.publicProfileForUserId('seed_participant_soojin'), isNotNull);
-      expect(
-        controller.confirmedAttendeesForActivity(activity).any(
-              (target) => target.userId == 'seed_participant_soojin',
-            ),
-        isTrue,
-      );
-    });
+        await controller.unblockUser('seed_participant_soojin');
+        expect(
+          controller.publicProfileForUserId('seed_participant_soojin'),
+          isNotNull,
+        );
+        expect(
+          controller
+              .confirmedAttendeesForActivity(activity)
+              .any((target) => target.userId == 'seed_participant_soojin'),
+          isTrue,
+        );
+      },
+    );
 
     test('blocked chat warning dismissal persists per activity', () async {
       final sessionStore = _TestSessionStore(
@@ -147,8 +175,9 @@ void main() {
       final activity = firstController.state.activities.firstWhere(
         (item) => item.id == 'seed_1',
       );
-      final attendeeProfile =
-          firstController.publicProfileForUserId('seed_participant_soojin');
+      final attendeeProfile = firstController.publicProfileForUserId(
+        'seed_participant_soojin',
+      );
       expect(attendeeProfile, isNotNull);
       expect(await firstController.blockUser(attendeeProfile!), isTrue);
       expect(firstController.hasBlockedParticipants(activity), isTrue);
@@ -931,11 +960,29 @@ void main() {
           controller.state.activities.first.status,
           ActivityStatus.ongoing,
         );
+        expect(
+          controller.state.notifications.any(
+            (item) => item.type == InAppNotificationType.activityStartingSoon,
+          ),
+          isTrue,
+        );
 
         expect(await controller.finishActivity(activityId), isTrue);
         expect(
           controller.state.activities.first.status,
           ActivityStatus.finished,
+        );
+        expect(
+          controller.state.notifications.any(
+            (item) => item.type == InAppNotificationType.activityFinished,
+          ),
+          isTrue,
+        );
+        expect(
+          controller.state.notifications.any(
+            (item) => item.type == InAppNotificationType.feedbackAvailable,
+          ),
+          isTrue,
         );
         expect(
           controller.filteredActivities().any((item) => item.id == activityId),
@@ -994,6 +1041,85 @@ void main() {
             .firstWhere((item) => item.id == activityId)
             .lastMessagePreview,
         'Mantengamos la vibra suave',
+      );
+    });
+
+    test('notifications persist locally and can be marked read', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activityId = firstController.state.activities.first.id;
+      await firstController.receiveChatMessage(
+        activityId: activityId,
+        senderId: 'seed_participant_soojin',
+        senderName: 'Soojin',
+        senderEmoji: '✨',
+        content: 'Hola desde fuera',
+      );
+
+      expect(firstController.state.notifications, hasLength(1));
+      expect(firstController.unreadNotificationCount, 1);
+      expect(
+        firstController.state.notifications.first.type,
+        InAppNotificationType.newMessage,
+      );
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(secondController.state.notifications, hasLength(1));
+      expect(secondController.unreadNotificationCount, 1);
+
+      final notificationId = secondController.state.notifications.first.id;
+      await secondController.markNotificationRead(notificationId);
+
+      expect(secondController.unreadNotificationCount, 0);
+
+      final thirdController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+      expect(thirdController.state.notifications, hasLength(1));
+      expect(thirdController.unreadNotificationCount, 0);
+      expect(thirdController.state.notifications.first.isRead, isTrue);
+    });
+
+    test('active chats do not create chat message notifications', () async {
+      final controller = await _buildLoggedInController();
+      final activityId = controller.state.activities.first.id;
+
+      await controller.loadChatMessages(activityId);
+      await controller.watchChatMessages(activityId);
+      await controller.receiveChatMessage(
+        activityId: activityId,
+        senderId: 'seed_participant_soojin',
+        senderName: 'Soojin',
+        senderEmoji: '✨',
+        content: 'Mensaje en vivo',
+      );
+
+      expect(
+        controller.state.notifications.where(
+          (notification) =>
+              notification.type == InAppNotificationType.newMessage,
+        ),
+        isEmpty,
+      );
+      expect(
+        controller.state.activities
+            .firstWhere((item) => item.id == activityId)
+            .unreadMessageCount,
+        0,
       );
     });
 
@@ -1592,72 +1718,75 @@ void main() {
       expect(secondController.state.feedbackEntries, hasLength(1));
     });
 
-    test('location privacy keeps approximate markers until exact unlock', () async {
-      final controller = await _buildLoggedInController();
-      final unlockAt = DateTime(2026, 6, 1, 18, 0);
-      final activity = Activity(
-        id: 'location_privacy_test',
-        creatorId: 'seed_creator_mina',
-        creatorLabel: 'Mina',
-        activityType: ActivityType.userActivity,
-        visibility: ActivityVisibility.publicActivity,
-        title: 'Location Privacy',
-        description: 'Test de privacidad de ubicaciÃ³n.',
-        category: 'Coffee',
-        vibe: 'Calm',
-        zone: 'Hongdae',
-        status: ActivityStatus.open,
-        realLat: 37.5563,
-        realLng: 126.9228,
-        displayLat: 37.5621,
-        displayLng: 126.9298,
-        locationPrivacyRadiusM: 180,
-        exactLocationUnlockAt: unlockAt.subtract(const Duration(minutes: 10)),
-        startTime: unlockAt,
-        endTime: unlockAt.add(const Duration(hours: 2)),
-        maxPeople: 6,
-        confirmedCount: 2,
-        pendingCount: 0,
-        feedbackTargets: const [],
-        myStatus: null,
-        isMine: false,
-      );
+    test(
+      'location privacy keeps approximate markers until exact unlock',
+      () async {
+        final controller = await _buildLoggedInController();
+        final unlockAt = DateTime(2026, 6, 1, 18, 0);
+        final activity = Activity(
+          id: 'location_privacy_test',
+          creatorId: 'seed_creator_mina',
+          creatorLabel: 'Mina',
+          activityType: ActivityType.userActivity,
+          visibility: ActivityVisibility.publicActivity,
+          title: 'Location Privacy',
+          description: 'Test de privacidad de ubicaciÃ³n.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Hongdae',
+          status: ActivityStatus.open,
+          realLat: 37.5563,
+          realLng: 126.9228,
+          displayLat: 37.5621,
+          displayLng: 126.9298,
+          locationPrivacyRadiusM: 180,
+          exactLocationUnlockAt: unlockAt.subtract(const Duration(minutes: 10)),
+          startTime: unlockAt,
+          endTime: unlockAt.add(const Duration(hours: 2)),
+          maxPeople: 6,
+          confirmedCount: 2,
+          pendingCount: 0,
+          feedbackTargets: const [],
+          myStatus: null,
+          isMine: false,
+        );
 
-      final beforeUnlock = controller.activityVisibleForCurrentUser(
-        activity,
-        now: unlockAt.subtract(const Duration(minutes: 11)),
-      );
-      expect(beforeUnlock.displayLat, activity.displayLat);
-      expect(beforeUnlock.displayLng, activity.displayLng);
-      expect(
-        controller.locationDisclosureLabel(
+        final beforeUnlock = controller.activityVisibleForCurrentUser(
           activity,
           now: unlockAt.subtract(const Duration(minutes: 11)),
-        ),
-        'Ubicación aproximada',
-      );
+        );
+        expect(beforeUnlock.displayLat, activity.displayLat);
+        expect(beforeUnlock.displayLng, activity.displayLng);
+        expect(
+          controller.locationDisclosureLabel(
+            activity,
+            now: unlockAt.subtract(const Duration(minutes: 11)),
+          ),
+          'Ubicación aproximada',
+        );
 
-      final participantView = controller.activityVisibleForCurrentUser(
-        activity.copyWith(myStatus: ParticipantStatus.confirmed),
-        now: unlockAt.subtract(const Duration(minutes: 1)),
-      );
-      expect(participantView.displayLat, activity.realLat);
-      expect(participantView.displayLng, activity.realLng);
-      expect(
-        controller.locationDisclosureLabel(
+        final participantView = controller.activityVisibleForCurrentUser(
           activity.copyWith(myStatus: ParticipantStatus.confirmed),
           now: unlockAt.subtract(const Duration(minutes: 1)),
-        ),
-        'Ubicación exacta',
-      );
+        );
+        expect(participantView.displayLat, activity.realLat);
+        expect(participantView.displayLng, activity.realLng);
+        expect(
+          controller.locationDisclosureLabel(
+            activity.copyWith(myStatus: ParticipantStatus.confirmed),
+            now: unlockAt.subtract(const Duration(minutes: 1)),
+          ),
+          'Ubicación exacta',
+        );
 
-      final creatorView = controller.activityVisibleForCurrentUser(
-        activity.copyWith(creatorId: controller.state.user!.id),
-        now: unlockAt.subtract(const Duration(minutes: 30)),
-      );
-      expect(creatorView.displayLat, activity.realLat);
-      expect(creatorView.displayLng, activity.realLng);
-    });
+        final creatorView = controller.activityVisibleForCurrentUser(
+          activity.copyWith(creatorId: controller.state.user!.id),
+          now: unlockAt.subtract(const Duration(minutes: 30)),
+        );
+        expect(creatorView.displayLat, activity.realLat);
+        expect(creatorView.displayLng, activity.realLng);
+      },
+    );
 
     test('editable profile persists locally and survives restart', () async {
       final sessionStore = _TestSessionStore(

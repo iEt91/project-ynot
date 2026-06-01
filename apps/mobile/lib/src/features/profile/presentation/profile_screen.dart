@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,14 +18,26 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
     final user = state.user?.sanitizedForDisplay();
+    final unreadNotifications = state.notifications
+        .where((notification) => !notification.isRead)
+        .length;
 
     return KawaiiScene(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
         children: [
-          const SectionHeader(
+          SectionHeader(
             title: 'Perfil',
             subtitle: 'Tu rincón, simple, bonito y privado.',
+            trailing: _NotificationBellButton(
+              unreadCount: unreadNotifications,
+              onTap: () async {
+                await ref.read(appControllerProvider).refreshNotifications();
+                if (context.mounted) {
+                  context.push('/notifications');
+                }
+              },
+            ),
           ),
           const SizedBox(height: 16),
           if (user == null)
@@ -51,7 +63,10 @@ class ProfileScreen extends ConsumerWidget {
                         )
                       else
                         KawaiiAvatar(
-                          emoji: safeDisplayText(user.avatarEmoji, fallback: '🌙'),
+                          emoji: safeDisplayText(
+                            user.avatarEmoji,
+                            fallback: '🌙',
+                          ),
                           size: 82,
                           accentColor: YnotTheme.primary,
                         ),
@@ -62,15 +77,17 @@ class ProfileScreen extends ConsumerWidget {
                           children: [
                             Text(
                               safeDisplayText(user.nickname, fallback: 'Luna'),
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               safePhoneDisplay(user.phoneMasked),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                             const SizedBox(height: 8),
@@ -79,8 +96,11 @@ class ProfileScreen extends ConsumerWidget {
                                 user.bio,
                                 fallback: 'Pequeños momentos, juntos.',
                               ),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                             const SizedBox(height: 10),
@@ -88,8 +108,14 @@ class ProfileScreen extends ConsumerWidget {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                StatusPill(label: 'Calm', color: YnotTheme.primary),
-                                StatusPill(label: 'Social', color: YnotTheme.purple),
+                                StatusPill(
+                                  label: 'Calm',
+                                  color: YnotTheme.primary,
+                                ),
+                                StatusPill(
+                                  label: 'Social',
+                                  color: YnotTheme.purple,
+                                ),
                               ],
                             ),
                           ],
@@ -160,6 +186,74 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+class _NotificationBellButton extends StatelessWidget {
+  const _NotificationBellButton({
+    required this.unreadCount,
+    required this.onTap,
+  });
+
+  final int unreadCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: YnotTheme.surface2.withValues(alpha: 0.88),
+            shape: BoxShape.circle,
+            border: Border.all(color: YnotTheme.border),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Center(
+                child: Icon(
+                  Icons.notifications_none_rounded,
+                  color: Colors.white,
+                  size: 21,
+                ),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: YnotTheme.primary,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: YnotTheme.bg2, width: 1.2),
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfileAction extends StatelessWidget {
   const _ProfileAction({
     required this.label,
@@ -185,9 +279,9 @@ class _ProfileAction extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             const Text(
