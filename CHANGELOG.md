@@ -1,3 +1,8 @@
+## v1.0.22.0
+- Added a private local screen to review sent reports from Perfil > Configuración
+- Each report now shows the target, reason, note, date and local send status
+- Users can optionally clear their local report history with confirmation
+
 ## v1.0.21.0
 - Settings screen now groups account, local data, security and about sections clearly
 - Edit profile, blocked users, demo loading and local wipe actions are easier to reach

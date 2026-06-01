@@ -104,9 +104,10 @@ class SettingsScreen extends ConsumerWidget {
               _SectionCard(
                 title: 'Seguridad',
                 children: [
-                  _InfoRow(
+                  _ActionRow(
                     label: 'Reportes enviados',
                     value: '${state.reports.length}',
+                    onTap: () => context.push('/settings/reports'),
                   ),
                   const SizedBox(height: 10),
                   Text(

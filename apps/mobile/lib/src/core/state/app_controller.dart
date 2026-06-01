@@ -1150,6 +1150,15 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
+  Future<void> clearReportHistory() async {
+    if (state.reports.isEmpty) {
+      return;
+    }
+
+    state = state.copyWith(reports: const []);
+    unawaited(_persistSnapshot());
+  }
+
   Future<bool> reportChatMessage({
     required String messageId,
     required String chatId,

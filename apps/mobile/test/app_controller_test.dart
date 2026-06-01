@@ -1371,6 +1371,43 @@ void main() {
       );
     });
 
+    test('sent reports history can be cleared locally', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final controller = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activity = controller.state.activities.first;
+      final reporterId = controller.state.user!.id;
+
+      await controller.submitReport(
+        reporterUserId: reporterId,
+        targetType: ReportTargetType.user,
+        targetId: activity.creatorId,
+        activityId: activity.id,
+        reason: ReportReason.badAttitude,
+        note: 'Actitud rara',
+      );
+
+      expect(controller.state.reports, hasLength(1));
+
+      await controller.clearReportHistory();
+
+      expect(controller.state.reports, isEmpty);
+
+      final restarted = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+      expect(restarted.state.reports, isEmpty);
+    });
+
     test('logout clears the session and returns to auth', () async {
       final controller = await _buildLoggedInController();
 
