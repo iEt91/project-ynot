@@ -1,3 +1,8 @@
+## v1.0.21.0
+- Settings screen now groups account, local data, security and about sections clearly
+- Edit profile, blocked users, demo loading and local wipe actions are easier to reach
+- Reports stay private and the screen now shows current version and mock/local mode
+
 ## v1.0.20.3
 - Feedback now shows blocked users for context but disables their rating buttons
 - The save feedback flow ignores blocked users and explains when no eligible people remain

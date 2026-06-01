@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
 import '../../../core/constants/app_version.dart';
 import '../../../core/state/app_controller.dart';
-import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
@@ -18,7 +17,6 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
     final controller = ref.read(appControllerProvider);
-    final user = state.user?.sanitizedForDisplay();
 
     return Scaffold(
       body: KawaiiScene(
@@ -41,51 +39,33 @@ class SettingsScreen extends ConsumerWidget {
               _SectionCard(
                 title: 'Cuenta',
                 children: [
-                  _InfoRow(
-                    label: 'Nombre visible',
-                    value: safeDisplayText(user?.nickname ?? '', fallback: 'Luna'),
+                  _ActionRow(
+                    label: 'Editar perfil',
+                    onTap: () => context.push('/edit-profile'),
                   ),
-                  const SizedBox(height: 12),
-                  _InfoRow(
-                    label: 'Teléfono',
-                    value: safePhoneDisplay(
-                      user?.phoneMasked ?? '',
-                      fallback: 'Sesión local',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _InfoRow(
-                    label: 'Modo actual',
-                    value: 'Local / Mock',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _SectionCard(
-                title: 'Preferencias',
-                children: const [
-                  _InfoRow(label: 'Idioma', value: 'Español'),
-                  SizedBox(height: 12),
-                  _InfoRow(label: 'Tema', value: 'Oscuro'),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _SectionCard(
-                title: 'Seguridad',
-                children: [
+                  const SizedBox(height: 10),
                   _ActionRow(
                     label: 'Usuarios bloqueados',
                     value: '${state.blockedUsers.length}',
                     onTap: () => context.push('/settings/blocked-users'),
                   ),
+                  const SizedBox(height: 10),
+                  _ActionRow(
+                    label: 'Cerrar sesión',
+                    onTap: () {
+                      controller.signOut();
+                      if (context.mounted) {
+                        context.go('/');
+                      }
+                    },
+                    danger: true,
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
               _SectionCard(
-                title: 'Datos',
+                title: 'Datos locales',
                 children: [
-                  _InfoRow(label: 'Versión', value: kAppVisibleVersion),
-                  const SizedBox(height: 12),
                   FilledButton.tonal(
                     onPressed: () async {
                       final count = await controller.loadDemoActivities();
@@ -118,16 +98,33 @@ class SettingsScreen extends ConsumerWidget {
                     },
                     child: const Text('Borrar datos locales'),
                   ),
-                  const SizedBox(height: 10),
-                  FilledButton.tonal(
-                    onPressed: () {
-                      controller.signOut();
-                      if (context.mounted) {
-                        context.go('/');
-                      }
-                    },
-                    child: const Text('Cerrar sesión'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Seguridad',
+                children: [
+                  _InfoRow(
+                    label: 'Reportes enviados',
+                    value: '${state.reports.length}',
                   ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Tus reportes son privados y ayudan a mantener la comunidad segura.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Acerca de',
+                children: const [
+                  _InfoRow(label: 'Versión actual', value: kAppVisibleVersion),
+                  SizedBox(height: 12),
+                  _InfoRow(label: 'Modo actual', value: 'Mock/local'),
                 ],
               ),
             ],
@@ -235,13 +232,15 @@ class _InfoRow extends StatelessWidget {
 class _ActionRow extends StatelessWidget {
   const _ActionRow({
     required this.label,
-    required this.value,
     required this.onTap,
+    this.value,
+    this.danger = false,
   });
 
   final String label;
-  final String value;
+  final String? value;
   final VoidCallback onTap;
+  final bool danger;
 
   @override
   Widget build(BuildContext context) {
@@ -265,17 +264,22 @@ class _ActionRow extends StatelessWidget {
                   label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
+                        color: danger ? Colors.redAccent : null,
                       ),
                 ),
               ),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(width: 8),
+              if (value != null && value!.isNotEmpty) ...[
+                Text(
+                  value!,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: danger
+                            ? Colors.redAccent
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(width: 8),
+              ],
               const Icon(Icons.chevron_right_rounded, size: 18),
             ],
           ),
