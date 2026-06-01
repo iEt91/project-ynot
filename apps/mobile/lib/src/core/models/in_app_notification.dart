@@ -6,6 +6,9 @@ enum InAppNotificationType {
   newAttendee,
   activityFinished,
   feedbackAvailable,
+  blockedUserPresent,
+  activitySaved,
+  activityReminder,
 }
 
 class InAppNotification {
@@ -37,6 +40,9 @@ class InAppNotification {
     InAppNotificationType.newAttendee => '👋',
     InAppNotificationType.activityFinished => '🕯️',
     InAppNotificationType.feedbackAvailable => '✨',
+    InAppNotificationType.blockedUserPresent => '🔒',
+    InAppNotificationType.activitySaved => '🔖',
+    InAppNotificationType.activityReminder => '⏳',
   };
 
   InAppNotification copyWith({
@@ -71,11 +77,16 @@ class InAppNotification {
   }
 
   factory InAppNotification.fromJson(Map<String, dynamic> json) {
+    final typeName =
+        json['type'] as String? ?? InAppNotificationType.newMessage.name;
+    final type = InAppNotificationType.values.firstWhere(
+      (candidate) => candidate.name == typeName,
+      orElse: () => InAppNotificationType.newMessage,
+    );
+
     return InAppNotification(
       id: safeDisplayText(json['id'] as String? ?? '', fallback: ''),
-      type: InAppNotificationType.values.byName(
-        json['type'] as String? ?? InAppNotificationType.newMessage.name,
-      ),
+      type: type,
       activityId: safeDisplayText(
         json['activityId'] as String? ?? '',
         fallback: '',

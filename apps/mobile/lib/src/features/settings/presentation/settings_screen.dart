@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -25,11 +25,7 @@ class SettingsScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
             children: [
-              Row(
-                children: [
-                  ProfileBackButton(onTap: () => context.pop()),
-                ],
-              ),
+              Row(children: [ProfileBackButton(onTap: () => context.pop())]),
               const SizedBox(height: 14),
               const SectionHeader(
                 title: 'Configuración',
@@ -83,6 +79,19 @@ class SettingsScreen extends ConsumerWidget {
                     child: const Text('Cargar datos demo'),
                   ),
                   const SizedBox(height: 10),
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      await controller.generateDemoNotifications();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Se generaron notificaciones demo.'),
+                        ),
+                      );
+                    },
+                    child: const Text('Generar notificaciones demo'),
+                  ),
+                  const SizedBox(height: 10),
                   FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.redAccent.withValues(alpha: 0.20),
@@ -107,9 +116,9 @@ class SettingsScreen extends ConsumerWidget {
                   Text(
                     'Tus reportes son privados y ayudan a mantener la comunidad segura.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          height: 1.35,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.35,
+                    ),
                   ),
                 ],
               ),
@@ -158,10 +167,7 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.children,
-  });
+  const _SectionCard({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
@@ -176,9 +182,9 @@ class _SectionCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
-                ),
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
           ),
           const SizedBox(height: 12),
           ...children,
@@ -189,10 +195,7 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -205,8 +208,8 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -214,9 +217,9 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.end,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -258,20 +261,20 @@ class _ActionRow extends StatelessWidget {
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: danger ? Colors.redAccent : null,
-                      ),
+                    fontWeight: FontWeight.w700,
+                    color: danger ? Colors.redAccent : null,
+                  ),
                 ),
               ),
               if (value != null && value!.isNotEmpty) ...[
                 Text(
                   value!,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: danger
-                            ? Colors.redAccent
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: danger
+                        ? Colors.redAccent
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],

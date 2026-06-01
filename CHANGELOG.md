@@ -2,6 +2,7 @@
 - Added a local in-app notifications center with unread badge, read state, and persistence after restart
 - Notifications now cover chat messages, upcoming activities, attendance changes, activity completion, and feedback availability
 - The notifications screen stays private to the current user and respects existing local settings
+- Settings now include a local demo generator so notifications can be tested manually without real triggers
 
 ## v1.0.24.0
 - Activities now keep an exact internal location plus a stable approximate public location for privacy

@@ -1094,6 +1094,88 @@ void main() {
       expect(thirdController.state.notifications.first.isRead, isTrue);
     });
 
+    test('demo notifications generate stable mixed read states', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore()
+        ..snapshot = LocalMockSnapshot(
+          user: AppUser(
+            id: 'client_001',
+            phoneMasked: '•••• 5678',
+            nickname: 'Luna',
+            avatarEmoji: '🌙',
+            bio: 'Pequeños momentos, juntos.',
+            languages: const ['Korean', 'English'],
+            vibes: const ['Calm', 'Creative'],
+            interests: const ['Coffee', 'Walks', 'Study'],
+            status: UserStatus.trusted,
+            profileComplete: true,
+            createdActivityCount: 0,
+            attendingActivityCount: 0,
+          ),
+          activities: const [],
+          messagesByActivityId: const {},
+          savedActivityIds: const [],
+          blockedUsers: const [],
+          activityFilters: const {},
+          settings: const {},
+          reports: const [],
+          feedbackEntries: const [],
+        );
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final generated = await firstController.generateDemoNotifications();
+      expect(generated, 8);
+      expect(firstController.state.notifications, hasLength(8));
+      expect(firstController.unreadNotificationCount, 4);
+      expect(
+        firstController.state.notifications.where((item) => item.isRead),
+        hasLength(4),
+      );
+      expect(
+        firstController.state.notifications
+            .map((item) => item.dedupeKey)
+            .toSet(),
+        hasLength(8),
+      );
+      expect(
+        firstController.state.notifications.map((item) => item.type),
+        containsAll([
+          InAppNotificationType.newMessage,
+          InAppNotificationType.newAttendee,
+          InAppNotificationType.activityStartingSoon,
+          InAppNotificationType.activityFinished,
+          InAppNotificationType.feedbackAvailable,
+          InAppNotificationType.blockedUserPresent,
+          InAppNotificationType.activitySaved,
+          InAppNotificationType.activityReminder,
+        ]),
+      );
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+      expect(secondController.state.notifications, hasLength(8));
+      expect(secondController.unreadNotificationCount, 4);
+
+      await secondController.generateDemoNotifications();
+      expect(secondController.state.notifications, hasLength(8));
+      expect(
+        secondController.state.notifications
+            .map((item) => item.dedupeKey)
+            .toSet(),
+        hasLength(8),
+      );
+      expect(secondController.unreadNotificationCount, 4);
+    });
+
     test('active chats do not create chat message notifications', () async {
       final controller = await _buildLoggedInController();
       final activityId = controller.state.activities.first.id;

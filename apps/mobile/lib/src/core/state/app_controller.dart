@@ -2467,6 +2467,100 @@ class AppController extends ChangeNotifier {
     return demoActivities.length;
   }
 
+  Future<int> generateDemoNotifications() async {
+    final now = DateTime.now();
+    final activityIds = _demoNotificationActivityIds();
+    final fiveMinutesAgo = now.subtract(const Duration(minutes: 5));
+    final oneHourAgo = now.subtract(const Duration(hours: 1));
+    final yesterday = now.subtract(const Duration(days: 1));
+
+    final demoNotifications = <InAppNotification>[
+      InAppNotification(
+        id: 'demo_notification_new_message',
+        type: InAppNotificationType.newMessage,
+        activityId: activityIds[0],
+        title: 'Nuevo mensaje en chat',
+        body: 'Soojin: ¿Vienes hoy?',
+        createdAt: now,
+        dedupeKey: 'demo:new_message:${activityIds[0]}',
+      ),
+      InAppNotification(
+        id: 'demo_notification_new_attendee',
+        type: InAppNotificationType.newAttendee,
+        activityId: activityIds[1],
+        title: 'Alguien se unió a tu actividad',
+        body: 'Hana acaba de sumarse a tu plan.',
+        createdAt: fiveMinutesAgo,
+        dedupeKey: 'demo:new_attendee:${activityIds[1]}',
+      ),
+      InAppNotification(
+        id: 'demo_notification_starting_soon',
+        type: InAppNotificationType.activityStartingSoon,
+        activityId: activityIds[2],
+        title: 'Actividad empieza pronto',
+        body: 'Tu plan comienza en menos de una hora.',
+        createdAt: oneHourAgo,
+        readAt: oneHourAgo.add(const Duration(minutes: 3)),
+        dedupeKey: 'demo:starting_soon:${activityIds[2]}',
+      ),
+      InAppNotification(
+        id: 'demo_notification_finished',
+        type: InAppNotificationType.activityFinished,
+        activityId: activityIds[0],
+        title: 'Actividad finalizada',
+        body: 'La actividad ya terminó. Gracias por venir.',
+        createdAt: yesterday,
+        readAt: yesterday.add(const Duration(minutes: 20)),
+        dedupeKey: 'demo:finished:${activityIds[0]}',
+      ),
+      InAppNotification(
+        id: 'demo_notification_feedback',
+        type: InAppNotificationType.feedbackAvailable,
+        activityId: activityIds[1],
+        title: 'Feedback disponible',
+        body: 'Ya puedes dejar feedback privado sobre esta actividad.',
+        createdAt: now,
+        dedupeKey: 'demo:feedback:${activityIds[1]}',
+      ),
+      InAppNotification(
+        id: 'demo_notification_blocked',
+        type: InAppNotificationType.blockedUserPresent,
+        activityId: activityIds[2],
+        title: 'Usuario bloqueado presente',
+        body: 'Participa una persona que bloqueaste.',
+        createdAt: fiveMinutesAgo,
+        readAt: fiveMinutesAgo.add(const Duration(minutes: 1)),
+        dedupeKey: 'demo:blocked_present:${activityIds[2]}',
+      ),
+      InAppNotification(
+        id: 'demo_notification_saved',
+        type: InAppNotificationType.activitySaved,
+        activityId: activityIds[0],
+        title: 'Actividad guardada',
+        body: 'Guardaste esta actividad para verla más tarde.',
+        createdAt: oneHourAgo,
+        dedupeKey: 'demo:saved:${activityIds[0]}',
+      ),
+      InAppNotification(
+        id: 'demo_notification_reminder',
+        type: InAppNotificationType.activityReminder,
+        activityId: activityIds[1],
+        title: 'Recordatorio de actividad',
+        body: 'No te olvides de tu actividad de hoy.',
+        createdAt: yesterday,
+        readAt: yesterday.add(const Duration(hours: 1)),
+        dedupeKey: 'demo:reminder:${activityIds[1]}',
+      ),
+    ];
+
+    for (final notification in demoNotifications) {
+      _upsertNotification(notification);
+    }
+
+    await _persistSnapshot();
+    return demoNotifications.length;
+  }
+
   String _feedbackPlaceholderEmoji(int index) {
     const emojis = ['🌸', '✨', '🙂', '🫧', '🌙', '💫'];
     return emojis[index % emojis.length];
@@ -2803,7 +2897,32 @@ class AppController extends ChangeNotifier {
         state.settings.recommendedActivitiesNotifications,
       InAppNotificationType.feedbackAvailable =>
         state.settings.recommendedActivitiesNotifications,
+      InAppNotificationType.blockedUserPresent =>
+        state.settings.recommendedActivitiesNotifications,
+      InAppNotificationType.activitySaved =>
+        state.settings.recommendedActivitiesNotifications,
+      InAppNotificationType.activityReminder =>
+        state.settings.recommendedActivitiesNotifications,
     };
+  }
+
+  List<String> _demoNotificationActivityIds() {
+    if (state.activities.isEmpty) {
+      return const [
+        'demo_notification_activity_1',
+        'demo_notification_activity_2',
+        'demo_notification_activity_3',
+      ];
+    }
+
+    final ids = state.activities
+        .take(3)
+        .map((activity) => activity.id)
+        .toList(growable: true);
+    while (ids.length < 3) {
+      ids.add(ids.first);
+    }
+    return ids;
   }
 
   void _syncTimeBasedNotifications() {
