@@ -633,18 +633,24 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> confirmAttendance(String activityId) async {
+    final currentUser = state.user;
     final updated = _updateActivity(activityId, (activity) {
       if (activity.isFinishedOrArchived ||
           activity.myStatus != ParticipantStatus.joinedPendingConfirmation) {
         return activity;
       }
 
+      final nextTargets = _upsertFeedbackTarget(
+        activity.feedbackTargets,
+        target: _currentUserFeedbackTarget(currentUser),
+      );
       final nextConfirmedCount = activity.confirmedCount + 1;
       _confirmedAttendanceActivityIds.add(activityId);
       return activity.copyWith(
         pendingCount: activity.pendingCount > 0 ? activity.pendingCount - 1 : 0,
         confirmedCount: nextConfirmedCount,
         myStatus: ParticipantStatus.confirmed,
+        feedbackTargets: nextTargets,
         status: _nextLifecycleStatus(
           activity,
           confirmedCount: nextConfirmedCount,
@@ -662,6 +668,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> cancelAttendance(String activityId) async {
+    final currentUser = state.user;
     var shouldDecreaseAttendance = false;
     final updated = _updateActivity(activityId, (activity) {
       if (activity.isFinishedOrArchived) {
@@ -670,12 +677,16 @@ class AppController extends ChangeNotifier {
 
       if (activity.myStatus == ParticipantStatus.joinedPendingConfirmation) {
         _confirmedAttendanceActivityIds.remove(activityId);
+        final nextTargets = activity.feedbackTargets
+            .where((target) => target.userId != currentUser?.id)
+            .toList(growable: false);
         final nextPendingCount = activity.pendingCount > 0
             ? activity.pendingCount - 1
             : 0;
         return activity.copyWith(
           pendingCount: nextPendingCount,
           myStatus: ParticipantStatus.cancelled,
+          feedbackTargets: nextTargets,
           status: _nextLifecycleStatus(
             activity,
             confirmedCount: activity.confirmedCount,
@@ -689,9 +700,13 @@ class AppController extends ChangeNotifier {
         final nextConfirmedCount = activity.confirmedCount > 0
             ? activity.confirmedCount - 1
             : 0;
+        final nextTargets = activity.feedbackTargets
+            .where((target) => target.userId != currentUser?.id)
+            .toList(growable: false);
         return activity.copyWith(
           confirmedCount: nextConfirmedCount,
           myStatus: ParticipantStatus.cancelled,
+          feedbackTargets: nextTargets,
           status: _nextLifecycleStatus(
             activity,
             confirmedCount: nextConfirmedCount,
@@ -717,19 +732,28 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> leaveActivity(String activityId) async {
+    final currentUser = state.user;
     final updated = _updateActivity(activityId, (activity) {
       if (activity.isFinishedOrArchived) {
         return activity;
       }
 
+      if (currentUser != null && activity.creatorId == currentUser.id) {
+        return activity;
+      }
+
       if (activity.myStatus == ParticipantStatus.joinedPendingConfirmation) {
         _joinedActivityIds.remove(activityId);
+        final nextTargets = activity.feedbackTargets
+            .where((target) => target.userId != currentUser?.id)
+            .toList(growable: false);
         final nextPendingCount = activity.pendingCount > 0
             ? activity.pendingCount - 1
             : 0;
         return activity.copyWith(
           pendingCount: nextPendingCount,
           myStatus: ParticipantStatus.left,
+          feedbackTargets: nextTargets,
           status: _nextLifecycleStatus(
             activity,
             confirmedCount: activity.confirmedCount,
@@ -743,9 +767,13 @@ class AppController extends ChangeNotifier {
         final nextConfirmedCount = activity.confirmedCount > 0
             ? activity.confirmedCount - 1
             : 0;
+        final nextTargets = activity.feedbackTargets
+            .where((target) => target.userId != currentUser?.id)
+            .toList(growable: false);
         return activity.copyWith(
           confirmedCount: nextConfirmedCount,
           myStatus: ParticipantStatus.left,
+          feedbackTargets: nextTargets,
           status: _nextLifecycleStatus(
             activity,
             confirmedCount: nextConfirmedCount,
@@ -1010,6 +1038,14 @@ class AppController extends ChangeNotifier {
     }
 
     return targets;
+  }
+
+  List<ActivityFeedbackTarget> confirmedAttendeesForActivity(
+    Activity activity,
+  ) {
+    return activity.feedbackTargets
+        .where((target) => target.userId != activity.creatorId)
+        .toList(growable: false);
   }
 
   Future<bool> submitPrivateFeedback({
@@ -2158,5 +2194,29 @@ class AppController extends ChangeNotifier {
         before.endTime != after.endTime ||
         before.maxPeople != after.maxPeople ||
         before.visibility != after.visibility;
+  }
+
+  ActivityFeedbackTarget _currentUserFeedbackTarget(AppUser? user) {
+    return ActivityFeedbackTarget(
+      userId: user?.id ?? '',
+      label: safeDisplayText(user?.nickname ?? '', fallback: 'Luna'),
+      emoji: safeDisplayText(user?.avatarEmoji ?? '', fallback: '🌙'),
+    );
+  }
+
+  List<ActivityFeedbackTarget> _upsertFeedbackTarget(
+    List<ActivityFeedbackTarget> existingTargets, {
+    required ActivityFeedbackTarget target,
+  }) {
+    if (target.userId.isEmpty) {
+      return existingTargets;
+    }
+
+    final nextTargets = <ActivityFeedbackTarget>[
+      for (final item in existingTargets)
+        if (item.userId != target.userId) item,
+      target,
+    ];
+    return nextTargets;
   }
 }

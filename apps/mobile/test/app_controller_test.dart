@@ -675,6 +675,12 @@ void main() {
         expect(activity.myStatus, ParticipantStatus.confirmed);
         expect(activity.confirmedCount, 4);
         expect(activity.pendingCount, 1);
+        expect(
+          activity.feedbackTargets.any(
+            (target) => target.userId == controller.state.user!.id,
+          ),
+          isTrue,
+        );
 
         await controller.cancelAttendance(activityId);
         activity = controller.state.activities.firstWhere(
@@ -683,6 +689,12 @@ void main() {
         expect(activity.myStatus, ParticipantStatus.cancelled);
         expect(activity.confirmedCount, 3);
         expect(activity.pendingCount, 1);
+        expect(
+          activity.feedbackTargets.any(
+            (target) => target.userId == controller.state.user!.id,
+          ),
+          isFalse,
+        );
 
         await controller.joinActivity(activityId);
         activity = controller.state.activities.firstWhere(
@@ -697,6 +709,12 @@ void main() {
         );
         expect(activity.myStatus, ParticipantStatus.left);
         expect(activity.pendingCount, 1);
+        expect(
+          activity.feedbackTargets.any(
+            (target) => target.userId == controller.state.user!.id,
+          ),
+          isFalse,
+        );
 
         await controller.joinActivity(activityId);
         activity = controller.state.activities.firstWhere(
@@ -706,6 +724,37 @@ void main() {
         expect(activity.pendingCount, 2);
       },
     );
+
+    test('creator cannot leave own activity', () async {
+      final controller = await _buildLoggedInController();
+      await controller.createActivity(
+        title: 'Own Plan',
+        description: 'Plan de prueba propio.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        startTime: DateTime(2026, 6, 1, 18, 0),
+        duration: const Duration(hours: 2),
+        maxPeople: 6,
+        realLat: 37.5563,
+        realLng: 126.9228,
+      );
+      final activityId = controller.state.activities.first.id;
+
+      await controller.leaveActivity(activityId);
+
+      final activity = controller.state.activities.firstWhere(
+        (item) => item.id == activityId,
+      );
+      expect(activity.myStatus, ParticipantStatus.confirmed);
+      expect(activity.confirmedCount, 1);
+      expect(
+        activity.feedbackTargets.any(
+          (target) => target.userId == controller.state.user!.id,
+        ),
+        isTrue,
+      );
+    });
 
     test(
       'creator can start and finish an activity and it moves to history',

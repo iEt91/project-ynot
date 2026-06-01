@@ -1,3 +1,8 @@
+## v1.0.18.0
+- Attendance actions now adapt to the user state more clearly in activity detail
+- The creator is auto-joined and auto-confirmed, and cannot leave their own activity
+- Confirmed attendees are shown with a cleaner empty state when only the organizer is present
+
 ## v1.0.17.2
 - Create and edit activities now use a full-screen location picker instead of an embedded interactive map
 - The picker keeps the fixed center pin UX and returns the selected coordinates to the form

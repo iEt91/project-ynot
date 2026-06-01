@@ -55,13 +55,12 @@ class ActivityDetailScreen extends ConsumerWidget {
         activity.isJoinable &&
         !activity.isFinishedOrArchived &&
         activity.myStatus != ParticipantStatus.removedByAdmin;
-    final canLeave = isActiveMember && !activity.isFinishedOrArchived;
+    final canLeave =
+        isActiveMember && !isCreator && !activity.isFinishedOrArchived;
     final canOpenChat = isActiveMember;
     final isFull = activity.isFull && !isActiveMember;
-    final currentUserId = currentUser?.id ?? '';
-    final attendeePreview = controller.feedbackTargetsForActivity(
+    final confirmedAttendees = controller.confirmedAttendeesForActivity(
       activity,
-      currentUserId,
     );
 
     return Scaffold(
@@ -298,31 +297,42 @@ class ActivityDetailScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      height: 86,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: attendeePreview.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          final attendee = attendeePreview[index];
-                          return _AttendeeChip(
-                            emoji: attendee.emoji,
-                            label: attendee.label,
-                          );
-                        },
+                    if (confirmedAttendees.isEmpty)
+                      Text(
+                        'Todavía no hay asistentes confirmados aparte del organizador.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color:
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      )
+                    else ...[
+                      SizedBox(
+                        height: 86,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: confirmedAttendees.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 10),
+                          itemBuilder: (context, index) {
+                            final attendee = confirmedAttendees[index];
+                            return _AttendeeChip(
+                              emoji: attendee.emoji,
+                              label: attendee.label,
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      activity.isFull
-                          ? 'La actividad está llena por ahora.'
-                          : 'Puedes ver una vista previa de quién viene. ',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      const SizedBox(height: 8),
+                      Text(
+                        activity.isFull
+                            ? 'La actividad está llena por ahora.'
+                            : 'Puedes ver una vista previa de quién viene.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color:
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -334,6 +344,10 @@ class ActivityDetailScreen extends ConsumerWidget {
                 canJoin: canJoin,
                 canLeave: canLeave,
                 canOpenChat: canOpenChat,
+                canConfirm:
+                    !isCreator &&
+                    activity.myStatus ==
+                        ParticipantStatus.joinedPendingConfirmation,
                 onEdit: isCreator
                     ? () => context.push(
                         '/create-activity',
@@ -357,6 +371,9 @@ class ActivityDetailScreen extends ConsumerWidget {
                 },
                 onLeave: () async {
                   await controller.leaveActivity(activity.id);
+                },
+                onConfirm: () async {
+                  await controller.confirmAttendance(activity.id);
                 },
                 onOpenChat: () => context.push('/chat/${activity.id}'),
                 onDelete: () => _confirmAndDelete(context, ref, activity),
@@ -708,8 +725,10 @@ class _ActionSection extends StatelessWidget {
     required this.canJoin,
     required this.canLeave,
     required this.canOpenChat,
+    required this.canConfirm,
     required this.onEdit,
     required this.onJoin,
+    required this.onConfirm,
     required this.onLeave,
     required this.onOpenChat,
     required this.onDelete,
@@ -721,8 +740,10 @@ class _ActionSection extends StatelessWidget {
   final bool canJoin;
   final bool canLeave;
   final bool canOpenChat;
+  final bool canConfirm;
   final VoidCallback? onEdit;
   final Future<void> Function() onJoin;
+  final Future<void> Function() onConfirm;
   final Future<void> Function() onLeave;
   final VoidCallback onOpenChat;
   final Future<void> Function() onDelete;
@@ -765,8 +786,42 @@ class _ActionSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-          ],
-          if (isActiveMember) ...[
+            if (canOpenChat) ...[
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onOpenChat,
+                  child: const Text('Abrir chat'),
+                ),
+              ),
+            ],
+          ] else if (canConfirm) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => unawaited(onConfirm()),
+                    child: const Text('Confirmar asistencia'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: canLeave ? () => unawaited(onLeave()) : null,
+                    child: const Text('Salir de actividad'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: canOpenChat ? onOpenChat : null,
+                child: const Text('Abrir chat'),
+              ),
+            ),
+          ] else if (isActiveMember) ...[
             Row(
               children: [
                 Expanded(
