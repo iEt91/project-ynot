@@ -64,6 +64,8 @@ class ActivityDetailScreen extends ConsumerWidget {
       activity,
     );
     final hasBlockedParticipants = controller.hasBlockedParticipants(activity);
+    final canSeeExactLocation = controller.canCurrentUserSeeExactLocation(activity);
+    final locationDisclosureLabel = controller.locationDisclosureLabel(activity);
 
     return Scaffold(
       body: KawaiiScene(
@@ -242,6 +244,58 @@ class ActivityDetailScreen extends ConsumerWidget {
                     _InfoChip(
                       icon: Icons.category_rounded,
                       text: activity.category,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Ubicación',
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: YnotTheme.surface2.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: YnotTheme.border),
+                      ),
+                      child: Icon(
+                        Icons.place_rounded,
+                        color: canSeeExactLocation ? YnotTheme.mint : YnotTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activity.zone,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            canSeeExactLocation
+                                ? 'El punto exacto ya está disponible para ti.'
+                                : 'Ubicación aproximada',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    StatusPill(
+                      label: locationDisclosureLabel,
+                      color: canSeeExactLocation ? YnotTheme.mint : YnotTheme.primary,
                     ),
                   ],
                 ),

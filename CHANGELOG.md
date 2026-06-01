@@ -1,3 +1,8 @@
+## v1.0.24.0
+- Activities now keep an exact internal location plus a stable approximate public location for privacy
+- Public map and detail views only reveal exact location when allowed by role and timing rules
+- Approximate markers stay stable per activity and the UI now shows whether a location is approximate or exact
+
 ## v1.0.23.0
 - Added a chat participant selector so reports can target organizers, attendees, and chat participants instead of only the organizer
 - The report flow now opens the existing report screen for the selected user

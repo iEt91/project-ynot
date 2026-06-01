@@ -1592,6 +1592,73 @@ void main() {
       expect(secondController.state.feedbackEntries, hasLength(1));
     });
 
+    test('location privacy keeps approximate markers until exact unlock', () async {
+      final controller = await _buildLoggedInController();
+      final unlockAt = DateTime(2026, 6, 1, 18, 0);
+      final activity = Activity(
+        id: 'location_privacy_test',
+        creatorId: 'seed_creator_mina',
+        creatorLabel: 'Mina',
+        activityType: ActivityType.userActivity,
+        visibility: ActivityVisibility.publicActivity,
+        title: 'Location Privacy',
+        description: 'Test de privacidad de ubicaciÃ³n.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Hongdae',
+        status: ActivityStatus.open,
+        realLat: 37.5563,
+        realLng: 126.9228,
+        displayLat: 37.5621,
+        displayLng: 126.9298,
+        locationPrivacyRadiusM: 180,
+        exactLocationUnlockAt: unlockAt.subtract(const Duration(minutes: 10)),
+        startTime: unlockAt,
+        endTime: unlockAt.add(const Duration(hours: 2)),
+        maxPeople: 6,
+        confirmedCount: 2,
+        pendingCount: 0,
+        feedbackTargets: const [],
+        myStatus: null,
+        isMine: false,
+      );
+
+      final beforeUnlock = controller.activityVisibleForCurrentUser(
+        activity,
+        now: unlockAt.subtract(const Duration(minutes: 11)),
+      );
+      expect(beforeUnlock.displayLat, activity.displayLat);
+      expect(beforeUnlock.displayLng, activity.displayLng);
+      expect(
+        controller.locationDisclosureLabel(
+          activity,
+          now: unlockAt.subtract(const Duration(minutes: 11)),
+        ),
+        'Ubicación aproximada',
+      );
+
+      final participantView = controller.activityVisibleForCurrentUser(
+        activity.copyWith(myStatus: ParticipantStatus.confirmed),
+        now: unlockAt.subtract(const Duration(minutes: 1)),
+      );
+      expect(participantView.displayLat, activity.realLat);
+      expect(participantView.displayLng, activity.realLng);
+      expect(
+        controller.locationDisclosureLabel(
+          activity.copyWith(myStatus: ParticipantStatus.confirmed),
+          now: unlockAt.subtract(const Duration(minutes: 1)),
+        ),
+        'Ubicación exacta',
+      );
+
+      final creatorView = controller.activityVisibleForCurrentUser(
+        activity.copyWith(creatorId: controller.state.user!.id),
+        now: unlockAt.subtract(const Duration(minutes: 30)),
+      );
+      expect(creatorView.displayLat, activity.realLat);
+      expect(creatorView.displayLng, activity.realLng);
+    });
+
     test('editable profile persists locally and survives restart', () async {
       final sessionStore = _TestSessionStore(
         clientUid: 'client_001',

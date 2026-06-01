@@ -1,3 +1,5 @@
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import '../utils/formatters.dart';
 
 enum ActivityStatus {
@@ -133,6 +135,12 @@ class Activity {
   final DateTime? lastMessageAt;
   final int unreadMessageCount;
 
+  LatLng get exactLocation => LatLng(realLat, realLng);
+
+  LatLng get approximateLocation => LatLng(displayLat, displayLng);
+
+  int get approximateRadiusMeters => locationPrivacyRadiusM;
+
   bool get isJoinable =>
       (status == ActivityStatus.open || status == ActivityStatus.active) &&
       confirmedCount < maxPeople;
@@ -235,9 +243,12 @@ class Activity {
       'status': status.name,
       'realLat': realLat,
       'realLng': realLng,
+      'exactLocation': {'lat': realLat, 'lng': realLng},
       'displayLat': displayLat,
       'displayLng': displayLng,
+      'approximateLocation': {'lat': displayLat, 'lng': displayLng},
       'locationPrivacyRadiusM': locationPrivacyRadiusM,
+      'approximateRadiusMeters': locationPrivacyRadiusM,
       'exactLocationUnlockAt': exactLocationUnlockAt.toIso8601String(),
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
@@ -288,11 +299,30 @@ class Activity {
         fallback: 'Seoul',
       ),
       status: _parseStatus(json['status'] as String?),
-      realLat: (json['realLat'] as num?)?.toDouble() ?? 0,
-      realLng: (json['realLng'] as num?)?.toDouble() ?? 0,
-      displayLat: (json['displayLat'] as num?)?.toDouble() ?? 0,
-      displayLng: (json['displayLng'] as num?)?.toDouble() ?? 0,
-      locationPrivacyRadiusM: json['locationPrivacyRadiusM'] as int? ?? 0,
+      realLat:
+          _locationLatitude(json['exactLocation']) ??
+          (json['realLat'] as num?)?.toDouble() ??
+          0,
+      realLng:
+          _locationLongitude(json['exactLocation']) ??
+          (json['realLng'] as num?)?.toDouble() ??
+          0,
+      displayLat:
+          _locationLatitude(json['approximateLocation']) ??
+          (json['displayLat'] as num?)?.toDouble() ??
+          _locationLatitude(json['exactLocation']) ??
+          (json['realLat'] as num?)?.toDouble() ??
+          0,
+      displayLng:
+          _locationLongitude(json['approximateLocation']) ??
+          (json['displayLng'] as num?)?.toDouble() ??
+          _locationLongitude(json['exactLocation']) ??
+          (json['realLng'] as num?)?.toDouble() ??
+          0,
+      locationPrivacyRadiusM:
+          json['approximateRadiusMeters'] as int? ??
+          json['locationPrivacyRadiusM'] as int? ??
+          0,
       exactLocationUnlockAt:
           DateTime.tryParse(json['exactLocationUnlockAt'] as String? ?? '') ??
           DateTime.now(),
@@ -343,6 +373,26 @@ class Activity {
       'PENDING_MODERATION' => ActivityStatus.pendingModeration,
       _ => ActivityStatus.open,
     };
+  }
+
+  static double? _locationLatitude(dynamic raw) {
+    if (raw is Map) {
+      final value = raw['lat'];
+      if (value is num) {
+        return value.toDouble();
+      }
+    }
+    return null;
+  }
+
+  static double? _locationLongitude(dynamic raw) {
+    if (raw is Map) {
+      final value = raw['lng'];
+      if (value is num) {
+        return value.toDouble();
+      }
+    }
+    return null;
   }
 
   static String _safeCategory(String? rawCategory) {

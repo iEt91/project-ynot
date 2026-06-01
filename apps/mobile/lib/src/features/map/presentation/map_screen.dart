@@ -151,6 +151,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: _SelectedActivityCard(
                         activity: selectedActivity!,
                         isSaved: isSelectedSaved,
+                        locationLabel: controller.locationDisclosureLabel(
+                          selectedActivity,
+                        ),
                         onToggleSave: () async {
                           await controller.toggleSavedActivity(selectedActivity.id);
                         },
@@ -210,12 +213,14 @@ class _SelectedActivityCard extends StatelessWidget {
   const _SelectedActivityCard({
     required this.activity,
     required this.isSaved,
+    required this.locationLabel,
     required this.onToggleSave,
     required this.onTap,
   });
 
   final Activity activity;
   final bool isSaved;
+  final String locationLabel;
   final Future<void> Function() onToggleSave;
   final VoidCallback onTap;
 
@@ -258,13 +263,14 @@ class _SelectedActivityCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _MiniMeta(
-                      text: '${activity.confirmedCount}/${activity.maxPeople} asistentes',
-                    ),
-                    _MiniMeta(text: activity.vibe),
-                  ],
+                runSpacing: 8,
+                children: [
+                  _MiniMeta(text: locationLabel),
+                  _MiniMeta(
+                    text: '${activity.confirmedCount}/${activity.maxPeople} asistentes',
+                  ),
+                  _MiniMeta(text: activity.vibe),
+                ],
                 ),
               ],
             ),

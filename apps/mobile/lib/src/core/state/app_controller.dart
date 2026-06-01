@@ -836,15 +836,12 @@ class AppController extends ChangeNotifier {
       };
 
       final endTime = startTime.add(duration);
-      final privacyRadius = current.locationPrivacyRadiusM > 0
-          ? current.locationPrivacyRadiusM
-          : 100 + _random.nextInt(201);
-      final offset = _random.nextDouble() * privacyRadius;
-      final signLat = _random.nextBool() ? 1 : -1;
-      final signLng = _random.nextBool() ? 1 : -1;
-      final displayLat = realLat + signLat * (offset / 111320.0);
-      final displayLng =
-          realLng + signLng * (offset / (111320.0 * cos(realLat * pi / 180.0)));
+      final approximate = _approximateLocationFor(
+        activityId: activityId,
+        exactLat: realLat,
+        exactLng: realLng,
+        existingRadiusMeters: current.locationPrivacyRadiusM,
+      );
 
       return current.copyWith(
         title: title,
@@ -855,9 +852,9 @@ class AppController extends ChangeNotifier {
         status: nextStatus,
         realLat: realLat,
         realLng: realLng,
-        displayLat: displayLat,
-        displayLng: displayLng,
-        locationPrivacyRadiusM: privacyRadius,
+        displayLat: approximate.latitude,
+        displayLng: approximate.longitude,
+        locationPrivacyRadiusM: approximate.radiusMeters,
         exactLocationUnlockAt: startTime.subtract(const Duration(minutes: 10)),
         startTime: startTime,
         endTime: endTime,
@@ -1595,6 +1592,7 @@ class AppController extends ChangeNotifier {
   List<Activity> filteredActivities() {
     final visibleActivities = state.activities
         .where((activity) => activity.isActiveLifecycle)
+        .map(_activityVisibleForCurrentUser)
         .toList(growable: false);
 
     final filters = state.activityFilters;
@@ -1680,6 +1678,36 @@ class AppController extends ChangeNotifier {
   void clearActivityFilters() {
     state = state.copyWith(activityFilters: ActivityDiscoveryFilters.initial());
     unawaited(_persistSnapshot());
+  }
+
+  Activity activityVisibleForCurrentUser(
+    Activity activity, {
+    DateTime? now,
+  }) {
+    if (_canCurrentUserSeeExactLocation(activity, now: now)) {
+      return activity.copyWith(
+        displayLat: activity.realLat,
+        displayLng: activity.realLng,
+      );
+    }
+
+    return activity;
+  }
+
+  bool canCurrentUserSeeExactLocation(
+    Activity activity, {
+    DateTime? now,
+  }) {
+    return _canCurrentUserSeeExactLocation(activity, now: now);
+  }
+
+  String locationDisclosureLabel(
+    Activity activity, {
+    DateTime? now,
+  }) {
+    return _canCurrentUserSeeExactLocation(activity, now: now)
+        ? 'Ubicación exacta'
+        : 'Ubicación aproximada';
   }
 
   Future<String?> ensureChatId(String activityId) async {
@@ -1820,13 +1848,11 @@ class AppController extends ChangeNotifier {
     required double realLng,
     required ActivityVisibility visibility,
   }) {
-    final privacyRadius = 100 + _random.nextInt(201);
-    final offset = _random.nextDouble() * privacyRadius;
-    final signLat = _random.nextBool() ? 1 : -1;
-    final signLng = _random.nextBool() ? 1 : -1;
-    final displayLat = realLat + signLat * (offset / 111320.0);
-    final displayLng =
-        realLng + signLng * (offset / (111320.0 * cos(realLat * pi / 180.0)));
+    final approximate = _approximateLocationFor(
+      activityId: id,
+      exactLat: realLat,
+      exactLng: realLng,
+    );
     final endTime = startTime.add(duration);
 
     return Activity(
@@ -1843,9 +1869,9 @@ class AppController extends ChangeNotifier {
       status: ActivityStatus.open,
       realLat: realLat,
       realLng: realLng,
-      displayLat: displayLat,
-      displayLng: displayLng,
-      locationPrivacyRadiusM: privacyRadius,
+      displayLat: approximate.latitude,
+      displayLng: approximate.longitude,
+      locationPrivacyRadiusM: approximate.radiusMeters,
       exactLocationUnlockAt: startTime.subtract(const Duration(minutes: 10)),
       startTime: startTime,
       endTime: endTime,
@@ -1861,7 +1887,70 @@ class AppController extends ChangeNotifier {
       ],
       myStatus: null,
       isMine: isMine,
+      );
+  }
+
+  Activity _activityVisibleForCurrentUser(Activity activity) {
+    return activityVisibleForCurrentUser(activity);
+  }
+
+  bool _canCurrentUserSeeExactLocation(
+    Activity activity, {
+    DateTime? now,
+  }) {
+    final currentUser = state.user;
+    if (currentUser == null) {
+      return false;
+    }
+
+    if (activity.creatorId == currentUser.id) {
+      return true;
+    }
+
+    final isCurrentUserParticipant =
+        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+        activity.myStatus == ParticipantStatus.confirmed;
+    if (!isCurrentUserParticipant) {
+      return false;
+    }
+
+    final currentTime = now ?? DateTime.now();
+    return !currentTime.isBefore(activity.exactLocationUnlockAt);
+  }
+
+  ({double latitude, double longitude, int radiusMeters})
+  _approximateLocationFor({
+    required String activityId,
+    required double exactLat,
+    required double exactLng,
+    int? existingRadiusMeters,
+  }) {
+    final seed = _stableSeed(activityId);
+    final rng = Random(seed);
+    final radiusMeters =
+        existingRadiusMeters != null && existingRadiusMeters > 0
+            ? existingRadiusMeters
+            : 100 + rng.nextInt(201);
+    final offsetMeters = 100 + rng.nextDouble() * max(0, radiusMeters - 100);
+    final angle = rng.nextDouble() * pi * 2;
+    final deltaLat = (offsetMeters * cos(angle)) / 111320.0;
+    final metersPerLngDegree = (
+      111320.0 * cos(exactLat * pi / 180.0).abs().clamp(0.2, 1.0e9)
+    ).toDouble();
+    final deltaLng = (offsetMeters * sin(angle)) / metersPerLngDegree;
+    return (
+      latitude: exactLat + deltaLat,
+      longitude: exactLng + deltaLng,
+      radiusMeters: radiusMeters,
     );
+  }
+
+  int _stableSeed(String value) {
+    var hash = 0;
+    for (final unit in value.codeUnits) {
+      hash = 0x1fffffff & (hash * 31 + unit);
+    }
+    return hash;
   }
 
   List<Activity> _seedActivities() {
@@ -2120,7 +2209,19 @@ class AppController extends ChangeNotifier {
         isMine: false,
         lastMessagePreview: 'Yura: Gracias por venir 💫',
       ),
-    ];
+    ].map((activity) {
+      final approximate = _approximateLocationFor(
+        activityId: activity.id,
+        exactLat: activity.realLat,
+        exactLng: activity.realLng,
+        existingRadiusMeters: activity.locationPrivacyRadiusM,
+      );
+      return activity.copyWith(
+        displayLat: approximate.latitude,
+        displayLng: approximate.longitude,
+        locationPrivacyRadiusM: approximate.radiusMeters,
+      );
+    }).toList(growable: false);
   }
 
   Future<int> loadDemoActivities() async {
