@@ -43,6 +43,83 @@ void main() {
     });
 
     test(
+      'blocking a creator hides their activities and public profile, and persists after restart',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
+        final controller = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        final creatorProfile =
+            controller.publicProfileForUserId('seed_creator_mina');
+        expect(creatorProfile, isNotNull);
+
+        final blocked = await controller.blockUser(creatorProfile!);
+        expect(blocked, isTrue);
+        expect(controller.publicProfileForUserId('seed_creator_mina'), isNull);
+        expect(
+          controller.filteredActivities().any(
+            (activity) => activity.creatorId == 'seed_creator_mina',
+          ),
+          isFalse,
+        );
+
+        final restored = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+        expect(restored.publicProfileForUserId('seed_creator_mina'), isNull);
+        expect(
+          restored.filteredActivities().any(
+            (activity) => activity.creatorId == 'seed_creator_mina',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('blocking an attendee hides them from attendee lists and allows unblocking', () async {
+      final controller = await _buildLoggedInController();
+      final attendeeProfile =
+          controller.publicProfileForUserId('seed_participant_soojin');
+      expect(attendeeProfile, isNotNull);
+
+      final activity = controller.state.activities.firstWhere(
+        (item) => item.id == 'seed_1',
+      );
+      expect(
+        controller.confirmedAttendeesForActivity(activity).any(
+              (target) => target.userId == 'seed_participant_soojin',
+            ),
+        isTrue,
+      );
+
+      final blocked = await controller.blockUser(attendeeProfile!);
+      expect(blocked, isTrue);
+      expect(controller.publicProfileForUserId('seed_participant_soojin'), isNull);
+      expect(
+        controller.confirmedAttendeesForActivity(activity).any(
+              (target) => target.userId == 'seed_participant_soojin',
+            ),
+        isFalse,
+      );
+
+      await controller.unblockUser('seed_participant_soojin');
+      expect(controller.publicProfileForUserId('seed_participant_soojin'), isNotNull);
+      expect(
+        controller.confirmedAttendeesForActivity(activity).any(
+              (target) => target.userId == 'seed_participant_soojin',
+            ),
+        isTrue,
+      );
+    });
+
+    test(
       'login with demo code opens onboarding when profile is incomplete',
       () async {
         final store = _TestSessionStore();
@@ -100,6 +177,7 @@ void main() {
           activities: const [],
           messagesByActivityId: const {},
           savedActivityIds: const [],
+          blockedUsers: const [],
           activityFilters: const {},
           settings: const {},
           reports: const [],
@@ -180,6 +258,7 @@ void main() {
           activities: const [],
           messagesByActivityId: const {},
           savedActivityIds: const [],
+          blockedUsers: const [],
           activityFilters: const {},
           searchQuery: '',
           settings: const {},
@@ -311,6 +390,7 @@ void main() {
         ],
         messagesByActivityId: const {},
         savedActivityIds: const [],
+        blockedUsers: const [],
         activityFilters: const {},
         settings: const {},
         reports: const [],
@@ -1116,6 +1196,7 @@ void main() {
             ],
             messagesByActivityId: const {},
             savedActivityIds: const [],
+            blockedUsers: const [],
             activityFilters: const {},
             settings: const {},
             reports: const [],
@@ -1354,6 +1435,7 @@ Future<AppController> _buildLoggedInController() async {
     activities: const [],
     messagesByActivityId: const {},
     savedActivityIds: const [],
+    blockedUsers: const [],
     activityFilters: const {},
     settings: const {},
     reports: const [],

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/activity.dart';
+import '../models/blocked_user.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
 import '../models/moderation_report.dart';
@@ -14,6 +15,7 @@ class LocalMockSnapshot {
     required this.activities,
     required this.messagesByActivityId,
     required this.savedActivityIds,
+    required this.blockedUsers,
     required this.activityFilters,
     this.searchQuery = '',
     required this.settings,
@@ -25,6 +27,7 @@ class LocalMockSnapshot {
   final List<Activity> activities;
   final Map<String, List<ChatMessage>> messagesByActivityId;
   final List<String> savedActivityIds;
+  final List<BlockedUserEntry> blockedUsers;
   final Map<String, dynamic> activityFilters;
   final String searchQuery;
   final Map<String, dynamic> settings;
@@ -44,6 +47,8 @@ class LocalMockSnapshot {
         ),
       ),
       'savedActivityIds': List<String>.from(savedActivityIds),
+      'blockedUsers':
+          blockedUsers.map((entry) => entry.toJson()).toList(growable: false),
       'activityFilters': activityFilters,
       'searchQuery': searchQuery,
       'settings': settings,
@@ -83,6 +88,14 @@ class LocalMockSnapshot {
           (json['savedActivityIds'] as List<dynamic>? ?? const [])
               .whereType<String>()
               .toList(growable: false),
+      blockedUsers: (json['blockedUsers'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => BlockedUserEntry.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
+          .toList(growable: false),
       activityFilters: Map<String, dynamic>.from(
         json['activityFilters'] as Map<String, dynamic>? ?? const {},
       ),

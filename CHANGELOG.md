@@ -1,3 +1,8 @@
+## v1.0.20.0
+- Users can now block other users from public profiles
+- Blocked users are hidden from search, attendees and public profile navigation
+- A new settings screen lists blocked users and allows unblocking them
+
 ## v1.0.19.0
 - Public user profiles are now available from activity detail and chat avatars/names
 - Profiles show avatar, bio, languages, vibes and interests without exposing private data

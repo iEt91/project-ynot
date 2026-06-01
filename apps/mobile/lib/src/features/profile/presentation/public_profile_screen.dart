@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/models/app_user.dart';
@@ -22,6 +23,8 @@ class PublicProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(appControllerProvider);
     final profile = controller.publicProfileForUserId(userId);
+    final currentUserId = ref.watch(appStateProvider).user?.id;
+    final canBlock = profile != null && profile.id != currentUserId;
 
     return Scaffold(
       body: KawaiiScene(
@@ -32,7 +35,50 @@ class PublicProfileScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  ProfileBackButton(onTap: () => Navigator.of(context).pop()),
+                  ProfileBackButton(onTap: () => context.pop()),
+                  const Spacer(),
+                  if (canBlock)
+                    PopupMenuButton<_PublicProfileAction>(
+                      icon: const Icon(
+                        Icons.more_horiz_rounded,
+                        color: Colors.white,
+                      ),
+                      color: YnotTheme.surface2,
+                      onSelected: (value) async {
+                        switch (value) {
+                          case _PublicProfileAction.blockUser:
+                            final confirmed = await _confirmBlockUser(context);
+                            if (!confirmed) {
+                              return;
+                            }
+
+                            final success = await controller.blockUser(profile);
+                            if (!context.mounted) {
+                              return;
+                            }
+
+                            if (success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Usuario bloqueado.'),
+                                ),
+                              );
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go('/');
+                              }
+                            }
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: _PublicProfileAction.blockUser,
+                          child: Text('Bloquear usuario'),
+                        ),
+                      ],
+                    ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -87,7 +133,36 @@ class PublicProfileScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Future<bool> _confirmBlockUser(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: YnotTheme.surface2,
+          title: const Text('¿Bloquear usuario?'),
+          content: const Text(
+            'Dejarás de ver a esta persona en búsquedas, asistentes y recomendaciones. Los chats existentes seguirán visibles por ahora.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Bloquear'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
 }
+
+enum _PublicProfileAction { blockUser }
 
 class _ProfileHero extends StatelessWidget {
   const _ProfileHero({required this.profile});

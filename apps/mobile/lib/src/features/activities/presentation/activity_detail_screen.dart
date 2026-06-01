@@ -250,7 +250,9 @@ class ActivityDetailScreen extends ConsumerWidget {
                 title: 'Organizador',
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
-                  onTap: () => context.push('/profile/${activity.creatorId}'),
+                  onTap: organizerProfile == null
+                      ? null
+                      : () => context.push('/profile/${activity.creatorId}'),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
@@ -258,7 +260,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                         KawaiiAvatar(
                           emoji: safeDisplayText(
                             organizerProfile?.avatarEmoji ?? activity.emoji,
-                            fallback: '??',
+                            fallback: '🌙',
                           ),
                           size: 54,
                           accentColor: _categoryColor(activity.category),
@@ -309,7 +311,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                children: [
                     if (confirmedAttendees.isEmpty)
                       Text(
                         'Todav?a no hay asistentes confirmados aparte del organizador.',
@@ -333,13 +335,15 @@ class ActivityDetailScreen extends ConsumerWidget {
                             return _AttendeeChip(
                               emoji: safeDisplayText(
                                 attendeeProfile?.avatarEmoji ?? attendee.emoji,
-                                fallback: '??',
+                                fallback: '🌙',
                               ),
                               label: safeDisplayText(
                                 attendeeProfile?.nickname ?? attendee.label,
                                 fallback: attendee.label,
                               ),
-                              onTap: () => context.push('/profile/${attendee.userId}'),
+                              onTap: attendeeProfile == null
+                                  ? null
+                                  : () => context.push('/profile/${attendee.userId}'),
                             );
                           },
                         ),

@@ -71,6 +71,17 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
               _SectionCard(
+                title: 'Seguridad',
+                children: [
+                  _ActionRow(
+                    label: 'Usuarios bloqueados',
+                    value: '${state.blockedUsers.length}',
+                    onTap: () => context.push('/settings/blocked-users'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
                 title: 'Datos',
                 children: [
                   _InfoRow(label: 'Versión', value: kAppVisibleVersion),
@@ -217,6 +228,59 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: YnotTheme.surface2.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: YnotTheme.border),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded, size: 18),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

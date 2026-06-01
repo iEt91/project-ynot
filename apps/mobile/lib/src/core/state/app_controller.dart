@@ -10,6 +10,7 @@ import '../data/local_mock_store.dart';
 import '../data/local_session_store.dart';
 import '../models/activity.dart';
 import '../models/activity_filters.dart';
+import '../models/blocked_user.dart';
 import '../models/app_settings.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
@@ -27,6 +28,7 @@ class AppState {
     required this.activities,
     required this.chatMessages,
     required this.savedActivityIds,
+    required this.blockedUsers,
     required this.settings,
     required this.activityFilters,
     required this.activitySearchQuery,
@@ -46,6 +48,7 @@ class AppState {
       activities: const [],
       chatMessages: const {},
       savedActivityIds: const {},
+      blockedUsers: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
       activitySearchQuery: '',
@@ -60,6 +63,7 @@ class AppState {
   final List<Activity> activities;
   final Map<String, List<ChatMessage>> chatMessages;
   final Set<String> savedActivityIds;
+  final List<BlockedUserEntry> blockedUsers;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
   final String activitySearchQuery;
@@ -77,6 +81,7 @@ class AppState {
     List<Activity>? activities,
     Map<String, List<ChatMessage>>? chatMessages,
     Set<String>? savedActivityIds,
+    List<BlockedUserEntry>? blockedUsers,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
     String? activitySearchQuery,
@@ -94,6 +99,7 @@ class AppState {
       activities: activities ?? this.activities,
       chatMessages: chatMessages ?? this.chatMessages,
       savedActivityIds: savedActivityIds ?? this.savedActivityIds,
+      blockedUsers: blockedUsers ?? this.blockedUsers,
       settings: settings ?? this.settings,
       activityFilters: activityFilters ?? this.activityFilters,
       activitySearchQuery: activitySearchQuery ?? this.activitySearchQuery,
@@ -374,6 +380,7 @@ class AppController extends ChangeNotifier {
   final Set<String> _joinedActivityIds = {};
   final Set<String> _confirmedAttendanceActivityIds = {};
   final Set<String> _savedActivityIds = {};
+  final List<BlockedUserEntry> _blockedUsers = [];
 
   AppState get state => _state;
 
@@ -381,6 +388,13 @@ class AppController extends ChangeNotifier {
     _state = value;
     notifyListeners();
   }
+
+  bool isUserBlocked(String userId) {
+    return _blockedUsers.any((entry) => entry.userId == userId);
+  }
+
+  List<BlockedUserEntry> get blockedUsers =>
+      List<BlockedUserEntry>.unmodifiable(_blockedUsers);
 
   Future<void> initialize() async {
     AppLogger.log('BOOT', 'mode=mock');
@@ -569,6 +583,7 @@ class AppController extends ChangeNotifier {
     _joinedActivityIds.clear();
     _confirmedAttendanceActivityIds.clear();
     _savedActivityIds.clear();
+    _blockedUsers.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
@@ -1231,6 +1246,7 @@ class AppController extends ChangeNotifier {
     Activity activity,
     String currentUserId,
   ) {
+    final blockedIds = _blockedUsers.map((entry) => entry.userId).toSet();
     final baseTargets = activity.feedbackTargets.isEmpty
         ? [
             ActivityFeedbackTarget(
@@ -1242,14 +1258,21 @@ class AppController extends ChangeNotifier {
         : activity.feedbackTargets;
 
     final targets = baseTargets
-        .where((target) => target.userId != currentUserId)
+        .where(
+          (target) =>
+              target.userId != currentUserId &&
+              !blockedIds.contains(target.userId),
+        )
         .toList(growable: true);
     final currentUserIncluded = baseTargets.any(
       (target) => target.userId == currentUserId,
     );
+    final blockedCount = baseTargets
+        .where((target) => blockedIds.contains(target.userId))
+        .length;
     final desiredCount = currentUserIncluded
-        ? max(0, activity.confirmedCount - 1)
-        : max(0, activity.confirmedCount);
+        ? max(0, activity.confirmedCount - 1 - blockedCount)
+        : max(0, activity.confirmedCount - blockedCount);
     final totalCount = max(targets.length, desiredCount);
 
     for (var index = targets.length; index < totalCount; index++) {
@@ -1269,8 +1292,13 @@ class AppController extends ChangeNotifier {
   List<ActivityFeedbackTarget> confirmedAttendeesForActivity(
     Activity activity,
   ) {
+    final blockedIds = _blockedUsers.map((entry) => entry.userId).toSet();
     return activity.feedbackTargets
-        .where((target) => target.userId != activity.creatorId)
+        .where(
+          (target) =>
+              target.userId != activity.creatorId &&
+              !blockedIds.contains(target.userId),
+        )
         .toList(growable: false);
   }
 
@@ -1385,6 +1413,38 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> blockUser(AppUser target) async {
+    final currentUser = state.user;
+    if (currentUser == null ||
+        target.id.isEmpty ||
+        target.id == currentUser.id ||
+        isUserBlocked(target.id)) {
+      return false;
+    }
+
+    _blockedUsers.add(
+      BlockedUserEntry(
+        userId: target.id,
+        nickname: safeDisplayText(target.nickname, fallback: 'Luna'),
+        avatarEmoji: safeDisplayText(target.avatarEmoji, fallback: '🌙'),
+        blockedAt: DateTime.now(),
+      ),
+    );
+    state = state.copyWith(
+      blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
+    );
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
+  Future<void> unblockUser(String userId) async {
+    _blockedUsers.removeWhere((entry) => entry.userId == userId);
+    state = state.copyWith(
+      blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
+    );
+    unawaited(_persistSnapshot());
+  }
+
   bool isActivitySaved(String activityId) {
     return _savedActivityIds.contains(activityId);
   }
@@ -1420,8 +1480,13 @@ class AppController extends ChangeNotifier {
   }
 
   List<Activity> filteredActivities() {
+    final blockedIds = _blockedUsers.map((entry) => entry.userId).toSet();
     final visibleActivities = state.activities
-        .where((activity) => activity.isActiveLifecycle)
+        .where(
+          (activity) =>
+              activity.isActiveLifecycle &&
+              !blockedIds.contains(activity.creatorId),
+        )
         .toList(growable: false);
 
     final filters = state.activityFilters;
@@ -1617,6 +1682,10 @@ class AppController extends ChangeNotifier {
   }
 
   AppUser? publicProfileForUserId(String userId) {
+    if (isUserBlocked(userId)) {
+      return null;
+    }
+
     final currentUser = state.user;
     if (currentUser != null && currentUser.id == userId) {
       return currentUser.sanitizedForDisplay();
@@ -2241,6 +2310,7 @@ class AppController extends ChangeNotifier {
           _messagesByActivityId,
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
+        blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
         activityFilters: state.activityFilters.toJson(),
         searchQuery: state.activitySearchQuery,
         settings: state.settings.toJson(),
@@ -2308,6 +2378,14 @@ class AppController extends ChangeNotifier {
       ..clear()
       ..addAll(hydratedSavedActivityIds);
 
+    _blockedUsers
+      ..clear()
+      ..addAll(
+        snapshot.blockedUsers
+            .where((entry) => entry.userId.isNotEmpty)
+            .toList(growable: false),
+      );
+
     state = state.copyWith(
       stage: _stageForUser(user),
       user: user,
@@ -2321,6 +2399,7 @@ class AppController extends ChangeNotifier {
       activitySearchQuery: hydratedSearchQuery,
       reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
+      blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
       errorMessage: null,
     );
   }

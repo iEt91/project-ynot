@@ -61,6 +61,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appStateProvider);
+    final controller = ref.read(appControllerProvider);
     final activity = state.activities
         .where((item) => item.id == widget.activityId)
         .firstOrNull;
@@ -472,6 +473,11 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                 activityId: activity.id,
                                 message: message,
                                 accentColor: _categoryColor(activity.category),
+                                canOpenProfile: message.senderId.isNotEmpty &&
+                                    controller.publicProfileForUserId(
+                                          message.senderId,
+                                        ) !=
+                                        null,
                               ),
                             ),
                           ),
@@ -576,16 +582,18 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.activityId,
     required this.message,
     required this.accentColor,
+    required this.canOpenProfile,
   });
 
   final String activityId;
   final ChatMessage message;
   final Color accentColor;
+  final bool canOpenProfile;
 
   @override
   Widget build(BuildContext context) {
     final isMe = message.isMe;
-    final openProfile = message.senderId.isEmpty
+    final openProfile = !canOpenProfile
         ? null
         : () => context.push('/profile/${message.senderId}');
 

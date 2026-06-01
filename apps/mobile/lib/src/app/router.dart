@@ -12,6 +12,7 @@ import 'app.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/activity_history_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/my_activities_screen.dart';
+import '../features/profile/presentation/blocked_users_screen.dart';
 import 'package:ynot_mobile/src/features/profile/presentation/saved_activities_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -116,6 +117,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/blocked-users',
+        builder: (context, state) => const BlockedUsersScreen(),
       ),
     ],
   );
