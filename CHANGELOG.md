@@ -1,3 +1,8 @@
+## v1.0.30.0
+- Added mock activity sharing from Activity Detail, selected Map preview, and Saved activity cards
+- Share text now uses the activity title, date/time, and approximate location only, with a local deep link fallback
+- Native share falls back to copying the share text to the clipboard when unavailable
+
 ## v1.0.29.0
 - Added a local Preferences screen so users can control notification delivery, recommendation badges, saved-activity highlighting, and archived chats visibility
 - Notification creation now respects the master local notification toggle, chat notification toggle, and activity reminder toggle

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
+import '../../../core/utils/activity_share.dart';
 import '../../../shared/widgets/activity_card.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
@@ -75,6 +76,7 @@ class _SavedActivityRow extends StatelessWidget {
       onJoin: () => context.push('/activity/${activity.id}'),
       onConfirm: () => context.push('/activity/${activity.id}'),
       showActions: false,
+      onShare: () => shareActivityOrCopyFallback(context, activity),
     );
   }
 }

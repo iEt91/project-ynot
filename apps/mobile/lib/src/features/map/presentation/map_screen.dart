@@ -10,6 +10,7 @@ import '../../../core/constants/app_version.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/google_maps_support.dart';
+import '../../../core/utils/activity_share.dart';
 import '../../../shared/widgets/app_screen_header.dart';
 import '../../../shared/widgets/activity_filters_sheet.dart';
 import '../../../shared/widgets/activity_search_sheet.dart';
@@ -153,6 +154,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             controller.isActivityStartingSoonForCurrentUser(
                               selectedActivity,
                             ),
+                        onShare: () =>
+                            shareActivityOrCopyFallback(context, selectedActivity),
                         onToggleSave: () async {
                           await controller.toggleSavedActivity(
                             selectedActivity.id,
@@ -221,6 +224,7 @@ class _SelectedActivityCard extends StatelessWidget {
     required this.highlightSaved,
     required this.locationLabel,
     required this.showStartingSoonBadge,
+    required this.onShare,
     required this.onToggleSave,
     required this.onTap,
   });
@@ -230,6 +234,7 @@ class _SelectedActivityCard extends StatelessWidget {
   final bool highlightSaved;
   final String locationLabel;
   final bool showStartingSoonBadge;
+  final Future<void> Function() onShare;
   final Future<void> Function() onToggleSave;
   final VoidCallback onTap;
 
@@ -299,6 +304,15 @@ class _SelectedActivityCard extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 10),
+              _SaveBubbleButton(
+                saved: false,
+                highlighted: false,
+                icon: Icons.ios_share_rounded,
+                onTap: () {
+                  unawaited(onShare());
+                },
+              ),
+              const SizedBox(height: 10),
               FilledButton(onPressed: onTap, child: const Text('Ver detalle')),
             ],
           ),
@@ -356,11 +370,13 @@ class _SaveBubbleButton extends StatelessWidget {
     required this.saved,
     required this.highlighted,
     required this.onTap,
+    this.icon,
   });
 
   final bool saved;
   final bool highlighted;
   final VoidCallback? onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -384,9 +400,9 @@ class _SaveBubbleButton extends StatelessWidget {
           border: Border.all(color: border),
         ),
         child: Icon(
-          saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          icon ?? (saved ? Icons.favorite_rounded : Icons.favorite_border_rounded),
           size: 18,
-          color: iconColor,
+          color: icon != null ? Colors.white : iconColor,
         ),
       ),
     );

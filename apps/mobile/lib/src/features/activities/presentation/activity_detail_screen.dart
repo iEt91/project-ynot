@@ -9,6 +9,7 @@ import '../../../core/models/activity.dart';
 import '../../../core/models/app_user.dart';
 import '../../../core/models/moderation_report.dart';
 import '../../../core/state/app_controller.dart';
+import '../../../core/utils/activity_share.dart';
 import '../../../core/utils/formatters.dart';
 import 'create_activity_screen.dart';
 import '../../../shared/widgets/attendance_prompt_card.dart';
@@ -154,6 +155,9 @@ class ActivityDetailScreen extends ConsumerWidget {
                           targetId: activity.creatorId,
                         ),
                       );
+                      break;
+                    case _DetailAction.shareActivity:
+                      await shareActivityOrCopyFallback(context, activity);
                       break;
                     case _DetailAction.deleteActivity:
                       await _confirmAndDelete(context, ref, activity);
@@ -677,6 +681,7 @@ enum _DetailAction {
   feedback,
   reportActivity,
   reportUser,
+  shareActivity,
   deleteActivity,
 }
 
@@ -786,6 +791,10 @@ class _TopBar extends StatelessWidget {
                 const PopupMenuItem(
                   value: _DetailAction.reportActivity,
                   child: Text('Reportar actividad'),
+                ),
+                const PopupMenuItem(
+                  value: _DetailAction.shareActivity,
+                  child: Text('Compartir actividad'),
                 ),
                 if (!isCreator)
                   const PopupMenuItem(

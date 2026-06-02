@@ -15,6 +15,7 @@ class ActivityCard extends StatelessWidget {
     required this.onJoin,
     required this.onConfirm,
     required this.showActions,
+    this.onShare,
   });
 
   final Activity activity;
@@ -22,6 +23,7 @@ class ActivityCard extends StatelessWidget {
   final VoidCallback onJoin;
   final VoidCallback onConfirm;
   final bool showActions;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +94,15 @@ class ActivityCard extends StatelessWidget {
                             label: statusLabel,
                             color: _categoryColor(colors, activity.category),
                           ),
+                          if (onShare != null) ...[
+                            const SizedBox(width: 8),
+                            _IconChipButton(
+                              icon: Icons.ios_share_rounded,
+                              onTap: () {
+                                onShare!.call();
+                              },
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -176,5 +187,33 @@ class ActivityCard extends StatelessWidget {
       'Music' => const Color(0xFF63D2FF),
       _ => colors.primary,
     };
+  }
+}
+
+class _IconChipButton extends StatelessWidget {
+  const _IconChipButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Icon(icon, size: 16, color: Colors.white),
+        ),
+      ),
+    );
   }
 }
