@@ -1,3 +1,8 @@
+## v1.0.31.0
+- Added duplicate activity from the Activity Detail menu for creators
+- Duplicate activity opens the create form prefilled with the original title, description, category, capacity, duration, and location, but starts as a new open activity
+- The duplicate flow does not copy attendees, chat, feedback, reports, or lifecycle state
+
 ## v1.0.30.0
 - Added mock activity sharing from Activity Detail, selected Map preview, and Saved activity cards
 - Share text now uses the activity title, date/time, and approximate location only, with a local deep link fallback

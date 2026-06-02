@@ -16,10 +16,15 @@ import '../../profile/presentation/profile_back_button.dart';
 import '../../../shared/widgets/status_pill.dart';
 
 class ActivityFormSeed {
-  const ActivityFormSeed({this.initialLocation, this.activity});
+  const ActivityFormSeed({
+    this.initialLocation,
+    this.activity,
+    this.duplicate = false,
+  });
 
   final LatLng? initialLocation;
   final Activity? activity;
+  final bool duplicate;
 }
 
 class CreateActivityScreen extends ConsumerStatefulWidget {
@@ -27,10 +32,12 @@ class CreateActivityScreen extends ConsumerStatefulWidget {
     super.key,
     this.initialLocation,
     this.editingActivity,
+    this.prefillActivity,
   });
 
   final LatLng? initialLocation;
   final Activity? editingActivity;
+  final Activity? prefillActivity;
 
   @override
   ConsumerState<CreateActivityScreen> createState() =>
@@ -57,7 +64,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
   @override
   void initState() {
     super.initState();
-    final activity = widget.editingActivity;
+    final activity = widget.editingActivity ?? widget.prefillActivity;
     if (activity != null) {
       _titleController.text = activity.title;
       _descriptionController.text = activity.description;
@@ -70,7 +77,6 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
       _duration = activity.endTime.difference(activity.startTime);
       _lat = activity.realLat;
       _lng = activity.realLng;
-      return;
     }
 
     final location = widget.initialLocation;

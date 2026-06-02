@@ -159,6 +159,17 @@ class ActivityDetailScreen extends ConsumerWidget {
                     case _DetailAction.shareActivity:
                       await shareActivityOrCopyFallback(context, activity);
                       break;
+                    case _DetailAction.duplicateActivity:
+                      if (isCreator) {
+                        context.push(
+                          '/create-activity',
+                          extra: ActivityFormSeed(
+                            activity: activity,
+                            duplicate: true,
+                          ),
+                        );
+                      }
+                      break;
                     case _DetailAction.deleteActivity:
                       await _confirmAndDelete(context, ref, activity);
                       break;
@@ -682,6 +693,7 @@ enum _DetailAction {
   reportActivity,
   reportUser,
   shareActivity,
+  duplicateActivity,
   deleteActivity,
 }
 
@@ -796,6 +808,11 @@ class _TopBar extends StatelessWidget {
                   value: _DetailAction.shareActivity,
                   child: Text('Compartir actividad'),
                 ),
+                if (isCreator)
+                  const PopupMenuItem(
+                    value: _DetailAction.duplicateActivity,
+                    child: Text('Duplicar actividad'),
+                  ),
                 if (!isCreator)
                   const PopupMenuItem(
                     value: _DetailAction.reportUser,
