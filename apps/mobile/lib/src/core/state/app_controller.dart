@@ -431,6 +431,19 @@ class AppController extends ChangeNotifier {
   List<ModerationFlag> get moderationFlags =>
       List<ModerationFlag>.unmodifiable(_moderationFlags);
 
+  ModerationFlag? moderationFlagById(String flagId) {
+    if (flagId.isEmpty) {
+      return null;
+    }
+
+    for (final flag in _moderationFlags) {
+      if (flag.flagId == flagId) {
+        return flag;
+      }
+    }
+    return null;
+  }
+
   bool hasDismissedBlockedChatWarning(String activityId) {
     return _dismissedBlockedChatWarningActivityIds.contains(activityId);
   }

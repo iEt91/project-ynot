@@ -3,6 +3,11 @@
 - Users can choose to edit or continue, and continuing still creates the internal moderation flag
 - The warning flow stays local, private, and non-blocking
 
+## v1.0.26.3
+- Added a moderation flag detail screen with activity and chat context for internal review
+- Flags can now be opened from the internal moderation list to inspect surrounding message history or activity text
+- Review actions remain local and private, with no backend changes
+
 ## v1.0.26.2
 - Added a one-time soft conduct reminder before opening an activity chat for the first time
 - The reminder is stored locally per activity and only appears once after the user accepts it

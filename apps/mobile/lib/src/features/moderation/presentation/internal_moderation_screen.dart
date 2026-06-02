@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
@@ -35,10 +36,9 @@ class InternalModerationScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Moderación interna',
-                style: TextStyle(
-                  fontSize: 28,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                 ),
@@ -53,7 +53,7 @@ class InternalModerationScreen extends ConsumerWidget {
               const SizedBox(height: 18),
               if (pendingFlags.isEmpty)
                 const KawaiiEmptyState(
-                  emoji: '🪄',
+                  emoji: '🪶',
                   title: 'Sin flags pendientes',
                   message: 'Todo está tranquilo por ahora.',
                 )
@@ -66,6 +66,9 @@ class InternalModerationScreen extends ConsumerWidget {
                       activityTitle: _activityTitleForFlag(
                         flag,
                         state.activities,
+                      ),
+                      onTap: () => context.push(
+                        '/settings/moderation/flag/${flag.flagId}',
                       ),
                       onReviewed: () async {
                         await controller.markModerationFlagReviewed(
@@ -104,10 +107,12 @@ class _ModerationFlagCard extends StatelessWidget {
     required this.onReviewed,
     required this.onDismissed,
     required this.activityTitle,
+    required this.onTap,
   });
 
   final ModerationFlag flag;
   final String? activityTitle;
+  final VoidCallback onTap;
   final Future<void> Function() onReviewed;
   final Future<void> Function() onDismissed;
 
@@ -127,104 +132,108 @@ class _ModerationFlagCard extends StatelessWidget {
       ModerationFlagSourceType.message => 'Mensaje',
     };
 
-    return KawaiiCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: YnotTheme.surface2.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: YnotTheme.border),
+    return InkWell(
+      borderRadius: BorderRadius.circular(32),
+      onTap: onTap,
+      child: KawaiiCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: YnotTheme.surface2.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: YnotTheme.border),
+                  ),
+                  child: const Icon(Icons.flag_rounded, color: Colors.white70),
                 ),
-                child: const Icon(Icons.flag_rounded, color: Colors.white70),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      categoryLabel,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        categoryLabel,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _MiniChip(label: sourceLabel),
-                        _MiniChip(label: flag.keyword),
-                        _MiniChip(label: flag.statusLabel),
-                      ],
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _MiniChip(label: sourceLabel),
+                          _MiniChip(label: flag.keyword),
+                          _MiniChip(label: flag.statusLabel),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (activityTitle != null) ...[
+              Text(
+                'Actividad: $activityTitle',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
+              const SizedBox(height: 8),
             ],
-          ),
-          const SizedBox(height: 12),
-          if (activityTitle != null) ...[
             Text(
-              'Actividad: $activityTitle',
+              safeDisplayText(flag.textSnippet, fallback: 'Texto no disponible'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '${formatDateLabel(flag.createdAt)} · ${formatTimeOfDay(flag.createdAt)}',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 8),
-          ],
-          Text(
-            safeDisplayText(flag.textSnippet, fallback: 'Texto no disponible'),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(height: 1.35),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '${formatDateLabel(flag.createdAt)} · ${formatTimeOfDay(flag.createdAt)}',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.tonal(
-                  onPressed: flag.isPending
-                      ? () {
-                          unawaited(onReviewed());
-                        }
-                      : null,
-                  child: const Text('Marcar revisada'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.redAccent.withValues(alpha: 0.18),
-                    foregroundColor: Colors.white,
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: flag.isPending
+                        ? () {
+                            unawaited(onReviewed());
+                          }
+                        : null,
+                    child: const Text('Marcar revisada'),
                   ),
-                  onPressed: flag.isPending
-                      ? () {
-                          unawaited(onDismissed());
-                        }
-                      : null,
-                  child: const Text('Descartar'),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.redAccent.withValues(alpha: 0.18),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: flag.isPending
+                        ? () {
+                            unawaited(onDismissed());
+                          }
+                        : null,
+                    child: const Text('Descartar'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

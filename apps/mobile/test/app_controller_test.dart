@@ -1671,6 +1671,10 @@ void main() {
         final weedFlag = firstController.moderationFlags.firstWhere(
           (flag) => flag.keyword == 'weed',
         );
+        expect(
+          firstController.moderationFlagById(weedFlag.flagId),
+          isNotNull,
+        );
         await firstController.markModerationFlagReviewed(weedFlag.flagId);
         expect(
           firstController.moderationFlags

@@ -17,6 +17,7 @@ import 'package:ynot_mobile/src/features/profile/presentation/saved_activities_s
 import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/moderation/presentation/internal_moderation_screen.dart';
+import '../features/moderation/presentation/flag_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/feedback/presentation/feedback_screen.dart';
 import '../features/reports/presentation/report_screen.dart';
@@ -139,6 +140,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/moderation',
         builder: (context, state) => const InternalModerationScreen(),
+      ),
+      GoRoute(
+        path: '/settings/moderation/flag/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return FlagDetailScreen(flagId: id);
+        },
       ),
     ],
   );
