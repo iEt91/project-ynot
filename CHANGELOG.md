@@ -1,3 +1,7 @@
+## v1.0.31.1
+- Removed the duplicate activity action from the Activity Detail menu
+- Kept share, edit, delete, history, and all other existing activity flows unchanged
+
 ## v1.0.31.0
 - Added duplicate activity from the Activity Detail menu for creators
 - Duplicate activity opens the create form prefilled with the original title, description, category, capacity, duration, and location, but starts as a new open activity

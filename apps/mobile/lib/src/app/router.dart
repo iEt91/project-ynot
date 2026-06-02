@@ -89,8 +89,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           if (extra is ActivityFormSeed) {
             return CreateActivityScreen(
               initialLocation: extra.initialLocation,
-              editingActivity: extra.duplicate ? null : extra.activity,
-              prefillActivity: extra.duplicate ? extra.activity : null,
+              editingActivity: extra.activity,
             );
           }
           if (extra is LatLng) {
