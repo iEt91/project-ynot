@@ -5,10 +5,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
+import '../../../core/models/moderation_flag.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
+import '../../../shared/widgets/moderation_warning_dialog.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../profile/presentation/profile_back_button.dart';
 import '../../../shared/widgets/status_pill.dart';
@@ -348,7 +350,9 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                                 'Hasta $_maxPeople personas',
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: theme.textTheme.titleSmall
+                                                style: theme
+                                                    .textTheme
+                                                    .titleSmall
                                                     ?.copyWith(
                                                       fontWeight:
                                                           FontWeight.w800,
@@ -568,59 +572,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                       FilledButton(
                         onPressed: canCreateActivity
                             ? () async {
-                                if (!_formKey.currentState!.validate()) {
-                                  return;
-                                }
-
-                                if (_isEditing) {
-                                  final updated = await controller
-                                      .updateActivity(
-                                        activityId: widget.editingActivity!.id,
-                                        title: _titleController.text.trim(),
-                                        description: _descriptionController.text
-                                            .trim(),
-                                        category: _category,
-                                        vibe: _vibe,
-                                        zone: _zone,
-                                        startTime: _startTime,
-                                        duration: _duration,
-                                        maxPeople: _maxPeople,
-                                        realLat: _lat,
-                                        realLng: _lng,
-                                        visibility: _visibility,
-                                      );
-                                  if (!context.mounted) return;
-                                  if (updated) {
-                                    context.pop();
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'No pudimos guardar los cambios.',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                  return;
-                                }
-
-                                await controller.createActivity(
-                                  title: _titleController.text.trim(),
-                                  description: _descriptionController.text
-                                      .trim(),
-                                  category: _category,
-                                  vibe: _vibe,
-                                  zone: _zone,
-                                  startTime: _startTime,
-                                  duration: _duration,
-                                  maxPeople: _maxPeople,
-                                  realLat: _lat,
-                                  realLng: _lng,
-                                  visibility: _visibility,
-                                );
-
-                                if (!context.mounted) return;
-                                context.pop();
+                                await _handleSubmit(context, controller);
                               }
                             : null,
                         child: Text(submitLabel),
@@ -650,6 +602,83 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
       return 'Seoul';
     }
     return 'Seoul';
+  }
+
+  Future<void> _handleSubmit(
+    BuildContext context,
+    AppController controller,
+  ) async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final isEditing = _isEditing;
+    final combinedText =
+        '${_titleController.text.trim()}\n${_descriptionController.text.trim()}';
+    final matches = controller.moderationMatchesForText(combinedText);
+    if (matches.isNotEmpty) {
+      final proceed = await showModerationWarningDialog(context);
+      if (!proceed || !context.mounted) {
+        return;
+      }
+    }
+
+    if (isEditing) {
+      final updated = await controller.updateActivity(
+        activityId: widget.editingActivity!.id,
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        category: _category,
+        vibe: _vibe,
+        zone: _zone,
+        startTime: _startTime,
+        duration: _duration,
+        maxPeople: _maxPeople,
+        realLat: _lat,
+        realLng: _lng,
+        visibility: _visibility,
+      );
+      if (!context.mounted) return;
+      if (updated) {
+        if (matches.isNotEmpty) {
+          controller.logModerationWarningConfirmed(
+            sourceType: ModerationFlagSourceType.activity,
+            activityId: widget.editingActivity!.id,
+            match: matches.first,
+          );
+        }
+        context.pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No pudimos guardar los cambios.')),
+        );
+      }
+      return;
+    }
+
+    final createdId = await controller.createActivity(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      category: _category,
+      vibe: _vibe,
+      zone: _zone,
+      startTime: _startTime,
+      duration: _duration,
+      maxPeople: _maxPeople,
+      realLat: _lat,
+      realLng: _lng,
+      visibility: _visibility,
+    );
+
+    if (!context.mounted) return;
+    if (matches.isNotEmpty && createdId.isNotEmpty) {
+      controller.logModerationWarningConfirmed(
+        sourceType: ModerationFlagSourceType.activity,
+        activityId: createdId,
+        match: matches.first,
+      );
+    }
+    context.pop();
   }
 }
 

@@ -1,3 +1,8 @@
+## v1.0.26.1
+- Added soft moderation warnings before saving risky activities or sending risky chat messages
+- Users can choose to edit or continue, and continuing still creates the internal moderation flag
+- The warning flow stays local, private, and non-blocking
+
 ## v1.0.26.2
 - Cleaned up development logs so only the most useful YNOT tags remain in console output
 - Moderation flag creation now emits one clear log when a risky keyword is detected

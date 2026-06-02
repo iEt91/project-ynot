@@ -809,7 +809,7 @@ class AppController extends ChangeNotifier {
     state = state.copyWith(filter: filter);
   }
 
-  Future<void> createActivity({
+  Future<String> createActivity({
     required String title,
     required String description,
     required String category,
@@ -824,7 +824,7 @@ class AppController extends ChangeNotifier {
   }) async {
     if (!canCreateActivity()) {
       state = state.copyWith(errorMessage: creationRestrictionMessage());
-      return;
+      return '';
     }
 
     final currentUser = state.user;
@@ -832,7 +832,7 @@ class AppController extends ChangeNotifier {
       state = state.copyWith(
         errorMessage: 'Inicia sesión para crear una actividad.',
       );
-      return;
+      return '';
     }
 
     final created = _buildActivity(
@@ -880,6 +880,7 @@ class AppController extends ChangeNotifier {
     AppLogger.log('ACTIVITY', 'created id=${created.id}');
     _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
+    return created.id;
   }
 
   Future<bool> updateActivity({
@@ -1405,6 +1406,21 @@ class AppController extends ChangeNotifier {
         .toList(growable: false);
     flags.sort((left, right) => right.createdAt.compareTo(left.createdAt));
     return flags;
+  }
+
+  List<ModerationKeywordMatch> moderationMatchesForText(String text) {
+    return findModerationKeywordMatches(text);
+  }
+
+  void logModerationWarningConfirmed({
+    required ModerationFlagSourceType sourceType,
+    required String activityId,
+    required ModerationKeywordMatch match,
+  }) {
+    AppLogger.log(
+      'MODERATION',
+      'warning_confirmed sourceType=${sourceType.name} category=${match.category} keyword=${match.keyword} activityId=$activityId',
+    );
   }
 
   Future<void> markModerationFlagReviewed(String flagId) async {

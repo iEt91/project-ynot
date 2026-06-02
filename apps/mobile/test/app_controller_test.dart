@@ -1655,6 +1655,27 @@ void main() {
       },
     );
 
+    test('moderation keyword detection finds risky text before publish', () {
+      final controller = AppController(
+        sessionStore: _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        ),
+        mockStore: _TestMockStore(),
+        autoInitialize: false,
+      );
+
+      final matches = controller.moderationMatchesForText(
+        'Weed, casino y pelea suave.',
+      );
+
+      expect(matches, isNotEmpty);
+      expect(
+        matches.map((item) => item.keyword),
+        containsAll(['weed', 'casino', 'pelea']),
+      );
+    });
+
     test(
       'reportable participants include organizer attendees blocked and chat senders',
       () async {

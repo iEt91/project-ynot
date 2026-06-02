@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,12 +8,14 @@ import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/models/app_user.dart';
 import '../../../core/models/chat_message.dart';
+import '../../../core/models/moderation_flag.dart';
 import '../../../core/models/moderation_report.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
+import '../../../shared/widgets/moderation_warning_dialog.dart';
 import '../../../shared/widgets/status_pill.dart';
 
 class ChatThreadScreen extends ConsumerStatefulWidget {
@@ -91,7 +93,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     _hasShownBlockedWarningThisOpen = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final shouldNotShowAgain = await showDialog<bool>(
+      final shouldNotShowAgain =
+          await showDialog<bool>(
             context: context,
             barrierDismissible: false,
             builder: (dialogContext) {
@@ -123,7 +126,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     ),
                     actions: [
                       FilledButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(noShowAgain),
+                        onPressed: () =>
+                            Navigator.of(dialogContext).pop(noShowAgain),
                         child: const Text('Aceptar'),
                       ),
                     ],
@@ -135,9 +139,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
           false;
       if (!mounted) return;
       if (shouldNotShowAgain) {
-        ref
-            .read(appControllerProvider)
-            .dismissBlockedChatWarning(activity.id);
+        ref.read(appControllerProvider).dismissBlockedChatWarning(activity.id);
       }
     });
   }
@@ -165,18 +167,21 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     final status = activity.myStatus;
     final isConfirmed = status == ParticipantStatus.confirmed;
     final isCreator = state.user?.id == activity.creatorId;
-    final canStart = isCreator &&
+    final canStart =
+        isCreator &&
         (activity.status == ActivityStatus.open ||
             activity.status == ActivityStatus.active);
     final canFinish = isCreator && activity.status == ActivityStatus.ongoing;
     final isFinishedOrArchived = activity.isFinishedOrArchived;
     final canSendMessage = !isFinishedOrArchived;
-    final canConfirm = !isCreator &&
-        status == ParticipantStatus.joinedPendingConfirmation;
-    final canCancel = !isCreator &&
+    final canConfirm =
+        !isCreator && status == ParticipantStatus.joinedPendingConfirmation;
+    final canCancel =
+        !isCreator &&
         (status == ParticipantStatus.joinedPendingConfirmation ||
             status == ParticipantStatus.confirmed);
-    final canLeave = !isCreator &&
+    final canLeave =
+        !isCreator &&
         (status == ParticipantStatus.joinedPendingConfirmation ||
             status == ParticipantStatus.confirmed);
     final userStatus = state.user?.status;
@@ -376,7 +381,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                             final messenger = ScaffoldMessenger.of(context);
                             messenger.showSnackBar(
                               const SnackBar(
-                              content: Text('Actividad eliminada.'),
+                                content: Text('Actividad eliminada.'),
                               ),
                             );
                             if (!context.mounted) return;
@@ -580,7 +585,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                 activityId: activity.id,
                                 message: message,
                                 accentColor: _categoryColor(activity.category),
-                                canOpenProfile: message.senderId.isNotEmpty &&
+                                canOpenProfile:
+                                    message.senderId.isNotEmpty &&
                                     controller.publicProfileForUserId(
                                           message.senderId,
                                         ) !=
@@ -592,9 +598,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                     _revealedBlockedMessageIds.contains(
                                       message.id,
                                     ),
-                                onShowBlockedMessage: () => _showBlockedMessage(
-                                  message.id,
-                                ),
+                                onShowBlockedMessage: () =>
+                                    _showBlockedMessage(message.id),
                               ),
                             ),
                           ),
@@ -615,7 +620,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           'Chat en modo lectura.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w700,
                               ),
                         ),
@@ -640,12 +647,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                               ),
                               onSubmitted: canSendMessage
                                   ? (_) async {
-                                      final text = _messageController.text.trim();
-                                      if (text.isEmpty) return;
-                                      await ref
-                                          .read(appControllerProvider)
-                                          .sendChatMessage(activity.id, text);
-                                      _messageController.clear();
+                                      await _sendMessage(activity.id);
                                     }
                                   : null,
                             ),
@@ -658,12 +660,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                             ),
                             onPressed: canSendMessage
                                 ? () async {
-                                    final text = _messageController.text.trim();
-                                    if (text.isEmpty) return;
-                                    await ref
-                                        .read(appControllerProvider)
-                                        .sendChatMessage(activity.id, text);
-                                    _messageController.clear();
+                                    await _sendMessage(activity.id);
                                   }
                                 : null,
                             icon: const Icon(Icons.send_rounded),
@@ -691,6 +688,31 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
       'Music' => const Color(0xFF63D2FF),
       _ => YnotTheme.primary,
     };
+  }
+
+  Future<void> _sendMessage(String activityId) async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    final controller = ref.read(appControllerProvider);
+    final matches = controller.moderationMatchesForText(text);
+    if (matches.isNotEmpty) {
+      final proceed = await showModerationWarningDialog(context);
+      if (!proceed || !mounted) {
+        return;
+      }
+    }
+
+    await controller.sendChatMessage(activityId, text);
+    if (!mounted) return;
+    if (matches.isNotEmpty) {
+      controller.logModerationWarningConfirmed(
+        sourceType: ModerationFlagSourceType.message,
+        activityId: activityId,
+        match: matches.first,
+      );
+    }
+    _messageController.clear();
   }
 }
 
@@ -811,9 +833,7 @@ class _ChatMessageBubble extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: bubbleColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: YnotTheme.border,
-                    ),
+                    border: Border.all(color: YnotTheme.border),
                   ),
                   child: isCollapsedBlockedMessage
                       ? Row(
@@ -821,9 +841,7 @@ class _ChatMessageBubble extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 'Mensaje oculto de usuario bloqueado',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(color: Colors.white),
                               ),
                             ),
@@ -845,10 +863,9 @@ class _ChatMessageBubble extends StatelessWidget {
                         )
                       : Text(
                           message.content,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(color: Colors.white),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: Colors.white),
                         ),
                 ),
                 const SizedBox(height: 4),
@@ -896,10 +913,7 @@ class _IconOnlyButton extends StatelessWidget {
 }
 
 class _OpaqueAttendeeAvatar extends StatelessWidget {
-  const _OpaqueAttendeeAvatar({
-    required this.icon,
-    required this.accentColor,
-  });
+  const _OpaqueAttendeeAvatar({required this.icon, required this.accentColor});
 
   final IconData icon;
   final Color accentColor;
@@ -948,4 +962,3 @@ extension _FirstOrNullExtension<T> on Iterable<T> {
     return iterator.current;
   }
 }
-

@@ -17,6 +17,11 @@ class ModerationFlag {
     required this.createdAt,
     required this.status,
     required this.dedupeKey,
+    this.aiRiskScore,
+    this.aiRiskLabel,
+    this.aiSummary,
+    this.manuallyReviewedBy,
+    this.reviewedAt,
   });
 
   final String flagId;
@@ -30,6 +35,11 @@ class ModerationFlag {
   final DateTime createdAt;
   final ModerationFlagStatus status;
   final String dedupeKey;
+  final double? aiRiskScore;
+  final String? aiRiskLabel;
+  final String? aiSummary;
+  final String? manuallyReviewedBy;
+  final DateTime? reviewedAt;
 
   bool get isPending => status == ModerationFlagStatus.pending;
 
@@ -41,6 +51,11 @@ class ModerationFlag {
 
   ModerationFlag copyWith({
     ModerationFlagStatus? status,
+    double? aiRiskScore,
+    String? aiRiskLabel,
+    String? aiSummary,
+    String? manuallyReviewedBy,
+    DateTime? reviewedAt,
   }) {
     return ModerationFlag(
       flagId: flagId,
@@ -54,6 +69,11 @@ class ModerationFlag {
       createdAt: createdAt,
       status: status ?? this.status,
       dedupeKey: dedupeKey,
+      aiRiskScore: aiRiskScore ?? this.aiRiskScore,
+      aiRiskLabel: aiRiskLabel ?? this.aiRiskLabel,
+      aiSummary: aiSummary ?? this.aiSummary,
+      manuallyReviewedBy: manuallyReviewedBy ?? this.manuallyReviewedBy,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
     );
   }
 
@@ -70,6 +90,11 @@ class ModerationFlag {
       'createdAt': createdAt.toIso8601String(),
       'status': status.name,
       'dedupeKey': dedupeKey,
+      if (aiRiskScore != null) 'aiRiskScore': aiRiskScore,
+      if (aiRiskLabel != null) 'aiRiskLabel': aiRiskLabel,
+      if (aiSummary != null) 'aiSummary': aiSummary,
+      if (manuallyReviewedBy != null) 'manuallyReviewedBy': manuallyReviewedBy,
+      if (reviewedAt != null) 'reviewedAt': reviewedAt!.toIso8601String(),
     };
   }
 
@@ -90,14 +115,20 @@ class ModerationFlag {
     return ModerationFlag(
       flagId: safeDisplayText(json['flagId'] as String? ?? '', fallback: ''),
       sourceType: sourceType,
-      sourceId: safeDisplayText(json['sourceId'] as String? ?? '', fallback: ''),
+      sourceId: safeDisplayText(
+        json['sourceId'] as String? ?? '',
+        fallback: '',
+      ),
       activityId: safeDisplayText(
         json['activityId'] as String? ?? '',
         fallback: '',
       ),
       userId: safeDisplayText(json['userId'] as String? ?? '', fallback: ''),
       keyword: safeDisplayText(json['keyword'] as String? ?? '', fallback: ''),
-      category: safeDisplayText(json['category'] as String? ?? '', fallback: ''),
+      category: safeDisplayText(
+        json['category'] as String? ?? '',
+        fallback: '',
+      ),
       textSnippet: safeDisplayText(
         json['textSnippet'] as String? ?? '',
         fallback: '',
@@ -110,6 +141,32 @@ class ModerationFlag {
         json['dedupeKey'] as String? ?? '',
         fallback: '',
       ),
+      aiRiskScore: (json['aiRiskScore'] as num?)?.toDouble(),
+      aiRiskLabel:
+          safeDisplayText(
+            json['aiRiskLabel'] as String? ?? '',
+            fallback: '',
+          ).trim().isEmpty
+          ? null
+          : safeDisplayText(json['aiRiskLabel'] as String? ?? '', fallback: ''),
+      aiSummary:
+          safeDisplayText(
+            json['aiSummary'] as String? ?? '',
+            fallback: '',
+          ).trim().isEmpty
+          ? null
+          : safeDisplayText(json['aiSummary'] as String? ?? '', fallback: ''),
+      manuallyReviewedBy:
+          safeDisplayText(
+            json['manuallyReviewedBy'] as String? ?? '',
+            fallback: '',
+          ).trim().isEmpty
+          ? null
+          : safeDisplayText(
+              json['manuallyReviewedBy'] as String? ?? '',
+              fallback: '',
+            ),
+      reviewedAt: DateTime.tryParse(json['reviewedAt'] as String? ?? ''),
     );
   }
 }
