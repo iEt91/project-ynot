@@ -108,23 +108,10 @@ class AppRepository implements ActivityRepository {
 
   @override
   Future<AppUser> getProfile(String clientUid) async {
-    AppLogger.log(
-      'PROFILE',
-      'rpc=app_get_profile table=profiles clientUid=$clientUid',
-    );
     final data = await _rpcList('app_get_profile', {'p_client_uid': clientUid});
     if (data.isEmpty) {
-      AppLogger.log(
-        'PROFILE',
-        'rpc=app_get_profile empty_response clientUid=$clientUid',
-      );
       throw StateError('No profile returned.');
     }
-
-    AppLogger.log(
-      'PROFILE',
-      'rpc=app_get_profile response_count=${data.length}',
-    );
     return _mapUser(data.first as Map<String, dynamic>);
   }
 
@@ -161,17 +148,9 @@ class AppRepository implements ActivityRepository {
 
   @override
   Future<List<Activity>> listActivities(String clientUid) async {
-    AppLogger.log(
-      'EVENTS',
-      'rpc=app_list_activities table=activities clientUid=$clientUid',
-    );
     final data = await _rpcList('app_list_activities', {
       'p_client_uid': clientUid,
     });
-    AppLogger.log(
-      'EVENTS',
-      'rpc=app_list_activities response_count=${data.length}',
-    );
     return data
         .map((row) => _mapActivity(row as Map<String, dynamic>))
         .toList(growable: false);

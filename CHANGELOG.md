@@ -1,3 +1,8 @@
+## v1.0.26.2
+- Cleaned up development logs so only the most useful YNOT tags remain in console output
+- Moderation flag creation now emits one clear log when a risky keyword is detected
+- Added README guidance for filtering YNOT logs in Windows CMD and PowerShell
+
 ## v1.0.26.0
 - Added local moderation flags for risky keywords found in activity text and chat messages
 - Created a private mock-only moderation screen in Configuración for reviewing pending flags

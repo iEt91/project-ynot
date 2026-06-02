@@ -499,7 +499,6 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    AppLogger.log('BOOT', 'mode=mock');
     final localSession = await _sessionStore.peekClientUid();
     final restoredPhone = await _sessionStore.peekPhone();
     final allowSeedData = await _shouldUseSeedData();
@@ -537,7 +536,6 @@ class AppController extends ChangeNotifier {
             ? 'Sesión local'
             : safePhoneDisplay(restoredPhone),
       );
-      AppLogger.log('AUTH', 'session_restored=true');
       return;
     }
 
@@ -550,7 +548,6 @@ class AppController extends ChangeNotifier {
           : safePhoneDisplay(restoredPhone),
     );
 
-    AppLogger.log('AUTH', 'session_restored=true');
     state = state.copyWith(
       stage: _stageForUser(user),
       user: user,
@@ -711,7 +708,6 @@ class AppController extends ChangeNotifier {
     await _sessionStore.clear();
     await _mockStore.clear();
     await _sessionStore.setMockSeedDisabledAfterWipe(true);
-    AppLogger.log('WIPE', 'local data cleared');
     _clientUid = null;
     _messagesByActivityId.clear();
     _chatIdsByActivityId.clear();
@@ -1216,7 +1212,6 @@ class AppController extends ChangeNotifier {
     final messages = List<ChatMessage>.from(
       _messagesByActivityId[chatId] ?? const [],
     );
-    AppLogger.log('CHAT', 'load source=mock count=${messages.length}');
     _setChatMessages(activityId, messages, chatId: chatId, source: 'mock');
   }
 
@@ -2860,11 +2855,6 @@ class AppController extends ChangeNotifier {
     final preview = messages.isNotEmpty ? messages.last.content : '';
     final lastAt = messages.isNotEmpty ? messages.last.createdAt : null;
 
-    AppLogger.log(
-      'CHAT',
-      'preview source=$source chatId=$resolvedChatId lastMessage=$preview',
-    );
-
     final activities = state.activities
         .map((activity) {
           if (activity.id != activityId) {
@@ -3020,6 +3010,10 @@ class AppController extends ChangeNotifier {
         );
       } else {
         _moderationFlags.insert(0, flag);
+        AppLogger.log(
+          'MODERATION',
+          'flag_created sourceType=${sourceType.name} category=${match.category} keyword=${match.keyword} activityId=$activityId',
+        );
       }
     }
 
@@ -3281,7 +3275,6 @@ class AppController extends ChangeNotifier {
   Future<bool> _shouldUseSeedData() async {
     final seedDisabled = await _sessionStore.peekMockSeedDisabledAfterWipe();
     if (seedDisabled) {
-      AppLogger.log('SEED', 'skipped after wipe');
       return false;
     }
 
