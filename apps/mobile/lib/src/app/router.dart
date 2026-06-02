@@ -28,7 +28,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const RootGate()),
+      GoRoute(
+        path: '/',
+        builder: (context, state) {
+          final tabIndex = int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0;
+          return RootGate(initialIndex: tabIndex);
+        },
+      ),
       GoRoute(
         path: '/activity/:id',
         builder: (context, state) {

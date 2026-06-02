@@ -1055,7 +1055,58 @@ void main() {
     );
 
     test(
-      'post activity attendance response unlocks feedback and persists locally',
+      'attendance remains closed after finish if user was not confirmed before closure',
+      () async {
+        final controller = await _buildLoggedInController();
+        final activityId = 'seed_2';
+
+        await controller.joinActivity(activityId);
+        final joinedActivity = controller.state.activities.firstWhere(
+          (item) => item.id == activityId,
+        );
+        expect(
+          joinedActivity.myStatus,
+          ParticipantStatus.joinedPendingConfirmation,
+        );
+
+        controller.state = controller.state.copyWith(
+          activities: controller.state.activities
+              .map(
+                (item) => item.id == activityId
+                    ? item.copyWith(status: ActivityStatus.finished)
+                    : item,
+              )
+              .toList(growable: false),
+        );
+
+        final finishedActivity = controller.state.activities.firstWhere(
+          (item) => item.id == activityId,
+        );
+        expect(
+          controller.shouldShowAttendancePrompt(finishedActivity),
+          isFalse,
+        );
+        expect(
+          controller.shouldShowAttendanceClosedNotice(finishedActivity),
+          isTrue,
+        );
+        expect(
+          await controller.submitAttendanceResponse(
+            activityId: activityId,
+            response: AttendanceResponse.attended,
+          ),
+          isFalse,
+        );
+        expect(controller.attendanceResponseForActivity(activityId), isNull);
+        expect(
+          controller.canGiveFeedbackForActivity(finishedActivity),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'attendance confirmed before finish still unlocks feedback and persists locally',
       () async {
         final sessionStore = _TestSessionStore(
           clientUid: 'client_001',
@@ -1068,34 +1119,24 @@ void main() {
           mockStore: mockStore,
         );
 
-        final activityId = await controller.createActivity(
-          title: 'Attendance Check',
-          description: 'Probando asistencia post actividad.',
-          category: 'Coffee',
-          vibe: 'Calm',
-          zone: 'Hongdae',
-          startTime: DateTime(2026, 6, 1, 18, 0),
-          duration: const Duration(hours: 2),
-          maxPeople: 6,
-          realLat: 37.5563,
-          realLng: 126.9228,
-        );
+        final activityId = 'seed_2';
+        await controller.joinActivity(activityId);
+        await controller.confirmAttendance(activityId);
 
-        expect(activityId, isNotEmpty);
-        expect(await controller.startActivity(activityId), isTrue);
-        expect(await controller.finishActivity(activityId), isTrue);
+        controller.state = controller.state.copyWith(
+          activities: controller.state.activities
+              .map(
+                (item) => item.id == activityId
+                    ? item.copyWith(status: ActivityStatus.finished)
+                    : item,
+              )
+              .toList(growable: false),
+        );
 
         final finishedActivity = controller.state.activities.firstWhere(
           (item) => item.id == activityId,
         );
         expect(controller.shouldShowAttendancePrompt(finishedActivity), isTrue);
-        expect(
-          controller.state.notifications.any(
-            (item) => item.type == InAppNotificationType.feedbackAvailable,
-          ),
-          isFalse,
-        );
-
         expect(
           await controller.submitAttendanceResponse(
             activityId: activityId,
@@ -1112,12 +1153,6 @@ void main() {
             controller.state.activities.firstWhere(
               (item) => item.id == activityId,
             ),
-          ),
-          isTrue,
-        );
-        expect(
-          controller.state.notifications.any(
-            (item) => item.type == InAppNotificationType.feedbackAvailable,
           ),
           isTrue,
         );

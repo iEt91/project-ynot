@@ -1,3 +1,9 @@
+## v1.0.27.1
+- Fixed archived chat navigation so returning from archived chats goes back to the Chats tab instead of a dead-end screen
+- Closed late attendance registration for finished or archived activities when attendance was not already confirmed before closure
+- Closed late feedback unlocking so feedback only becomes available from attendance that existed before the activity ended
+- Improved the archived empty chat state with a clearer helper message when there were no messages
+
 ## v1.0.27.0
 - Added archived chat management with separate active and archived sections in Chats
 - Archived chats now show a clear read-only state and can be hidden locally from the user history without deleting anything globally

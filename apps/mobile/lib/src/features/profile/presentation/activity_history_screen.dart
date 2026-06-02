@@ -7,6 +7,7 @@ import '../../../core/state/app_controller.dart';
 import '../../../shared/widgets/attendance_prompt_card.dart';
 import '../../../shared/widgets/activity_card.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
+import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/section_header.dart';
 import 'profile_back_button.dart';
@@ -73,6 +74,34 @@ class ActivityHistoryScreen extends ConsumerWidget {
                                 response: response,
                               );
                             },
+                          ),
+                        ] else if (
+                          controller.shouldShowAttendanceClosedNotice(activity)
+                        ) ...[
+                          const SizedBox(height: 12),
+                          KawaiiCard(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Asistencia cerrada',
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'La actividad ya finalizó y no es posible registrar asistencia.',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ],

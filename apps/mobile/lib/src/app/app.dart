@@ -27,7 +27,9 @@ class YnotApp extends ConsumerWidget {
 }
 
 class RootGate extends ConsumerWidget {
-  const RootGate({super.key});
+  const RootGate({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,7 +39,7 @@ class RootGate extends ConsumerWidget {
       AppStage.booting => const _BootScreen(),
       AppStage.phoneAuth || AppStage.otpEntry => const AuthScreen(),
       AppStage.onboarding => const OnboardingScreen(),
-      AppStage.ready => const AppShell(),
+      AppStage.ready => AppShell(initialIndex: initialIndex),
     };
   }
 }

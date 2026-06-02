@@ -551,11 +551,7 @@ class AppController extends ChangeNotifier {
       return false;
     }
 
-    final participated = activity.creatorId == resolvedUserId ||
-        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
-        activity.myStatus == ParticipantStatus.confirmed ||
-        activity.myStatus == ParticipantStatus.attended;
-    if (!participated) {
+    if (!_hasAttendanceEligibleStatus(activity, resolvedUserId)) {
       return false;
     }
 
@@ -564,6 +560,34 @@ class AppController extends ChangeNotifier {
           userId: resolvedUserId,
         ) ==
         null;
+  }
+
+  bool shouldShowAttendanceClosedNotice(
+    Activity activity, {
+    String? userId,
+  }) {
+    final resolvedUserId = userId ?? state.user?.id;
+    if (resolvedUserId == null ||
+        resolvedUserId.isEmpty ||
+        activity.id.isEmpty ||
+        !activity.isFinishedOrArchived) {
+      return false;
+    }
+
+    final participated = activity.creatorId == resolvedUserId ||
+        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+        activity.myStatus == ParticipantStatus.confirmed ||
+        activity.myStatus == ParticipantStatus.attended;
+    if (!participated) {
+      return false;
+    }
+
+    return !_hasAttendanceEligibleStatus(activity, resolvedUserId) &&
+        attendanceResponseForActivity(
+              activity.id,
+              userId: resolvedUserId,
+            ) ==
+            null;
   }
 
   bool canGiveFeedbackForActivity(
@@ -1914,11 +1938,7 @@ class AppController extends ChangeNotifier {
       return false;
     }
 
-    final participated = activity.creatorId == currentUser.id ||
-        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
-        activity.myStatus == ParticipantStatus.confirmed ||
-        activity.myStatus == ParticipantStatus.attended;
-    if (!participated) {
+    if (!_hasAttendanceEligibleStatus(activity, currentUser.id)) {
       return false;
     }
 
@@ -1952,6 +1972,12 @@ class AppController extends ChangeNotifier {
     );
     unawaited(_persistSnapshot());
     return true;
+  }
+
+  bool _hasAttendanceEligibleStatus(Activity activity, String userId) {
+    return activity.creatorId == userId ||
+        activity.myStatus == ParticipantStatus.confirmed ||
+        activity.myStatus == ParticipantStatus.attended;
   }
 
   List<ActivityFeedbackTarget> feedbackTargetsForActivity(

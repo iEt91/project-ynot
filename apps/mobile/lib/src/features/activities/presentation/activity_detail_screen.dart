@@ -465,6 +465,29 @@ class ActivityDetailScreen extends ConsumerWidget {
                     );
                   },
                 ),
+              ] else if (controller.shouldShowAttendanceClosedNotice(activity)) ...[
+                const SizedBox(height: 14),
+                KawaiiCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Asistencia cerrada',
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'La actividad ya finalizó y no es posible registrar asistencia.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
               const SizedBox(height: 16),
               _ActionSection(

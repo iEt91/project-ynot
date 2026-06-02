@@ -70,6 +70,12 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         attendanceResponse == AttendanceResponse.noShow;
     final canShowAttendancePrompt =
         activity.isFinishedOrArchived && !hasAttendanceAnswer;
+    final shouldShowClosedFeedbackState =
+        controller.shouldShowAttendanceClosedNotice(
+          activity,
+          userId: currentUser.id,
+        ) &&
+        !hasAttendanceAnswer;
     final hasSelectableTargets = availableTargets.isNotEmpty;
     final hasPendingSelection = availableTargets.any((target) {
       return _existingEntry(
@@ -182,6 +188,14 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                       );
                     }
                   },
+                ),
+                const SizedBox(height: 14),
+              ] else if (shouldShowClosedFeedbackState) ...[
+                const KawaiiEmptyState(
+                  emoji: '🔒',
+                  title: 'Feedback no disponible',
+                  message:
+                      'Solo los asistentes confirmados antes del cierre de la actividad pueden dejar feedback.',
                 ),
                 const SizedBox(height: 14),
               ] else if (!activity.isFinishedOrArchived) ...[

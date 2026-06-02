@@ -35,6 +35,7 @@ class ChatsScreen extends ConsumerWidget {
       child: SafeArea(
         bottom: false,
         child: ListView(
+          key: const PageStorageKey('chats-screen-list'),
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 92),
           children: [
             AppScreenHeader(

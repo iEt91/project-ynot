@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -115,7 +115,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          'En este chat participa una persona que bloqueaste. Sus mensajes permanecerán ocultos.',
+                          'En este chat participa una persona que bloqueaste. Sus mensajes permanecerÃ¡n ocultos.',
                         ),
                         const SizedBox(height: 12),
                         CheckboxListTile(
@@ -216,14 +216,14 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'El chat no está disponible ahora mismo.',
+                        'El chat no estÃ¡ disponible ahora mismo.',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w800),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Reúnete desde el detalle de la actividad para volver a entrar al chat.',
+                        'ReÃºnete desde el detalle de la actividad para volver a entrar al chat.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -231,9 +231,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                       ),
                       const SizedBox(height: 14),
                       FilledButton(
-                        onPressed: () =>
-                            context.push('/activity/${widget.activityId}'),
-                        child: const Text('Volver al detalle'),
+                        onPressed: () => context.go('/?tab=2'),
+                        child: const Text('Volver a chats'),
                       ),
                     ],
                   ),
@@ -270,7 +269,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${formatTimeOfDay(activity.startTime)} Â· ${activity.zone}',
+                            '${formatTimeOfDay(activity.startTime)} Ã‚Â· ${activity.zone}',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -365,9 +364,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                   context: context,
                                   builder: (dialogContext) {
                                     return AlertDialog(
-                                      title: const Text('¿Eliminar actividad?'),
+                                      title: const Text('Â¿Eliminar actividad?'),
                                       content: const Text(
-                                        'Esto eliminará la actividad del mapa, la lista y los chats. Esta acción no se puede deshacer.',
+                                        'Esto eliminarÃ¡ la actividad del mapa, la lista y los chats. Esta acciÃ³n no se puede deshacer.',
                                       ),
                                       actions: [
                                         TextButton(
@@ -490,7 +489,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: StatusPill(
-                      label: '⚠ Usuario bloqueado presente',
+                      label: 'âš  Usuario bloqueado presente',
                       color: const Color(0xFFFFD166),
                     ),
                   ),
@@ -507,6 +506,33 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                         response: response,
                       );
                     },
+                  ),
+                ),
+              ] else if (controller.shouldShowAttendanceClosedNotice(activity)) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                  child: KawaiiCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Asistencia cerrada',
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'La actividad ya finalizÃ³ y no es posible registrar asistencia.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -617,14 +643,34 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     : messages.isEmpty
                     ? Center(
                         child: KawaiiCard(
-                          child: Text(
-                            'Todavía no hay mensajes.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Todavía no hay mensajes.',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                              if (isFinishedOrArchived) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Esta actividad finalizó sin mensajes en el chat.',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
                                 ),
+                              ],
+                            ],
                           ),
                         ),
                       )
@@ -670,7 +716,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                         child: Row(
                           children: [
                             const StatusPill(
-                              label: 'S?lo lectura',
+                              label: 'Sólo lectura',
                               color: Colors.white54,
                             ),
                             const SizedBox(width: 10),
@@ -729,8 +775,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                       ),
               ),
             ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -1051,3 +1097,4 @@ extension _FirstOrNullExtension<T> on Iterable<T> {
     return iterator.current;
   }
 }
+

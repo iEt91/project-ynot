@@ -8,14 +8,16 @@ import '../../profile/presentation/profile_screen.dart';
 import '../../../shared/widgets/kawaii_bottom_nav.dart';
 
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _index = 0;
+  late int _index;
   late final PageController _pageController;
 
   final List<Widget> _pages = const [
@@ -28,6 +30,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   void initState() {
     super.initState();
+    _index = widget.initialIndex.clamp(0, _pages.length - 1);
     _pageController = PageController(initialPage: _index);
   }
 
