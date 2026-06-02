@@ -1,3 +1,8 @@
+## v1.0.29.0
+- Added a local Preferences screen so users can control notification delivery, recommendation badges, saved-activity highlighting, and archived chats visibility
+- Notification creation now respects the master local notification toggle, chat notification toggle, and activity reminder toggle
+- The Chats tab now respects the archived chats visibility preference, and recommendation-style badges can be hidden locally
+
 ## v1.0.28.0
 - Added notification management actions so users can mark all as read, delete a single notification, or clear the local notification list
 - The notification center now stays local and manageable without changing notification creation triggers

@@ -21,6 +21,7 @@ class ActivitiesScreen extends ConsumerWidget {
     final state = ref.watch(appStateProvider);
     final controller = ref.read(appControllerProvider);
     final activities = ref.read(appControllerProvider).filteredActivities();
+    final showRecommendations = state.settings.showRecommendations;
 
     return KawaiiScene(
       child: SafeArea(
@@ -91,6 +92,7 @@ class ActivitiesScreen extends ConsumerWidget {
                         return _ActivityListItem(
                           activity: activity,
                           showStartingSoonBadge:
+                              showRecommendations &&
                               controller.isActivityStartingSoonForCurrentUser(
                                 activity,
                               ),

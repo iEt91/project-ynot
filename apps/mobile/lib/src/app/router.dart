@@ -19,6 +19,7 @@ import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/moderation/presentation/internal_moderation_screen.dart';
 import '../features/moderation/presentation/flag_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/settings/presentation/preferences_screen.dart';
 import '../features/settings/presentation/safety_center_screen.dart';
 import '../features/feedback/presentation/feedback_screen.dart';
 import '../features/reports/presentation/report_screen.dart';
@@ -135,6 +136,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/preferences',
+        builder: (context, state) => const PreferencesScreen(),
       ),
       GoRoute(
         path: '/notifications',

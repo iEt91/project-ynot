@@ -27,6 +27,8 @@ class ChatsScreen extends ConsumerWidget {
     final archivedChats = currentUser == null
         ? const <Activity>[]
         : controller.archivedChatsForUser(currentUser.id);
+    final showRecommendations = state.settings.showRecommendations;
+    final showArchivedChats = state.settings.showArchivedChats;
     final unreadNotifications = state.notifications
         .where((notification) => !notification.isRead)
         .length;
@@ -93,6 +95,7 @@ class ChatsScreen extends ConsumerWidget {
                           child: _ChatRow(
                             activity: activity,
                             showStartingSoonBadge:
+                                showRecommendations &&
                                 controller.isActivityStartingSoonForCurrentUser(
                                   activity,
                                 ),
@@ -102,37 +105,39 @@ class ChatsScreen extends ConsumerWidget {
                       )
                       .toList(growable: false),
             ),
-            const SizedBox(height: 20),
-            _ChatsSection(
-              title: 'Chats archivados',
-              children: archivedChats.isEmpty
-                  ? [
-                      KawaiiEmptyState(
-                        emoji: '🕯️',
-                        title: 'No tienes chats archivados',
-                        message:
-                            'Los chats terminados o archivados aparecerán aquí en modo lectura.',
-                      ),
-                    ]
-                  : archivedChats
-                      .map(
-                        (activity) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _ChatRow(
-                            activity: activity,
-                            showStartingSoonBadge: false,
-                            showArchivedBadge: true,
-                            onTap: () => context.push('/chat/${activity.id}'),
-                            onLongPress: () => _showArchivedChatActions(
-                              context,
-                              ref.read(appControllerProvider),
-                              activity,
+            if (showArchivedChats) ...[
+              const SizedBox(height: 20),
+              _ChatsSection(
+                title: 'Chats archivados',
+                children: archivedChats.isEmpty
+                    ? [
+                        KawaiiEmptyState(
+                          emoji: '???',
+                          title: 'No tienes chats archivados',
+                          message:
+                              'Los chats terminados o archivados aparecer?n aqu? en modo lectura.',
+                        ),
+                      ]
+                    : archivedChats
+                        .map(
+                          (activity) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _ChatRow(
+                              activity: activity,
+                              showStartingSoonBadge: false,
+                              showArchivedBadge: true,
+                              onTap: () => context.push('/chat/${activity.id}'),
+                              onLongPress: () => _showArchivedChatActions(
+                                context,
+                                ref.read(appControllerProvider),
+                                activity,
+                              ),
                             ),
                           ),
-                        ),
-                      )
-                      .toList(growable: false),
-            ),
+                        )
+                        .toList(growable: false),
+              ),
+            ],
           ],
         ),
       ),

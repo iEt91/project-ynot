@@ -74,6 +74,8 @@ class ActivityDetailScreen extends ConsumerWidget {
     final showPreActivityChecklist = controller.shouldShowPreActivityChecklist(
       activity,
     );
+    final showRecommendations = state.settings.showRecommendations;
+    final showSavedHighlights = state.settings.showSavedHighlights;
 
     return Scaffold(
       body: KawaiiScene(
@@ -89,6 +91,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                 isSaved:
                     state.savedActivityIds.contains(activity.id) &&
                     activity.isActiveLifecycle,
+                highlightSaved: showSavedHighlights,
                 onToggleSave: activity.isActiveLifecycle
                     ? () =>
                           unawaited(controller.toggleSavedActivity(activity.id))
@@ -204,7 +207,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                                     '${activity.confirmedCount}/${activity.maxPeople}',
                                 color: Colors.pinkAccent,
                               ),
-                              if (showStartingSoonBadge)
+                              if (showRecommendations && showStartingSoonBadge)
                                 StatusPill(
                                   label: 'Empieza pronto',
                                   color: YnotTheme.primary,
@@ -683,6 +686,7 @@ class _TopBar extends StatelessWidget {
     required this.subtitle,
     required this.onBack,
     required this.isSaved,
+    required this.highlightSaved,
     required this.onToggleSave,
     required this.onMenuSelected,
     required this.isCreator,
@@ -696,6 +700,7 @@ class _TopBar extends StatelessWidget {
   final String subtitle;
   final VoidCallback onBack;
   final bool isSaved;
+  final bool highlightSaved;
   final VoidCallback? onToggleSave;
   final void Function(_DetailAction value) onMenuSelected;
   final bool isCreator;
@@ -740,6 +745,7 @@ class _TopBar extends StatelessWidget {
                   ? Icons.favorite_rounded
                   : Icons.favorite_border_rounded,
               active: isSaved,
+              highlighted: highlightSaved,
               onTap: onToggleSave,
             ),
             const SizedBox(width: 8),
@@ -1154,22 +1160,24 @@ class _IconBubble extends StatelessWidget {
   const _IconBubble({
     required this.icon,
     required this.active,
+    required this.highlighted,
     required this.onTap,
   });
 
   final IconData icon;
   final bool active;
+  final bool highlighted;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final background = active
+    final background = highlighted && active
         ? Colors.pinkAccent.withValues(alpha: 0.22)
         : YnotTheme.surface2.withValues(alpha: 0.96);
-    final border = active
+    final border = highlighted && active
         ? Colors.pinkAccent.withValues(alpha: 0.40)
         : YnotTheme.border;
-    final iconColor = active ? Colors.pinkAccent : Colors.white;
+    final iconColor = highlighted && active ? Colors.pinkAccent : Colors.white;
 
     return InkWell(
       borderRadius: BorderRadius.circular(999),

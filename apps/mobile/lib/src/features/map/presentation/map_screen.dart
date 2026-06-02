@@ -47,6 +47,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final isSelectedSaved =
         selectedActivity != null &&
         state.savedActivityIds.contains(selectedActivity.id);
+    final showRecommendations = state.settings.showRecommendations;
+    final showSavedHighlights = state.settings.showSavedHighlights;
     final searchQuery = state.activitySearchQuery.trim();
     final unreadNotifications = state.notifications
         .where((notification) => !notification.isRead)
@@ -142,13 +144,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: _SelectedActivityCard(
                         activity: selectedActivity!,
                         isSaved: isSelectedSaved,
+                        highlightSaved: showSavedHighlights,
                         locationLabel: controller.locationDisclosureLabel(
                           selectedActivity,
                         ),
                         showStartingSoonBadge:
+                            showRecommendations &&
                             controller.isActivityStartingSoonForCurrentUser(
-                          selectedActivity,
-                        ),
+                              selectedActivity,
+                            ),
                         onToggleSave: () async {
                           await controller.toggleSavedActivity(
                             selectedActivity.id,
@@ -214,6 +218,7 @@ class _SelectedActivityCard extends StatelessWidget {
   const _SelectedActivityCard({
     required this.activity,
     required this.isSaved,
+    required this.highlightSaved,
     required this.locationLabel,
     required this.showStartingSoonBadge,
     required this.onToggleSave,
@@ -222,6 +227,7 @@ class _SelectedActivityCard extends StatelessWidget {
 
   final Activity activity;
   final bool isSaved;
+  final bool highlightSaved;
   final String locationLabel;
   final bool showStartingSoonBadge;
   final Future<void> Function() onToggleSave;
@@ -287,6 +293,7 @@ class _SelectedActivityCard extends StatelessWidget {
             children: [
               _SaveBubbleButton(
                 saved: isSaved,
+                highlighted: highlightSaved,
                 onTap: () {
                   unawaited(onToggleSave());
                 },
@@ -345,20 +352,25 @@ class _MiniMeta extends StatelessWidget {
 }
 
 class _SaveBubbleButton extends StatelessWidget {
-  const _SaveBubbleButton({required this.saved, required this.onTap});
+  const _SaveBubbleButton({
+    required this.saved,
+    required this.highlighted,
+    required this.onTap,
+  });
 
   final bool saved;
+  final bool highlighted;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final background = saved
+    final background = highlighted && saved
         ? Colors.pinkAccent.withValues(alpha: 0.22)
         : YnotTheme.surface2.withValues(alpha: 0.96);
-    final border = saved
+    final border = highlighted && saved
         ? Colors.pinkAccent.withValues(alpha: 0.42)
         : YnotTheme.border;
-    final iconColor = saved ? Colors.pinkAccent : Colors.white;
+    final iconColor = highlighted && saved ? Colors.pinkAccent : Colors.white;
 
     return InkWell(
       borderRadius: BorderRadius.circular(999),

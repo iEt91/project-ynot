@@ -41,6 +41,12 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   _ActionRow(
+                    label: 'Preferencias',
+                    value: 'Abrir',
+                    onTap: () => context.push('/settings/preferences'),
+                  ),
+                  const SizedBox(height: 10),
+                  _ActionRow(
                     label: 'Usuarios bloqueados',
                     value: '${state.blockedUsers.length}',
                     onTap: () => context.push('/settings/blocked-users'),
@@ -71,7 +77,9 @@ class SettingsScreen extends ConsumerWidget {
                           content: Text(
                             count > 0
                                 ? 'Se cargaron $count actividades demo.'
-                                : 'Los datos demo ya estaban cargados.',
+                                : state.settings.receiveNotifications
+                                    ? 'Los datos demo ya estaban cargados.'
+                                    : 'Activa las notificaciones para generar demos.',
                           ),
                         ),
                       );

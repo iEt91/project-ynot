@@ -619,8 +619,11 @@ void main() {
       );
 
       await firstController.setChatMessagesNotifications(false);
+      await firstController.setReceiveNotifications(false);
       await firstController.setRecommendedActivitiesNotifications(false);
       await firstController.setActivityStartingSoonNotifications(false);
+      await firstController.setShowSavedHighlights(false);
+      await firstController.setShowArchivedChats(false);
       await firstController.setHidePreciseLocationUntilUnlock(false);
       await firstController.setPersonalizedRecommendations(false);
 
@@ -630,6 +633,7 @@ void main() {
       );
 
       expect(secondController.state.settings, isNotNull);
+      expect(secondController.state.settings.receiveNotifications, isFalse);
       expect(
         secondController.state.settings.chatMessagesNotifications,
         isFalse,
@@ -642,6 +646,9 @@ void main() {
         secondController.state.settings.activityStartingSoonNotifications,
         isFalse,
       );
+      expect(secondController.state.settings.showRecommendations, isFalse);
+      expect(secondController.state.settings.showSavedHighlights, isFalse);
+      expect(secondController.state.settings.showArchivedChats, isFalse);
       expect(
         secondController.state.settings.hidePreciseLocationUntilUnlock,
         isFalse,
@@ -1303,6 +1310,48 @@ void main() {
         mockStore: mockStore,
       );
       expect(reloaded.state.notifications, isEmpty);
+    });
+
+    test('user preferences gate notification creation locally', () async {
+      final controller = await _buildLoggedInController();
+
+      await controller.setReceiveNotifications(false);
+      final demoCount = await controller.generateDemoNotifications();
+      expect(demoCount, 0);
+      expect(controller.state.notifications, isEmpty);
+
+      await controller.setReceiveNotifications(true);
+      await controller.setChatMessagesNotifications(false);
+      await controller.receiveChatMessage(
+        activityId: controller.state.activities.first.id,
+        senderId: 'seed_participant_soojin',
+        senderName: 'Soojin',
+        senderEmoji: '✨',
+        content: 'Hola sin notificación',
+      );
+      expect(controller.state.notifications, isEmpty);
+
+      await controller.setChatMessagesNotifications(true);
+      await controller.setActivityStartingSoonNotifications(false);
+      await controller.createActivity(
+        title: 'Reminder test',
+        description: 'Actividad muy cercana para probar el recordatorio.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Seoul',
+        startTime: DateTime.now().add(const Duration(minutes: 20)),
+        duration: const Duration(hours: 1),
+        maxPeople: 6,
+        realLat: 37.5666,
+        realLng: 126.978,
+      );
+      await controller.refreshNotifications();
+      expect(
+        controller.state.notifications.where(
+          (item) => item.type == InAppNotificationType.activityStartingSoon,
+        ),
+        isEmpty,
+      );
     });
 
     test('demo notifications generate stable mixed read states', () async {

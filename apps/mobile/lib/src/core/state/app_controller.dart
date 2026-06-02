@@ -1110,6 +1110,12 @@ class AppController extends ChangeNotifier {
     unawaited(_persistSnapshot());
   }
 
+  Future<void> setReceiveNotifications(bool value) {
+    return updateSettings(
+      state.settings.copyWith(receiveNotifications: value),
+    );
+  }
+
   Future<void> setChatMessagesNotifications(bool value) {
     return updateSettings(
       state.settings.copyWith(chatMessagesNotifications: value),
@@ -1118,7 +1124,10 @@ class AppController extends ChangeNotifier {
 
   Future<void> setRecommendedActivitiesNotifications(bool value) {
     return updateSettings(
-      state.settings.copyWith(recommendedActivitiesNotifications: value),
+      state.settings.copyWith(
+        recommendedActivitiesNotifications: value,
+        showRecommendations: value,
+      ),
     );
   }
 
@@ -1131,6 +1140,18 @@ class AppController extends ChangeNotifier {
   Future<void> setHidePreciseLocationUntilUnlock(bool value) {
     return updateSettings(
       state.settings.copyWith(hidePreciseLocationUntilUnlock: value),
+    );
+  }
+
+  Future<void> setShowSavedHighlights(bool value) {
+    return updateSettings(
+      state.settings.copyWith(showSavedHighlights: value),
+    );
+  }
+
+  Future<void> setShowArchivedChats(bool value) {
+    return updateSettings(
+      state.settings.copyWith(showArchivedChats: value),
     );
   }
 
@@ -2999,6 +3020,10 @@ class AppController extends ChangeNotifier {
   }
 
   Future<int> generateDemoNotifications() async {
+    if (!state.settings.receiveNotifications) {
+      return 0;
+    }
+
     final now = DateTime.now();
     final activityIds = _demoNotificationActivityIds();
     final fiveMinutesAgo = now.subtract(const Duration(minutes: 5));
@@ -3398,6 +3423,9 @@ class AppController extends ChangeNotifier {
     required String body,
     required String dedupeKey,
   }) {
+    if (!state.settings.receiveNotifications) {
+      return;
+    }
     _upsertNotification(
       InAppNotification(
         id: 'notification_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(9999)}',
@@ -3499,23 +3527,20 @@ class AppController extends ChangeNotifier {
   }
 
   bool _notificationEnabledForType(InAppNotificationType type) {
+    if (!state.settings.receiveNotifications) {
+      return false;
+    }
     return switch (type) {
       InAppNotificationType.newMessage =>
         state.settings.chatMessagesNotifications,
       InAppNotificationType.activityStartingSoon =>
         state.settings.activityStartingSoonNotifications,
-      InAppNotificationType.newAttendee =>
-        state.settings.recommendedActivitiesNotifications,
-      InAppNotificationType.activityFinished =>
-        state.settings.recommendedActivitiesNotifications,
-      InAppNotificationType.feedbackAvailable =>
-        state.settings.recommendedActivitiesNotifications,
-      InAppNotificationType.blockedUserPresent =>
-        state.settings.recommendedActivitiesNotifications,
-      InAppNotificationType.activitySaved =>
-        state.settings.recommendedActivitiesNotifications,
-      InAppNotificationType.activityReminder =>
-        state.settings.recommendedActivitiesNotifications,
+      InAppNotificationType.newAttendee => true,
+      InAppNotificationType.activityFinished => true,
+      InAppNotificationType.feedbackAvailable => true,
+      InAppNotificationType.blockedUserPresent => true,
+      InAppNotificationType.activitySaved => true,
+      InAppNotificationType.activityReminder => true,
     };
   }
 
