@@ -1,3 +1,8 @@
+## v1.0.27.0
+- Added archived chat management with separate active and archived sections in Chats
+- Archived chats now show a clear read-only state and can be hidden locally from the user history without deleting anything globally
+- Archived chats keep reports, feedback, and attendance access available where applicable
+
 ## v1.0.26.7
 - Added a local post-activity attendance check so users can confirm whether they actually went to a finished activity
 - The attendance answer is stored per user and activity, appears in Activity Detail, Historial, Chat, and the Feedback flow, and is shown only once

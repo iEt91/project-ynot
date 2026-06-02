@@ -19,6 +19,7 @@ class LocalMockSnapshot {
     required this.messagesByActivityId,
     required this.savedActivityIds,
     required this.blockedUsers,
+    this.hiddenArchivedChatActivityIds = const [],
     this.notifications = const [],
     this.moderationFlags = const [],
     this.dismissedBlockedChatWarningActivityIds = const [],
@@ -38,6 +39,7 @@ class LocalMockSnapshot {
   final Map<String, List<ChatMessage>> messagesByActivityId;
   final List<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
+  final List<String> hiddenArchivedChatActivityIds;
   final List<InAppNotification> notifications;
   final List<ModerationFlag> moderationFlags;
   final List<String> dismissedBlockedChatWarningActivityIds;
@@ -67,6 +69,9 @@ class LocalMockSnapshot {
       'blockedUsers': blockedUsers
           .map((entry) => entry.toJson())
           .toList(growable: false),
+      'hiddenArchivedChatActivityIds': List<String>.from(
+        hiddenArchivedChatActivityIds,
+      ),
       'notifications': notifications
           .map((item) => item.toJson())
           .toList(growable: false),
@@ -132,6 +137,10 @@ class LocalMockSnapshot {
                 BlockedUserEntry.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(growable: false),
+      hiddenArchivedChatActivityIds:
+          (json['hiddenArchivedChatActivityIds'] as List<dynamic>? ?? const [])
+              .whereType<String>()
+              .toList(growable: false),
       notifications: (json['notifications'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map(

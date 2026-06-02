@@ -35,6 +35,7 @@ class AppState {
     required this.chatMessages,
     required this.savedActivityIds,
     required this.blockedUsers,
+    required this.hiddenArchivedChatActivityIds,
     required this.notifications,
     required this.moderationFlags,
     required this.dismissedBlockedChatWarningActivityIds,
@@ -62,6 +63,7 @@ class AppState {
       chatMessages: const {},
       savedActivityIds: const {},
       blockedUsers: const [],
+      hiddenArchivedChatActivityIds: const {},
       notifications: const [],
       moderationFlags: const [],
       dismissedBlockedChatWarningActivityIds: const {},
@@ -84,6 +86,7 @@ class AppState {
   final Map<String, List<ChatMessage>> chatMessages;
   final Set<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
+  final Set<String> hiddenArchivedChatActivityIds;
   final List<InAppNotification> notifications;
   final List<ModerationFlag> moderationFlags;
   final Set<String> dismissedBlockedChatWarningActivityIds;
@@ -109,6 +112,7 @@ class AppState {
     Map<String, List<ChatMessage>>? chatMessages,
     Set<String>? savedActivityIds,
     List<BlockedUserEntry>? blockedUsers,
+    Set<String>? hiddenArchivedChatActivityIds,
     List<InAppNotification>? notifications,
     List<ModerationFlag>? moderationFlags,
     Set<String>? dismissedBlockedChatWarningActivityIds,
@@ -134,6 +138,8 @@ class AppState {
       chatMessages: chatMessages ?? this.chatMessages,
       savedActivityIds: savedActivityIds ?? this.savedActivityIds,
       blockedUsers: blockedUsers ?? this.blockedUsers,
+      hiddenArchivedChatActivityIds:
+          hiddenArchivedChatActivityIds ?? this.hiddenArchivedChatActivityIds,
       notifications: notifications ?? this.notifications,
       moderationFlags: moderationFlags ?? this.moderationFlags,
       dismissedBlockedChatWarningActivityIds:
@@ -433,6 +439,7 @@ class AppController extends ChangeNotifier {
   final Set<String> _confirmedAttendanceActivityIds = {};
   final Set<String> _savedActivityIds = {};
   final List<BlockedUserEntry> _blockedUsers = [];
+  final Set<String> _hiddenArchivedChatActivityIds = {};
   final List<ModerationFlag> _moderationFlags = [];
   final Set<String> _dismissedBlockedChatWarningActivityIds = {};
   final Set<String> _acceptedChatGuidelinesActivityIds = {};
@@ -454,6 +461,10 @@ class AppController extends ChangeNotifier {
 
   List<BlockedUserEntry> get blockedUsers =>
       List<BlockedUserEntry>.unmodifiable(_blockedUsers);
+
+  bool isArchivedChatHidden(String activityId) {
+    return _hiddenArchivedChatActivityIds.contains(activityId);
+  }
 
   List<ModerationFlag> get moderationFlags =>
       List<ModerationFlag>.unmodifiable(_moderationFlags);
@@ -477,6 +488,39 @@ class AppController extends ChangeNotifier {
 
   bool hasAcceptedChatGuidelines(String activityId) {
     return _acceptedChatGuidelinesActivityIds.contains(activityId);
+  }
+
+  Future<bool> hideArchivedChatFromHistory(String activityId) async {
+    final currentUser = state.user;
+    final activity = _findActivity(activityId);
+    if (currentUser == null ||
+        activity == null ||
+        activityId.isEmpty ||
+        !activity.isFinishedOrArchived) {
+      return false;
+    }
+
+    final participated = activity.creatorId == currentUser.id ||
+        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+        activity.myStatus == ParticipantStatus.confirmed ||
+        activity.myStatus == ParticipantStatus.attended ||
+        activity.myStatus == ParticipantStatus.noShow ||
+        activity.myStatus == ParticipantStatus.notSure;
+    if (!participated) {
+      return false;
+    }
+
+    if (!_hiddenArchivedChatActivityIds.add(activityId)) {
+      return false;
+    }
+
+    state = state.copyWith(
+      hiddenArchivedChatActivityIds: Set<String>.unmodifiable(
+        _hiddenArchivedChatActivityIds,
+      ),
+    );
+    unawaited(_persistSnapshot());
+    return true;
   }
 
   AttendanceResponse? attendanceResponseForActivity(
@@ -949,6 +993,7 @@ class AppController extends ChangeNotifier {
     _confirmedAttendanceActivityIds.clear();
     _savedActivityIds.clear();
     _blockedUsers.clear();
+    _hiddenArchivedChatActivityIds.clear();
     _moderationFlags.clear();
     _dismissedBlockedChatWarningActivityIds.clear();
     _acceptedChatGuidelinesActivityIds.clear();
@@ -964,6 +1009,7 @@ class AppController extends ChangeNotifier {
       activities: const [],
       chatMessages: const {},
       savedActivityIds: const {},
+      hiddenArchivedChatActivityIds: const {},
       notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
@@ -986,6 +1032,7 @@ class AppController extends ChangeNotifier {
     _savedActivityIds.clear();
     _activeChatActivityIds.clear();
     _moderationFlags.clear();
+    _hiddenArchivedChatActivityIds.clear();
     _acceptedChatGuidelinesActivityIds.clear();
     _preActivityChecklistByActivityId.clear();
     _startingSoonReminderSentActivityKeys.clear();
@@ -998,6 +1045,7 @@ class AppController extends ChangeNotifier {
       activities: const [],
       chatMessages: const {},
       savedActivityIds: const {},
+      hiddenArchivedChatActivityIds: const {},
       notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
@@ -2389,6 +2437,37 @@ class AppController extends ChangeNotifier {
         .toList(growable: false);
   }
 
+  List<Activity> activeChatsForUser(String userId) {
+    return state.activities
+        .where(
+          (activity) =>
+              activity.isActiveLifecycle &&
+              !activity.isFinishedOrArchived &&
+              (activity.creatorId == userId ||
+                  activity.myStatus ==
+                      ParticipantStatus.joinedPendingConfirmation ||
+                  activity.myStatus == ParticipantStatus.confirmed),
+        )
+        .toList(growable: false);
+  }
+
+  List<Activity> archivedChatsForUser(String userId) {
+    return state.activities
+        .where(
+          (activity) =>
+              activity.isFinishedOrArchived &&
+              !isArchivedChatHidden(activity.id) &&
+              (activity.creatorId == userId ||
+                  activity.myStatus ==
+                      ParticipantStatus.joinedPendingConfirmation ||
+                  activity.myStatus == ParticipantStatus.confirmed ||
+                  activity.myStatus == ParticipantStatus.attended ||
+                  activity.myStatus == ParticipantStatus.noShow ||
+                  activity.myStatus == ParticipantStatus.notSure),
+        )
+        .toList(growable: false);
+  }
+
   List<Activity> historyActivitiesForUser(String userId) {
     return state.activities
         .where(
@@ -3461,6 +3540,8 @@ class AppController extends ChangeNotifier {
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
         blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
+        hiddenArchivedChatActivityIds:
+            _hiddenArchivedChatActivityIds.toList(growable: false),
         moderationFlags: List<ModerationFlag>.unmodifiable(_moderationFlags),
         notifications: state.notifications,
         dismissedBlockedChatWarningActivityIds:
@@ -3551,6 +3632,14 @@ class AppController extends ChangeNotifier {
             .toList(growable: false),
       );
 
+    _hiddenArchivedChatActivityIds
+      ..clear()
+      ..addAll(
+        snapshot.hiddenArchivedChatActivityIds
+            .where((activityId) => activityId.isNotEmpty)
+            .toList(growable: false),
+      );
+
     _moderationFlags
       ..clear()
       ..addAll(
@@ -3616,6 +3705,9 @@ class AppController extends ChangeNotifier {
           : hydratedActivities,
       chatMessages: restoredMessages,
       savedActivityIds: hydratedSavedActivityIds,
+      hiddenArchivedChatActivityIds: Set<String>.unmodifiable(
+        _hiddenArchivedChatActivityIds,
+      ),
       settings: hydratedSettings,
       activityFilters: hydratedFilters,
       activitySearchQuery: hydratedSearchQuery,

@@ -278,6 +278,13 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                                   ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
+                          if (isFinishedOrArchived) ...[
+                            const SizedBox(height: 8),
+                            const StatusPill(
+                              label: 'Chat archivado',
+                              color: Colors.white54,
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -654,72 +661,76 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-                child: Column(
-                  children: [
-                    if (!canSendMessage) ...[
-                      KawaiiCard(
+                child: isFinishedOrArchived
+                    ? KawaiiCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            const StatusPill(
+                              label: 'S?lo lectura',
+                              color: Colors.white54,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Puedes revisar mensajes, reportar y ver feedback o asistencia si corresponde.',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : KawaiiCard(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 10,
                         ),
-                        child: Text(
-                          'Chat en modo lectura.',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w700,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _messageController,
+                                enabled: canSendMessage,
+                                decoration: const InputDecoration(
+                                  hintText: 'Escribe un mensaje...',
+                                  border: InputBorder.none,
+                                  filled: false,
+                                ),
+                                onSubmitted: canSendMessage
+                                    ? (_) async {
+                                        await _sendMessage(activity.id);
+                                      }
+                                    : null,
                               ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                    KawaiiCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              enabled: canSendMessage,
-                              decoration: const InputDecoration(
-                                hintText: 'Escribe un mensaje...',
-                                border: InputBorder.none,
-                                filled: false,
+                            ),
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 34,
+                                minHeight: 34,
                               ),
-                              onSubmitted: canSendMessage
-                                  ? (_) async {
+                              onPressed: canSendMessage
+                                  ? () async {
                                       await _sendMessage(activity.id);
                                     }
                                   : null,
+                              icon: const Icon(Icons.send_rounded),
                             ),
-                          ),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 34,
-                              minHeight: 34,
-                            ),
-                            onPressed: canSendMessage
-                                ? () async {
-                                    await _sendMessage(activity.id);
-                                  }
-                                : null,
-                            icon: const Icon(Icons.send_rounded),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
               ),
             ],
-          ),
         ),
+      ),
       ),
     );
   }

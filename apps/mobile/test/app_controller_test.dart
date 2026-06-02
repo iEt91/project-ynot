@@ -1371,6 +1371,63 @@ void main() {
       );
     });
 
+    test(
+      'archived chats can be hidden from my list and persist locally',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
+        final controller = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        final userId = controller.state.user!.id;
+        final archivedChat = controller.state.activities.firstWhere(
+          (item) => item.id == 'seed_4',
+        );
+
+        expect(
+          controller.archivedChatsForUser(userId).any(
+            (item) => item.id == archivedChat.id,
+          ),
+          isTrue,
+        );
+        expect(
+          controller.activeChatsForUser(userId).any(
+            (item) => item.id == archivedChat.id,
+          ),
+          isFalse,
+        );
+
+        expect(
+          await controller.hideArchivedChatFromHistory(archivedChat.id),
+          isTrue,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          controller.archivedChatsForUser(userId).any(
+            (item) => item.id == archivedChat.id,
+          ),
+          isFalse,
+        );
+
+        final reloadedController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+        expect(
+          reloadedController.archivedChatsForUser(userId).any(
+            (item) => item.id == archivedChat.id,
+          ),
+          isFalse,
+        );
+      },
+    );
+
     test('private feedback is saved once per reviewer and activity', () async {
       final controller = await _buildLoggedInController();
       final activity = controller.state.activities.firstWhere(
