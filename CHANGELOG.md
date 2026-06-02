@@ -1,3 +1,8 @@
+## v1.0.26.0
+- Added local moderation flags for risky keywords found in activity text and chat messages
+- Created a private mock-only moderation screen in Configuración for reviewing pending flags
+- Moderation flags stay internal, persist locally, and can be marked reviewed or dismissed
+
 ## v1.0.25.1
 - Main screens now share a compact header with icons only for search, filters and notifications
 - Notification access moved into the main header on Mapa, Actividades and Chats for quicker access

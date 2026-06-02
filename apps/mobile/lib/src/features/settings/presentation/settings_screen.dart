@@ -91,6 +91,15 @@ class SettingsScreen extends ConsumerWidget {
                     },
                     child: const Text('Generar notificaciones demo'),
                   ),
+                  if (state.demoMode) ...[
+                    const SizedBox(height: 10),
+                    FilledButton.tonal(
+                      onPressed: () {
+                        context.push('/settings/moderation');
+                      },
+                      child: const Text('Moderación interna'),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   FilledButton(
                     style: FilledButton.styleFrom(

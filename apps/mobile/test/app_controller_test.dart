@@ -8,6 +8,7 @@ import 'package:ynot_mobile/src/core/models/activity_filters.dart';
 import 'package:ynot_mobile/src/core/models/app_user.dart';
 import 'package:ynot_mobile/src/core/models/chat_message.dart';
 import 'package:ynot_mobile/src/core/models/in_app_notification.dart';
+import 'package:ynot_mobile/src/core/models/moderation_flag.dart';
 import 'package:ynot_mobile/src/core/models/moderation_report.dart';
 import 'package:ynot_mobile/src/core/models/private_feedback.dart';
 import 'package:ynot_mobile/src/core/state/app_controller.dart';
@@ -618,6 +619,7 @@ void main() {
       expect(secondController.state.chatMessages, isEmpty);
       expect(secondController.state.reports, isEmpty);
       expect(secondController.state.feedbackEntries, isEmpty);
+      expect(secondController.state.moderationFlags, isEmpty);
       expect(secondController.state.user, isNull);
       expect(sessionStore.clientUid, isNull);
       expect(mockStore.snapshot, isNull);
@@ -653,6 +655,7 @@ void main() {
       expect(controller.filteredActivities(), isEmpty);
       expect(controller.state.chatMessages, isEmpty);
       expect(controller.savedActivities(), isEmpty);
+      expect(controller.state.moderationFlags, isEmpty);
       expect(
         controller.historyActivitiesForUser(controller.state.user!.id),
         isEmpty,
@@ -1580,6 +1583,77 @@ void main() {
         ReportReason.badAttitude,
       );
     });
+
+    test(
+      'moderation flags are created for risky activity and chat text and persist',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
+
+        final firstController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        await firstController.createActivity(
+          title: 'Crypto Night',
+          description: 'Weed and casino plan.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Hongdae',
+          startTime: DateTime(2026, 6, 1, 18, 0),
+          duration: const Duration(hours: 2),
+          maxPeople: 6,
+          realLat: 37.5563,
+          realLng: 126.9228,
+        );
+
+        final createdActivity = firstController.state.activities.firstWhere(
+          (activity) => activity.title == 'Crypto Night',
+        );
+        await firstController.sendChatMessage(
+          createdActivity.id,
+          'Vamos a pelear y matar el tiempo con spam casino.',
+        );
+
+        expect(firstController.moderationFlags, isNotEmpty);
+        expect(
+          firstController.moderationFlags.map((flag) => flag.category).toSet(),
+          containsAll(['spam', 'drugs', 'violence']),
+        );
+        expect(
+          firstController.pendingModerationFlags(),
+          hasLength(firstController.moderationFlags.length),
+        );
+
+        final weedFlag = firstController.moderationFlags.firstWhere(
+          (flag) => flag.keyword == 'weed',
+        );
+        await firstController.markModerationFlagReviewed(weedFlag.flagId);
+        expect(
+          firstController.moderationFlags
+              .firstWhere((flag) => flag.flagId == weedFlag.flagId)
+              .status,
+          ModerationFlagStatus.reviewed,
+        );
+
+        final secondController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        expect(secondController.moderationFlags, isNotEmpty);
+        expect(
+          secondController.moderationFlags
+              .firstWhere((flag) => flag.flagId == weedFlag.flagId)
+              .status,
+          ModerationFlagStatus.reviewed,
+        );
+      },
+    );
 
     test(
       'reportable participants include organizer attendees blocked and chat senders',

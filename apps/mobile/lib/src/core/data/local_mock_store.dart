@@ -7,6 +7,7 @@ import '../models/blocked_user.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
 import '../models/in_app_notification.dart';
+import '../models/moderation_flag.dart';
 import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
 
@@ -18,6 +19,7 @@ class LocalMockSnapshot {
     required this.savedActivityIds,
     required this.blockedUsers,
     this.notifications = const [],
+    this.moderationFlags = const [],
     this.dismissedBlockedChatWarningActivityIds = const [],
     required this.activityFilters,
     this.searchQuery = '',
@@ -32,6 +34,7 @@ class LocalMockSnapshot {
   final List<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
   final List<InAppNotification> notifications;
+  final List<ModerationFlag> moderationFlags;
   final List<String> dismissedBlockedChatWarningActivityIds;
   final Map<String, dynamic> activityFilters;
   final String searchQuery;
@@ -56,6 +59,9 @@ class LocalMockSnapshot {
           .map((entry) => entry.toJson())
           .toList(growable: false),
       'notifications': notifications
+          .map((item) => item.toJson())
+          .toList(growable: false),
+      'moderationFlags': moderationFlags
           .map((item) => item.toJson())
           .toList(growable: false),
       'dismissedBlockedChatWarningActivityIds': List<String>.from(
@@ -113,6 +119,12 @@ class LocalMockSnapshot {
           .map(
             (item) =>
                 InAppNotification.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList(growable: false),
+      moderationFlags: (json['moderationFlags'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => ModerationFlag.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(growable: false),
       dismissedBlockedChatWarningActivityIds:

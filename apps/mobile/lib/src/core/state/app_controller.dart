@@ -15,8 +15,10 @@ import '../models/app_settings.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
 import '../models/in_app_notification.dart';
+import '../models/moderation_flag.dart';
 import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
+import '../utils/moderation_keywords.dart';
 import '../models/reportable_participant.dart';
 import '../utils/app_logger.dart';
 import '../utils/formatters.dart';
@@ -32,6 +34,7 @@ class AppState {
     required this.savedActivityIds,
     required this.blockedUsers,
     required this.notifications,
+    required this.moderationFlags,
     required this.dismissedBlockedChatWarningActivityIds,
     required this.settings,
     required this.activityFilters,
@@ -54,6 +57,7 @@ class AppState {
       savedActivityIds: const {},
       blockedUsers: const [],
       notifications: const [],
+      moderationFlags: const [],
       dismissedBlockedChatWarningActivityIds: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
@@ -71,6 +75,7 @@ class AppState {
   final Set<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
   final List<InAppNotification> notifications;
+  final List<ModerationFlag> moderationFlags;
   final Set<String> dismissedBlockedChatWarningActivityIds;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
@@ -91,6 +96,7 @@ class AppState {
     Set<String>? savedActivityIds,
     List<BlockedUserEntry>? blockedUsers,
     List<InAppNotification>? notifications,
+    List<ModerationFlag>? moderationFlags,
     Set<String>? dismissedBlockedChatWarningActivityIds,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
@@ -111,6 +117,7 @@ class AppState {
       savedActivityIds: savedActivityIds ?? this.savedActivityIds,
       blockedUsers: blockedUsers ?? this.blockedUsers,
       notifications: notifications ?? this.notifications,
+      moderationFlags: moderationFlags ?? this.moderationFlags,
       dismissedBlockedChatWarningActivityIds:
           dismissedBlockedChatWarningActivityIds ??
           this.dismissedBlockedChatWarningActivityIds,
@@ -396,6 +403,7 @@ class AppController extends ChangeNotifier {
   final Set<String> _confirmedAttendanceActivityIds = {};
   final Set<String> _savedActivityIds = {};
   final List<BlockedUserEntry> _blockedUsers = [];
+  final List<ModerationFlag> _moderationFlags = [];
   final Set<String> _dismissedBlockedChatWarningActivityIds = {};
 
   AppState get state => _state;
@@ -411,6 +419,9 @@ class AppController extends ChangeNotifier {
 
   List<BlockedUserEntry> get blockedUsers =>
       List<BlockedUserEntry>.unmodifiable(_blockedUsers);
+
+  List<ModerationFlag> get moderationFlags =>
+      List<ModerationFlag>.unmodifiable(_moderationFlags);
 
   bool hasDismissedBlockedChatWarning(String activityId) {
     return _dismissedBlockedChatWarningActivityIds.contains(activityId);
@@ -503,6 +514,7 @@ class AppController extends ChangeNotifier {
         savedActivityIds: const {},
         settings: AppSettings.initial(),
         activityFilters: ActivityDiscoveryFilters.initial(),
+        moderationFlags: const [],
         reports: const [],
         feedbackEntries: const [],
         errorMessage: null,
@@ -547,6 +559,7 @@ class AppController extends ChangeNotifier {
       savedActivityIds: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
+      moderationFlags: const [],
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -675,6 +688,7 @@ class AppController extends ChangeNotifier {
     _confirmedAttendanceActivityIds.clear();
     _savedActivityIds.clear();
     _blockedUsers.clear();
+    _moderationFlags.clear();
     _dismissedBlockedChatWarningActivityIds.clear();
     _activeChatActivityIds.clear();
     state = AppState.initial().copyWith(
@@ -686,6 +700,7 @@ class AppController extends ChangeNotifier {
       notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
+      moderationFlags: const [],
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -704,6 +719,7 @@ class AppController extends ChangeNotifier {
     _confirmedAttendanceActivityIds.clear();
     _savedActivityIds.clear();
     _activeChatActivityIds.clear();
+    _moderationFlags.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
@@ -713,6 +729,7 @@ class AppController extends ChangeNotifier {
       notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
+      moderationFlags: const [],
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -784,6 +801,7 @@ class AppController extends ChangeNotifier {
       savedActivityIds: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
+      moderationFlags: const [],
       reports: const [],
       feedbackEntries: const [],
       errorMessage: null,
@@ -854,6 +872,14 @@ class AppController extends ChangeNotifier {
 
     _joinedActivityIds.add(created.id);
     _confirmedAttendanceActivityIds.add(created.id);
+
+    _scanModerationContent(
+      sourceType: ModerationFlagSourceType.activity,
+      sourceId: created.id,
+      activityId: created.id,
+      userId: currentUser.id,
+      text: '${title.trim()}\n${description.trim()}',
+    );
 
     AppLogger.log('ACTIVITY', 'created id=${created.id}');
     _syncTimeBasedNotifications();
@@ -937,6 +963,15 @@ class AppController extends ChangeNotifier {
     if (!changed) return false;
 
     state = state.copyWith(activities: updated);
+    final updatedActivity = updated.firstWhere((item) => item.id == activityId);
+    _scanModerationContent(
+      sourceType: ModerationFlagSourceType.activity,
+      sourceId: activityId,
+      activityId: activityId,
+      userId: currentUser.id,
+      text:
+          '${updatedActivity.title.trim()}\n${updatedActivity.description.trim()}',
+    );
     _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
     return true;
@@ -1232,6 +1267,13 @@ class AppController extends ChangeNotifier {
     messages.add(message);
     _messagesByActivityId[chatId] = messages;
     _setChatMessages(activityId, messages, chatId: chatId, source: 'mock');
+    _scanModerationContent(
+      sourceType: ModerationFlagSourceType.message,
+      sourceId: message.id,
+      activityId: activityId,
+      userId: user.id,
+      text: text,
+    );
     AppLogger.log('MESSAGE', 'sent activityId=$activityId');
     unawaited(_persistSnapshot());
   }
@@ -1275,6 +1317,13 @@ class AppController extends ChangeNotifier {
       chatId: chatId,
       unreadMessageCount: unreadMessageCount,
       source: 'mock',
+    );
+    _scanModerationContent(
+      sourceType: ModerationFlagSourceType.message,
+      sourceId: message.id,
+      activityId: activityId,
+      userId: senderId,
+      text: message.content,
     );
 
     if (!_activeChatActivityIds.contains(activityId) &&
@@ -1353,6 +1402,26 @@ class AppController extends ChangeNotifier {
       reason: ReportReason.inappropriateMessage,
       note: content,
     );
+  }
+
+  List<ModerationFlag> pendingModerationFlags() {
+    final flags = _moderationFlags
+        .where((flag) => flag.status == ModerationFlagStatus.pending)
+        .toList(growable: false);
+    flags.sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    return flags;
+  }
+
+  Future<void> markModerationFlagReviewed(String flagId) async {
+    if (flagId.isEmpty) return;
+    _updateModerationFlag(flagId, ModerationFlagStatus.reviewed);
+    await _persistSnapshot();
+  }
+
+  Future<void> dismissModerationFlag(String flagId) async {
+    if (flagId.isEmpty) return;
+    _updateModerationFlag(flagId, ModerationFlagStatus.dismissed);
+    await _persistSnapshot();
   }
 
   Future<void> refreshActivity(String activityId) async {
@@ -2885,6 +2954,89 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  void _updateModerationFlag(String flagId, ModerationFlagStatus status) {
+    final index = _moderationFlags.indexWhere((flag) => flag.flagId == flagId);
+    if (index < 0) {
+      return;
+    }
+
+    final existing = _moderationFlags[index];
+    if (existing.status == status) {
+      return;
+    }
+
+    _moderationFlags[index] = existing.copyWith(status: status);
+    state = state.copyWith(
+      moderationFlags: List<ModerationFlag>.unmodifiable(_moderationFlags),
+    );
+  }
+
+  void _scanModerationContent({
+    required ModerationFlagSourceType sourceType,
+    required String sourceId,
+    required String activityId,
+    required String userId,
+    required String text,
+  }) {
+    final normalizedText = text.trim();
+    if (normalizedText.isEmpty) {
+      return;
+    }
+
+    final matches = findModerationKeywordMatches(normalizedText);
+    if (matches.isEmpty) {
+      return;
+    }
+
+    final snippet = _moderationTextSnippet(normalizedText);
+    for (final match in matches) {
+      final dedupeKey =
+          '${sourceType.name}:$sourceId:${match.category}:${match.keyword}:$snippet';
+      final existingIndex = _moderationFlags.indexWhere(
+        (flag) => flag.dedupeKey == dedupeKey,
+      );
+      final flag = ModerationFlag(
+        flagId:
+            'flag_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(9999)}',
+        sourceType: sourceType,
+        sourceId: sourceId,
+        activityId: activityId,
+        userId: userId,
+        keyword: match.keyword,
+        category: match.category,
+        textSnippet: snippet,
+        createdAt: DateTime.now(),
+        status: ModerationFlagStatus.pending,
+        dedupeKey: dedupeKey,
+      );
+
+      if (existingIndex >= 0) {
+        final existing = _moderationFlags[existingIndex];
+        if (existing.status == ModerationFlagStatus.pending) {
+          continue;
+        }
+        _moderationFlags[existingIndex] = flag.copyWith(
+          status: existing.status,
+        );
+      } else {
+        _moderationFlags.insert(0, flag);
+      }
+    }
+
+    state = state.copyWith(
+      moderationFlags: List<ModerationFlag>.unmodifiable(_moderationFlags),
+    );
+  }
+
+  String _moderationTextSnippet(String text) {
+    final compact = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (compact.length <= 90) {
+      return compact;
+    }
+
+    return '${compact.substring(0, 87)}...';
+  }
+
   bool _notificationEnabledForType(InAppNotificationType type) {
     return switch (type) {
       InAppNotificationType.newMessage =>
@@ -2976,6 +3128,7 @@ class AppController extends ChangeNotifier {
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
         blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
+        moderationFlags: List<ModerationFlag>.unmodifiable(_moderationFlags),
         notifications: state.notifications,
         dismissedBlockedChatWarningActivityIds:
             _dismissedBlockedChatWarningActivityIds.toList(growable: false),
@@ -3054,6 +3207,14 @@ class AppController extends ChangeNotifier {
             .toList(growable: false),
       );
 
+    _moderationFlags
+      ..clear()
+      ..addAll(
+        snapshot.moderationFlags
+            .where((flag) => flag.flagId.isNotEmpty)
+            .toList(growable: false),
+      );
+
     _dismissedBlockedChatWarningActivityIds
       ..clear()
       ..addAll(
@@ -3076,6 +3237,7 @@ class AppController extends ChangeNotifier {
       reports: snapshot.reports,
       feedbackEntries: snapshot.feedbackEntries,
       blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
+      moderationFlags: List<ModerationFlag>.unmodifiable(_moderationFlags),
       notifications: List<InAppNotification>.unmodifiable(
         snapshot.notifications,
       ),
