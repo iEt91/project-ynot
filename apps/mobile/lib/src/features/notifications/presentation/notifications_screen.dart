@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,19 +52,37 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 title: 'Notificaciones',
                 subtitle: 'Lo que pasa en tus planes, sin salir de la app.',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               if (notifications.isNotEmpty)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: unreadCount == 0
-                        ? null
-                        : () async {
-                            await controller.markAllNotificationsRead();
-                          },
-                    icon: const Icon(Icons.done_all_rounded),
-                    label: const Text('Marcar todas como leídas'),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      onPressed: unreadCount == 0
+                          ? null
+                          : () async {
+                              await controller.markAllNotificationsRead();
+                            },
+                      icon: const Icon(Icons.done_all_rounded),
+                      label: const Text('Marcar todas como leídas'),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      tooltip: 'Borrar todas',
+                      onPressed: () async {
+                        final confirmed = await _confirmClearAll(context);
+                        if (!confirmed || !context.mounted) return;
+                        await controller.clearNotifications();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Se borraron tus notificaciones.'),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded),
+                    ),
+                  ],
                 ),
               const SizedBox(height: 10),
               if (notifications.isEmpty)
@@ -85,6 +103,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         if (!context.mounted) return;
                         context.push(_routeForNotification(notification));
                       },
+                      onDelete: () async {
+                        final confirmed = await _confirmDelete(context);
+                        if (!confirmed || !context.mounted) return;
+                        await controller.deleteNotification(notification.id);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Notificación eliminada.'),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -93,6 +122,54 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
       ),
     );
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              backgroundColor: YnotTheme.surface2,
+              title: const Text('Eliminar notificación'),
+              content: const Text('Esta notificación desaparecerá sólo para ti.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Eliminar'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  Future<bool> _confirmClearAll(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              backgroundColor: YnotTheme.surface2,
+              title: const Text('Borrar notificaciones'),
+              content: const Text('Se eliminarán todas tus notificaciones locales.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Borrar'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 
   String _routeForNotification(InAppNotification notification) {
@@ -105,91 +182,118 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 }
 
+enum _NotificationAction { delete }
+
 class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({required this.notification, required this.onTap});
+  const _NotificationTile({
+    required this.notification,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   final InAppNotification notification;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final unread = !notification.isRead;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: KawaiiCard(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            KawaiiAvatar(
-              emoji: notification.emoji,
-              size: 50,
-              accentColor: unread ? YnotTheme.primary : YnotTheme.surface2,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(
-                                fontWeight: unread
-                                    ? FontWeight.w800
-                                    : FontWeight.w700,
-                              ),
-                        ),
-                      ),
-                      if (unread) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 10,
-                          height: 10,
-                          margin: const EdgeInsets.only(top: 4),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: YnotTheme.primary,
+    return GestureDetector(
+      onLongPress: onDelete,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: KawaiiCard(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              KawaiiAvatar(
+                emoji: notification.emoji,
+                size: 50,
+                accentColor: unread ? YnotTheme.primary : YnotTheme.surface2,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notification.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: unread
+                                      ? FontWeight.w800
+                                      : FontWeight.w700,
+                                ),
                           ),
                         ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    notification.body,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Text(
-                        _formatTime(notification.createdAt),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        PopupMenuButton<_NotificationAction>(
+                          icon: const Icon(Icons.more_horiz_rounded),
+                          color: YnotTheme.surface2,
+                          onSelected: (value) {
+                            switch (value) {
+                              case _NotificationAction.delete:
+                                onDelete();
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(
+                              value: _NotificationAction.delete,
+                              child: Text('Eliminar'),
+                            ),
+                          ],
                         ),
+                        if (unread) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            width: 10,
+                            height: 10,
+                            margin: const EdgeInsets.only(top: 10),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: YnotTheme.primary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      notification.body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.35,
                       ),
-                      const Spacer(),
-                      _UnreadLabel(label: unread ? 'Nuevo' : 'Leída'),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          _formatTime(notification.createdAt),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const Spacer(),
+                        _UnreadLabel(label: unread ? 'Nuevo' : 'Leída'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -226,9 +330,9 @@ class _UnreadLabel extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w800),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
       ),
     );
   }

@@ -1,3 +1,8 @@
+## v1.0.28.0
+- Added notification management actions so users can mark all as read, delete a single notification, or clear the local notification list
+- The notification center now stays local and manageable without changing notification creation triggers
+- Clearing notifications only removes the local notification history for the current user
+
 ## v1.0.27.1
 - Fixed archived chat navigation so returning from archived chats goes back to the Chats tab instead of a dead-end screen
 - Closed late attendance registration for finished or archived activities when attendance was not already confirmed before closure

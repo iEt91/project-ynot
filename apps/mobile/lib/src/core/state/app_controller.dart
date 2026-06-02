@@ -821,6 +821,31 @@ class AppController extends ChangeNotifier {
     unawaited(_persistSnapshot());
   }
 
+  Future<void> deleteNotification(String notificationId) async {
+    if (notificationId.isEmpty || state.notifications.isEmpty) {
+      return;
+    }
+
+    final next = state.notifications
+        .where((item) => item.id != notificationId)
+        .toList(growable: false);
+    if (next.length == state.notifications.length) {
+      return;
+    }
+
+    state = state.copyWith(notifications: next);
+    unawaited(_persistSnapshot());
+  }
+
+  Future<void> clearNotifications() async {
+    if (state.notifications.isEmpty) {
+      return;
+    }
+
+    state = state.copyWith(notifications: const []);
+    unawaited(_persistSnapshot());
+  }
+
   Future<void> refreshNotifications() async {
     final changed = _syncTimeBasedNotifications();
     if (changed) {

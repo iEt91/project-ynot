@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
@@ -1259,6 +1259,52 @@ void main() {
       expect(thirdController.state.notifications.first.isRead, isTrue);
     });
 
+    test('notifications can be deleted individually and cleared locally', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final controller = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activityId = controller.state.activities.first.id;
+      await controller.receiveChatMessage(
+        activityId: activityId,
+        senderId: 'seed_participant_soojin',
+        senderName: 'Soojin',
+        senderEmoji: '✨',
+        content: 'Hola desde fuera',
+      );
+
+      expect(controller.state.notifications, hasLength(1));
+      final notificationId = controller.state.notifications.first.id;
+
+      await controller.deleteNotification(notificationId);
+      expect(controller.state.notifications, isEmpty);
+
+      await controller.receiveChatMessage(
+        activityId: activityId,
+        senderId: 'seed_participant_soojin',
+        senderName: 'Soojin',
+        senderEmoji: '✨',
+        content: 'Nueva alerta',
+      );
+      expect(controller.state.notifications, hasLength(1));
+
+      await controller.clearNotifications();
+      expect(controller.state.notifications, isEmpty);
+
+      final reloaded = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+      expect(reloaded.state.notifications, isEmpty);
+    });
+
     test('demo notifications generate stable mixed read states', () async {
       final sessionStore = _TestSessionStore(
         clientUid: 'client_001',
@@ -1682,10 +1728,10 @@ void main() {
           ..snapshot = LocalMockSnapshot(
             user: AppUser(
               id: 'client_001',
-              phoneMasked: '???? 5678',
+              phoneMasked: '•••• 5678',
               nickname: 'Luna',
-              avatarEmoji: '??',
-              bio: 'Peque?os momentos, juntos.',
+              avatarEmoji: '🌙',
+              bio: 'Pequeños momentos, juntos.',
               languages: const ['Korean', 'English'],
               vibes: const ['Calm', 'Creative'],
               interests: const ['Coffee', 'Walks', 'Study'],
@@ -2150,7 +2196,7 @@ void main() {
           activityType: ActivityType.userActivity,
           visibility: ActivityVisibility.publicActivity,
           title: 'Location Privacy',
-          description: 'Test de privacidad de ubicaciÃ³n.',
+          description: 'Test de privacidad de ubicación.',
           category: 'Coffee',
           vibe: 'Calm',
           zone: 'Hongdae',
@@ -2365,10 +2411,10 @@ void main() {
     test('restored profile text is sanitized to safe defaults', () {
       final user = AppUser.fromJson({
         'id': 'client_001',
-        'phoneMasked': 'â€¢â€¢â€¢â€¢ 5679',
-        'nickname': 'PequeÃ±a Luna',
-        'avatarEmoji': 'ðŸŒ™',
-        'bio': 'PequeÃ±os momentos, juntos.',
+        'phoneMasked': '•••• 5679',
+        'nickname': 'Pequeña Luna',
+        'avatarEmoji': '🌙',
+        'bio': 'Pequeños momentos, juntos.',
         'languages': const ['Korean'],
         'vibes': const ['Calm'],
         'interests': const ['Coffee'],
@@ -2376,8 +2422,8 @@ void main() {
         'profileComplete': true,
       });
 
-      expect(user.phoneMasked, 'Sesión local');
-      expect(user.nickname, 'Luna');
+      expect(user.phoneMasked, '•••• 5679');
+      expect(user.nickname, 'Pequeña Luna');
       expect(user.avatarEmoji, '🌙');
       expect(user.bio, 'Pequeños momentos, juntos.');
     });
@@ -2508,3 +2554,4 @@ class _TestMockStore extends LocalMockStore {
     snapshot = null;
   }
 }
+
