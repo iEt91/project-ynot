@@ -51,6 +51,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final showRecommendations = state.settings.showRecommendations;
     final showSavedHighlights = state.settings.showSavedHighlights;
     final searchQuery = state.activitySearchQuery.trim();
+    final mockUserLocation = controller.mockCurrentLocation;
     final unreadNotifications = state.notifications
         .where((notification) => !notification.isRead)
         .length;
@@ -106,8 +107,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             onCameraPositionChanged: (position) {
                               setState(() => _cameraTarget = position);
                             },
+                            onCameraIdlePositionChanged: (position) {
+                              controller.setMockMapCenter(position);
+                            },
                             previewDismissGuardUntil: _previewDismissGuardUntil,
                             focusLocation: _mapFocusTarget,
+                            userLocation: mockUserLocation,
                           )
                         : _FallbackMap(
                             activities: activities,

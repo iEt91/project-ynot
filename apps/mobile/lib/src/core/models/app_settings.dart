@@ -5,6 +5,7 @@ class AppSettings {
     required this.recommendedActivitiesNotifications,
     required this.activityStartingSoonNotifications,
     required this.searchRadiusKm,
+    required this.mockCurrentLocationKey,
     required this.showRecommendations,
     required this.showSavedHighlights,
     required this.showArchivedChats,
@@ -20,6 +21,7 @@ class AppSettings {
       recommendedActivitiesNotifications: true,
       activityStartingSoonNotifications: true,
       searchRadiusKm: 25,
+      mockCurrentLocationKey: 'seoul',
       showRecommendations: true,
       showSavedHighlights: true,
       showArchivedChats: true,
@@ -34,6 +36,7 @@ class AppSettings {
   final bool recommendedActivitiesNotifications;
   final bool activityStartingSoonNotifications;
   final int searchRadiusKm;
+  final String mockCurrentLocationKey;
   final bool showRecommendations;
   final bool showSavedHighlights;
   final bool showArchivedChats;
@@ -47,6 +50,7 @@ class AppSettings {
     bool? recommendedActivitiesNotifications,
     bool? activityStartingSoonNotifications,
     int? searchRadiusKm,
+    String? mockCurrentLocationKey,
     bool? showRecommendations,
     bool? showSavedHighlights,
     bool? showArchivedChats,
@@ -65,6 +69,8 @@ class AppSettings {
           activityStartingSoonNotifications ?? 
           this.activityStartingSoonNotifications,
       searchRadiusKm: searchRadiusKm ?? this.searchRadiusKm,
+      mockCurrentLocationKey:
+          mockCurrentLocationKey ?? this.mockCurrentLocationKey,
       showRecommendations: showRecommendations ?? this.showRecommendations,
       showSavedHighlights: showSavedHighlights ?? this.showSavedHighlights,
       showArchivedChats: showArchivedChats ?? this.showArchivedChats,
@@ -84,6 +90,7 @@ class AppSettings {
           recommendedActivitiesNotifications,
       'activityStartingSoonNotifications': activityStartingSoonNotifications,
       'searchRadiusKm': searchRadiusKm,
+      'mockCurrentLocationKey': mockCurrentLocationKey,
       'showRecommendations': showRecommendations,
       'showSavedHighlights': showSavedHighlights,
       'showArchivedChats': showArchivedChats,
@@ -105,6 +112,8 @@ class AppSettings {
           json['activityStartingSoonNotifications'] as bool? ?? true,
       searchRadiusKm: ((json['searchRadiusKm'] as int? ?? 25).clamp(1, 25))
           .toInt(),
+      mockCurrentLocationKey:
+          json['mockCurrentLocationKey'] as String? ?? 'seoul',
       showRecommendations:
           json['showRecommendations'] as bool? ?? legacyShowRecommendations ?? true,
       showSavedHighlights: json['showSavedHighlights'] as bool? ?? true,

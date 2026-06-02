@@ -13,6 +13,7 @@ class GoogleActivityMap extends StatefulWidget {
     required this.activities,
     this.interactive = false,
     this.selectedLocation,
+    this.userLocation,
     this.focusLocation,
     this.onLocationSelected,
     this.onActivityTap,
@@ -28,6 +29,7 @@ class GoogleActivityMap extends StatefulWidget {
   final List<Activity> activities;
   final bool interactive;
   final LatLng? selectedLocation;
+  final LatLng? userLocation;
   final LatLng? focusLocation;
   final ValueChanged<LatLng>? onLocationSelected;
   final ValueChanged<Activity>? onActivityTap;
@@ -204,6 +206,16 @@ class _GoogleActivityMapState extends State<GoogleActivityMap> {
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
           anchor: const Offset(0.5, 0.5),
           zIndexInt: 999,
+        ),
+      if (widget.userLocation != null)
+        Marker(
+          markerId: const MarkerId('mock_user_location'),
+          position: widget.userLocation!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          anchor: const Offset(0.5, 0.5),
+          infoWindow: const InfoWindow(title: 'Tú'),
+          zIndexInt: 1500,
         ),
     };
 

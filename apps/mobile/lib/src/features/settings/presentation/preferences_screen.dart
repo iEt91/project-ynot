@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/models/mock_current_location.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -84,6 +85,36 @@ class PreferencesScreen extends ConsumerWidget {
                           label: '$radius km',
                           selected: settings.searchRadiusKm == radius,
                           onTap: () => controller.setSearchRadiusKm(radius),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Ubicación de prueba',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Sólo para pruebas locales',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final option in kMockCurrentLocationOptions)
+                        _LocationChip(
+                          label: option.label,
+                          selected:
+                              settings.mockCurrentLocationKey == option.key,
+                          onTap: () =>
+                              controller.setMockCurrentLocationKey(option.key),
                         ),
                     ],
                   ),
@@ -275,6 +306,37 @@ class _RadiusChip extends StatelessWidget {
       ),
       side: BorderSide(
         color: selected ? YnotTheme.primary : YnotTheme.border,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+    );
+  }
+}
+
+class _LocationChip extends StatelessWidget {
+  const _LocationChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      backgroundColor: YnotTheme.surface2.withValues(alpha: 0.72),
+      selectedColor: YnotTheme.mint.withValues(alpha: 0.2),
+      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: selected ? YnotTheme.bg : Colors.white70,
+      ),
+      side: BorderSide(
+        color: selected ? YnotTheme.mint : YnotTheme.border,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     );

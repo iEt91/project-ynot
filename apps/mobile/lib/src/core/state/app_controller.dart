@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../config/app_environment.dart';
 import '../data/local_mock_store.dart';
@@ -18,6 +19,7 @@ import '../models/chat_message.dart';
 import '../models/in_app_notification.dart';
 import '../models/moderation_flag.dart';
 import '../models/moderation_report.dart';
+import '../models/mock_current_location.dart';
 import '../models/private_feedback.dart';
 import '../models/pre_activity_checklist.dart';
 import '../utils/geo.dart';
@@ -432,6 +434,7 @@ class AppController extends ChangeNotifier {
 
   late AppState _state;
   String? _clientUid;
+  LatLng _mockMapCenter = const LatLng(37.5666, 126.9780);
 
   final Map<String, List<ChatMessage>> _messagesByActivityId = {};
   final Map<String, String> _chatIdsByActivityId = {};
@@ -1144,6 +1147,12 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  Future<void> setMockCurrentLocationKey(String value) {
+    return updateSettings(
+      state.settings.copyWith(mockCurrentLocationKey: value),
+    );
+  }
+
   Future<void> setHidePreciseLocationUntilUnlock(bool value) {
     return updateSettings(
       state.settings.copyWith(hidePreciseLocationUntilUnlock: value),
@@ -1170,6 +1179,24 @@ class AppController extends ChangeNotifier {
     return updateSettings(
       state.settings.copyWith(personalizedRecommendations: value),
     );
+  }
+
+  LatLng get mockCurrentLocation {
+    final option = mockCurrentLocationOptionFromKey(
+      state.settings.mockCurrentLocationKey,
+    );
+    return option.resolve(_mockMapCenter);
+  }
+
+  String get mockCurrentLocationLabel {
+    return mockCurrentLocationOptionFromKey(
+      state.settings.mockCurrentLocationKey,
+    ).label;
+  }
+
+  void setMockMapCenter(LatLng position) {
+    _mockMapCenter = position;
+    notifyListeners();
   }
 
   Future<void> _activateAuthenticatedState({
@@ -2364,28 +2391,38 @@ class AppController extends ChangeNotifier {
     final filters = state.activityFilters;
     final query = state.activitySearchQuery.trim().toLowerCase();
     final searchRadiusKm = state.settings.searchRadiusKm;
+    final currentLocation = mockCurrentLocation;
     if (filters.isEmpty) {
       return query.isEmpty
           ? visibleActivities
-                .where(
-                  (activity) => _matchesSearchRadius(
-                    activity,
-                    searchRadiusKm,
-                  ),
-                )
-                .toList(growable: false)
+              .where(
+                (activity) => _matchesSearchRadius(
+                  activity,
+                  searchRadiusKm,
+                  currentLocation,
+                ),
+              )
+              .toList(growable: false)
           : visibleActivities
-                .where(
-                  (activity) =>
-                      _matchesSearchRadius(activity, searchRadiusKm) &&
-                      _matchesSearchQuery(activity, query),
-                )
-                .toList(growable: false);
+              .where(
+                    (activity) =>
+                        _matchesSearchRadius(
+                          activity,
+                          searchRadiusKm,
+                          currentLocation,
+                        ) &&
+                        _matchesSearchQuery(activity, query),
+              )
+              .toList(growable: false);
     }
 
     return visibleActivities
         .where((activity) {
-          if (!_matchesSearchRadius(activity, searchRadiusKm)) {
+          if (!_matchesSearchRadius(
+            activity,
+            searchRadiusKm,
+            currentLocation,
+          )) {
             return false;
           }
 
@@ -2521,16 +2558,17 @@ class AppController extends ChangeNotifier {
     return haystack.contains(query);
   }
 
-  bool _matchesSearchRadius(Activity activity, int searchRadiusKm) {
+  bool _matchesSearchRadius(
+    Activity activity,
+    int searchRadiusKm,
+    LatLng userLocation,
+  ) {
     if (searchRadiusKm <= 0) {
       return true;
     }
-
-    const centerLat = 37.5666;
-    const centerLng = 126.9780;
     return distanceKm(
-          lat1: centerLat,
-          lng1: centerLng,
+          lat1: userLocation.latitude,
+          lng1: userLocation.longitude,
           lat2: activity.displayLat,
           lng2: activity.displayLng,
         ) <=

@@ -1,3 +1,8 @@
+## v1.0.33.1
+- Added a local mock current location selector for radius testing in Preferences
+- Search radius now can be tested from preset cities or the current map center without real GPS
+- Added a subtle mock "Tú" marker on the map and persisted the selected test location locally
+
 ## v1.0.33.0
 - Added advanced local preferences for discovery, privacy, and chat control
 - Search radius now persists locally and filters both Activities and Map results

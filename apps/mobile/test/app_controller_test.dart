@@ -623,6 +623,7 @@ void main() {
       await firstController.setRecommendedActivitiesNotifications(false);
       await firstController.setActivityStartingSoonNotifications(false);
       await firstController.setSearchRadiusKm(5);
+      await firstController.setMockCurrentLocationKey('madrid');
       await firstController.setShowSavedHighlights(false);
       await firstController.setShowArchivedChats(false);
       await firstController.setMuteAllChats(true);
@@ -649,6 +650,7 @@ void main() {
         isFalse,
       );
       expect(secondController.state.settings.searchRadiusKm, 5);
+      expect(secondController.state.settings.mockCurrentLocationKey, 'madrid');
       expect(secondController.state.settings.showRecommendations, isFalse);
       expect(secondController.state.settings.showSavedHighlights, isFalse);
       expect(secondController.state.settings.showArchivedChats, isFalse);
@@ -1396,6 +1398,37 @@ void main() {
       expect(
         controller.filteredActivities().any((activity) => activity.id == activityId),
         isTrue,
+      );
+    });
+
+    test('mock current location changes search radius results locally', () async {
+      final controller = await _buildLoggedInController();
+
+      final activityId = await controller.createActivity(
+        title: 'Madrid radius test',
+        description: 'This activity should follow the mock location.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Madrid',
+        startTime: DateTime.now().add(const Duration(hours: 2)),
+        duration: const Duration(hours: 1),
+        maxPeople: 6,
+        realLat: 40.4168,
+        realLng: -3.7038,
+      );
+      expect(activityId, isNotEmpty);
+
+      await controller.setSearchRadiusKm(1);
+      await controller.setMockCurrentLocationKey('madrid');
+      expect(
+        controller.filteredActivities().any((activity) => activity.id == activityId),
+        isTrue,
+      );
+
+      await controller.setMockCurrentLocationKey('seoul');
+      expect(
+        controller.filteredActivities().any((activity) => activity.id == activityId),
+        isFalse,
       );
     });
 
