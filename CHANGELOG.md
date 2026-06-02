@@ -1,3 +1,8 @@
+## v1.0.26.5
+- Added a compact pre-activity checklist for participants in Activity Detail and Chat header
+- Checklist items persist locally per user and activity, and collapse into a small "Todo listo para la actividad" status when complete
+- This update only adds coordination and safety copy; it does not change activity lifecycle, chat behavior, or location logic
+
 ## v1.0.26.1
 - Added soft moderation warnings before saving risky activities or sending risky chat messages
 - Users can choose to edit or continue, and continuing still creates the internal moderation flag

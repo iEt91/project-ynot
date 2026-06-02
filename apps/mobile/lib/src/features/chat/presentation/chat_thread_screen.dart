@@ -17,6 +17,7 @@ import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/chat_conduct_reminder_dialog.dart';
 import '../../../shared/widgets/moderation_warning_dialog.dart';
+import '../../../shared/widgets/pre_activity_checklist_card.dart';
 import '../../../shared/widgets/status_pill.dart';
 
 class ChatThreadScreen extends ConsumerStatefulWidget {
@@ -197,6 +198,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
         (status == ParticipantStatus.joinedPendingConfirmation ||
             status == ParticipantStatus.confirmed);
     final hasBlockedParticipants = controller.hasBlockedParticipants(activity);
+    final showPreActivityChecklist = controller.shouldShowPreActivityChecklist(
+      activity,
+    );
 
     if (!canAccessChat) {
       return Scaffold(
@@ -450,6 +454,28 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                   ],
                 ),
               ),
+              if (showPreActivityChecklist) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                  child: PreActivityChecklistCard(
+                    checkedItemIds:
+                        controller.preActivityChecklistCheckedItemIds(
+                          activity.id,
+                        ),
+                    onToggleItem: (itemId) => unawaited(
+                      controller.togglePreActivityChecklistItem(
+                        activityId: activity.id,
+                        itemId: itemId,
+                      ),
+                    ),
+                    onCompleteAll: () => unawaited(
+                      controller.markPreActivityChecklistComplete(
+                        activity.id,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               if (hasBlockedParticipants) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),

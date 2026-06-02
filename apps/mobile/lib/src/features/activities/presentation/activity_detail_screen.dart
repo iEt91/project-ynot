@@ -14,6 +14,7 @@ import 'create_activity_screen.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
+import '../../../shared/widgets/pre_activity_checklist_card.dart';
 import '../../../shared/widgets/status_pill.dart';
 
 class ActivityDetailScreen extends ConsumerWidget {
@@ -66,6 +67,9 @@ class ActivityDetailScreen extends ConsumerWidget {
     final hasBlockedParticipants = controller.hasBlockedParticipants(activity);
     final canSeeExactLocation = controller.canCurrentUserSeeExactLocation(activity);
     final locationDisclosureLabel = controller.locationDisclosureLabel(activity);
+    final showPreActivityChecklist = controller.shouldShowPreActivityChecklist(
+      activity,
+    );
 
     return Scaffold(
       body: KawaiiScene(
@@ -301,6 +305,23 @@ class ActivityDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 14),
+              if (showPreActivityChecklist) ...[
+                PreActivityChecklistCard(
+                  checkedItemIds: controller.preActivityChecklistCheckedItemIds(
+                    activity.id,
+                  ),
+                  onToggleItem: (itemId) => unawaited(
+                    controller.togglePreActivityChecklistItem(
+                      activityId: activity.id,
+                      itemId: itemId,
+                    ),
+                  ),
+                  onCompleteAll: () => unawaited(
+                    controller.markPreActivityChecklistComplete(activity.id),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               _SectionCard(
                 title: 'Organizador',
                 child: InkWell(

@@ -18,6 +18,7 @@ import '../models/in_app_notification.dart';
 import '../models/moderation_flag.dart';
 import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
+import '../models/pre_activity_checklist.dart';
 import '../utils/moderation_keywords.dart';
 import '../models/reportable_participant.dart';
 import '../utils/app_logger.dart';
@@ -37,6 +38,7 @@ class AppState {
     required this.moderationFlags,
     required this.dismissedBlockedChatWarningActivityIds,
     required this.acceptedChatGuidelinesActivityIds,
+    required this.preActivityChecklistByActivityId,
     required this.settings,
     required this.activityFilters,
     required this.activitySearchQuery,
@@ -61,6 +63,7 @@ class AppState {
       moderationFlags: const [],
       dismissedBlockedChatWarningActivityIds: const {},
       acceptedChatGuidelinesActivityIds: const {},
+      preActivityChecklistByActivityId: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
       activitySearchQuery: '',
@@ -80,6 +83,7 @@ class AppState {
   final List<ModerationFlag> moderationFlags;
   final Set<String> dismissedBlockedChatWarningActivityIds;
   final Set<String> acceptedChatGuidelinesActivityIds;
+  final Map<String, List<String>> preActivityChecklistByActivityId;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
   final String activitySearchQuery;
@@ -102,6 +106,7 @@ class AppState {
     List<ModerationFlag>? moderationFlags,
     Set<String>? dismissedBlockedChatWarningActivityIds,
     Set<String>? acceptedChatGuidelinesActivityIds,
+    Map<String, List<String>>? preActivityChecklistByActivityId,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
     String? activitySearchQuery,
@@ -128,6 +133,9 @@ class AppState {
       acceptedChatGuidelinesActivityIds:
           acceptedChatGuidelinesActivityIds ??
           this.acceptedChatGuidelinesActivityIds,
+      preActivityChecklistByActivityId:
+          preActivityChecklistByActivityId ??
+          this.preActivityChecklistByActivityId,
       settings: settings ?? this.settings,
       activityFilters: activityFilters ?? this.activityFilters,
       activitySearchQuery: activitySearchQuery ?? this.activitySearchQuery,
@@ -413,6 +421,7 @@ class AppController extends ChangeNotifier {
   final List<ModerationFlag> _moderationFlags = [];
   final Set<String> _dismissedBlockedChatWarningActivityIds = {};
   final Set<String> _acceptedChatGuidelinesActivityIds = {};
+  final Map<String, Set<String>> _preActivityChecklistByActivityId = {};
 
   AppState get state => _state;
 
@@ -480,6 +489,106 @@ class AppController extends ChangeNotifier {
       );
       unawaited(_persistSnapshot());
     }
+  }
+
+  bool shouldShowPreActivityChecklist(Activity activity) {
+    if (activity.id.isEmpty || state.user == null) {
+      return false;
+    }
+
+    return !activity.isFinishedOrArchived &&
+        (activity.status == ActivityStatus.open ||
+            activity.status == ActivityStatus.ongoing) &&
+        (activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+            activity.myStatus == ParticipantStatus.confirmed ||
+            activity.isMine);
+  }
+
+  List<String> preActivityChecklistCheckedItemIds(String activityId) {
+    final key = _preActivityChecklistKey(activityId);
+    final checked = _preActivityChecklistByActivityId[key];
+    if (checked == null) {
+      return const [];
+    }
+    return List<String>.unmodifiable(checked);
+  }
+
+  bool isPreActivityChecklistItemChecked(String activityId, String itemId) {
+    if (activityId.isEmpty || itemId.isEmpty) {
+      return false;
+    }
+
+    final key = _preActivityChecklistKey(activityId);
+    return _preActivityChecklistByActivityId[key]?.contains(itemId) ?? false;
+  }
+
+  bool isPreActivityChecklistComplete(String activityId) {
+    final checked = _preActivityChecklistByActivityId[_preActivityChecklistKey(
+      activityId,
+    )];
+    return checked != null &&
+        preActivityChecklistItems.every((item) => checked.contains(item.id));
+  }
+
+  Future<void> togglePreActivityChecklistItem({
+    required String activityId,
+    required String itemId,
+  }) async {
+    if (activityId.isEmpty || itemId.isEmpty) {
+      return;
+    }
+
+    final key = _preActivityChecklistKey(activityId);
+    final next = Map<String, Set<String>>.from(
+      _preActivityChecklistByActivityId,
+    );
+    final checked = Set<String>.from(next[key] ?? const <String>{});
+    if (!checked.add(itemId)) {
+      checked.remove(itemId);
+    }
+    next[key] = checked;
+    _preActivityChecklistByActivityId
+      ..clear()
+      ..addAll(next);
+    state = state.copyWith(
+      preActivityChecklistByActivityId: _preActivityChecklistStateSnapshot(),
+    );
+    unawaited(_persistSnapshot());
+  }
+
+  Future<void> markPreActivityChecklistComplete(String activityId) async {
+    if (activityId.isEmpty) {
+      return;
+    }
+
+    final key = _preActivityChecklistKey(activityId);
+    final next = Map<String, Set<String>>.from(
+      _preActivityChecklistByActivityId,
+    );
+    next[key] = preActivityChecklistItems.map((item) => item.id).toSet();
+    _preActivityChecklistByActivityId
+      ..clear()
+      ..addAll(next);
+    state = state.copyWith(
+      preActivityChecklistByActivityId: _preActivityChecklistStateSnapshot(),
+    );
+    unawaited(_persistSnapshot());
+  }
+
+  String _preActivityChecklistKey(String activityId) {
+    final userId = state.user?.id ?? _clientUid ?? 'guest';
+    return '$userId::$activityId';
+  }
+
+  Map<String, List<String>> _preActivityChecklistStateSnapshot() {
+    return Map<String, List<String>>.unmodifiable(
+      _preActivityChecklistByActivityId.map(
+        (key, value) => MapEntry(
+          key,
+          List<String>.unmodifiable(value),
+        ),
+      ),
+    );
   }
 
   int get unreadNotificationCount {
@@ -728,6 +837,7 @@ class AppController extends ChangeNotifier {
     _moderationFlags.clear();
     _dismissedBlockedChatWarningActivityIds.clear();
     _acceptedChatGuidelinesActivityIds.clear();
+    _preActivityChecklistByActivityId.clear();
     _activeChatActivityIds.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
@@ -758,6 +868,7 @@ class AppController extends ChangeNotifier {
     _activeChatActivityIds.clear();
     _moderationFlags.clear();
     _acceptedChatGuidelinesActivityIds.clear();
+    _preActivityChecklistByActivityId.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
@@ -3187,6 +3298,8 @@ class AppController extends ChangeNotifier {
             _dismissedBlockedChatWarningActivityIds.toList(growable: false),
         acceptedChatGuidelinesActivityIds:
             _acceptedChatGuidelinesActivityIds.toList(growable: false),
+        preActivityChecklistByActivityId:
+            _preActivityChecklistStateSnapshot(),
         activityFilters: state.activityFilters.toJson(),
         searchQuery: state.activitySearchQuery,
         settings: state.settings.toJson(),
@@ -3286,6 +3399,17 @@ class AppController extends ChangeNotifier {
             .toList(growable: false),
       );
 
+    _preActivityChecklistByActivityId
+      ..clear()
+      ..addAll(
+        snapshot.preActivityChecklistByActivityId.map(
+          (key, value) => MapEntry(
+            key,
+            value.where((item) => item.isNotEmpty).toSet(),
+          ),
+        ),
+      );
+
     state = state.copyWith(
       stage: _stageForUser(user),
       user: user,
@@ -3310,6 +3434,8 @@ class AppController extends ChangeNotifier {
       acceptedChatGuidelinesActivityIds: Set<String>.unmodifiable(
         _acceptedChatGuidelinesActivityIds,
       ),
+      preActivityChecklistByActivityId:
+          _preActivityChecklistStateSnapshot(),
       errorMessage: null,
     );
     _syncTimeBasedNotifications();

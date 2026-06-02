@@ -2008,6 +2008,71 @@ void main() {
       },
     );
 
+
+
+    test('pre activity checklist persists per activity and user', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activity = firstController.state.activities.firstWhere(
+        (item) => item.id == 'seed_1',
+      );
+      await firstController.joinActivity(activity.id);
+      await firstController.confirmAttendance(activity.id);
+
+      final joinedActivity = firstController.state.activities.firstWhere(
+        (item) => item.id == activity.id,
+      );
+      expect(
+        firstController.shouldShowPreActivityChecklist(joinedActivity),
+        isTrue,
+      );
+
+      await firstController.togglePreActivityChecklistItem(
+        activityId: activity.id,
+        itemId: 'location',
+      );
+      await firstController.togglePreActivityChecklistItem(
+        activityId: activity.id,
+        itemId: 'time',
+      );
+      await firstController.markPreActivityChecklistComplete(activity.id);
+
+      expect(
+        firstController.isPreActivityChecklistComplete(activity.id),
+        isTrue,
+      );
+      expect(
+        firstController.preActivityChecklistCheckedItemIds(activity.id),
+        hasLength(5),
+      );
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+      final restored = secondController.state.activities.firstWhere(
+        (item) => item.id == activity.id,
+      );
+
+      expect(secondController.shouldShowPreActivityChecklist(restored), isTrue);
+      expect(
+        secondController.isPreActivityChecklistComplete(activity.id),
+        isTrue,
+      );
+      expect(
+        secondController.preActivityChecklistCheckedItemIds(activity.id),
+        hasLength(5),
+      );
+    });
     test('editable profile persists locally and survives restart', () async {
       final sessionStore = _TestSessionStore(
         clientUid: 'client_001',
