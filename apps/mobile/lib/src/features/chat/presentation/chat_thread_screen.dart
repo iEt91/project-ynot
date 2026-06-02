@@ -15,6 +15,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
+import '../../../shared/widgets/chat_conduct_reminder_dialog.dart';
 import '../../../shared/widgets/moderation_warning_dialog.dart';
 import '../../../shared/widgets/status_pill.dart';
 
@@ -42,6 +43,10 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   Future<void> _bootstrapChat() async {
     try {
       final controller = ref.read(appControllerProvider);
+      final acceptedGuidelines = await _ensureChatGuidelinesAccepted(controller);
+      if (!acceptedGuidelines || !mounted) {
+        return;
+      }
       await controller.loadChatMessages(widget.activityId);
       if (!mounted) return;
       await controller.watchChatMessages(widget.activityId);
@@ -711,6 +716,40 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     await controller.sendChatMessage(activityId, text);
     if (!mounted) return;
     _messageController.clear();
+  }
+
+  Future<bool> _ensureChatGuidelinesAccepted(AppController controller) async {
+    if (controller.hasAcceptedChatGuidelines(widget.activityId)) {
+      return true;
+    }
+
+    final completer = Completer<bool>();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        if (!completer.isCompleted) {
+          completer.complete(false);
+        }
+        return;
+      }
+
+      final accepted = await showChatConductReminderDialog(context);
+      if (!mounted) {
+        if (!completer.isCompleted) {
+          completer.complete(false);
+        }
+        return;
+      }
+
+      if (accepted) {
+        controller.acceptChatGuidelines(widget.activityId);
+      }
+
+      if (!completer.isCompleted) {
+        completer.complete(accepted);
+      }
+    });
+
+    return completer.future;
   }
 }
 

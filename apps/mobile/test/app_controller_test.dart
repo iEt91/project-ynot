@@ -200,6 +200,45 @@ void main() {
       );
     });
 
+    test('chat conduct reminder acceptance persists per activity', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+
+      final firstController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final activity = firstController.state.activities.firstWhere(
+        (item) => item.id == 'seed_1',
+      );
+
+      expect(
+        firstController.hasAcceptedChatGuidelines(activity.id),
+        isFalse,
+      );
+
+      firstController.acceptChatGuidelines(activity.id);
+
+      expect(
+        firstController.hasAcceptedChatGuidelines(activity.id),
+        isTrue,
+      );
+
+      final secondController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      expect(
+        secondController.hasAcceptedChatGuidelines(activity.id),
+        isTrue,
+      );
+    });
+
     test(
       'login with demo code opens onboarding when profile is incomplete',
       () async {

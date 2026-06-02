@@ -21,6 +21,7 @@ class LocalMockSnapshot {
     this.notifications = const [],
     this.moderationFlags = const [],
     this.dismissedBlockedChatWarningActivityIds = const [],
+    this.acceptedChatGuidelinesActivityIds = const [],
     required this.activityFilters,
     this.searchQuery = '',
     required this.settings,
@@ -36,6 +37,7 @@ class LocalMockSnapshot {
   final List<InAppNotification> notifications;
   final List<ModerationFlag> moderationFlags;
   final List<String> dismissedBlockedChatWarningActivityIds;
+  final List<String> acceptedChatGuidelinesActivityIds;
   final Map<String, dynamic> activityFilters;
   final String searchQuery;
   final Map<String, dynamic> settings;
@@ -66,6 +68,9 @@ class LocalMockSnapshot {
           .toList(growable: false),
       'dismissedBlockedChatWarningActivityIds': List<String>.from(
         dismissedBlockedChatWarningActivityIds,
+      ),
+      'acceptedChatGuidelinesActivityIds': List<String>.from(
+        acceptedChatGuidelinesActivityIds,
       ),
       'activityFilters': activityFilters,
       'searchQuery': searchQuery,
@@ -129,6 +134,11 @@ class LocalMockSnapshot {
           .toList(growable: false),
       dismissedBlockedChatWarningActivityIds:
           (json['dismissedBlockedChatWarningActivityIds'] as List<dynamic>? ??
+                  const [])
+              .whereType<String>()
+              .toList(growable: false),
+      acceptedChatGuidelinesActivityIds:
+          (json['acceptedChatGuidelinesActivityIds'] as List<dynamic>? ??
                   const [])
               .whereType<String>()
               .toList(growable: false),

@@ -36,6 +36,7 @@ class AppState {
     required this.notifications,
     required this.moderationFlags,
     required this.dismissedBlockedChatWarningActivityIds,
+    required this.acceptedChatGuidelinesActivityIds,
     required this.settings,
     required this.activityFilters,
     required this.activitySearchQuery,
@@ -59,6 +60,7 @@ class AppState {
       notifications: const [],
       moderationFlags: const [],
       dismissedBlockedChatWarningActivityIds: const {},
+      acceptedChatGuidelinesActivityIds: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
       activitySearchQuery: '',
@@ -77,6 +79,7 @@ class AppState {
   final List<InAppNotification> notifications;
   final List<ModerationFlag> moderationFlags;
   final Set<String> dismissedBlockedChatWarningActivityIds;
+  final Set<String> acceptedChatGuidelinesActivityIds;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
   final String activitySearchQuery;
@@ -98,6 +101,7 @@ class AppState {
     List<InAppNotification>? notifications,
     List<ModerationFlag>? moderationFlags,
     Set<String>? dismissedBlockedChatWarningActivityIds,
+    Set<String>? acceptedChatGuidelinesActivityIds,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
     String? activitySearchQuery,
@@ -121,6 +125,9 @@ class AppState {
       dismissedBlockedChatWarningActivityIds:
           dismissedBlockedChatWarningActivityIds ??
           this.dismissedBlockedChatWarningActivityIds,
+      acceptedChatGuidelinesActivityIds:
+          acceptedChatGuidelinesActivityIds ??
+          this.acceptedChatGuidelinesActivityIds,
       settings: settings ?? this.settings,
       activityFilters: activityFilters ?? this.activityFilters,
       activitySearchQuery: activitySearchQuery ?? this.activitySearchQuery,
@@ -405,6 +412,7 @@ class AppController extends ChangeNotifier {
   final List<BlockedUserEntry> _blockedUsers = [];
   final List<ModerationFlag> _moderationFlags = [];
   final Set<String> _dismissedBlockedChatWarningActivityIds = {};
+  final Set<String> _acceptedChatGuidelinesActivityIds = {};
 
   AppState get state => _state;
 
@@ -425,6 +433,25 @@ class AppController extends ChangeNotifier {
 
   bool hasDismissedBlockedChatWarning(String activityId) {
     return _dismissedBlockedChatWarningActivityIds.contains(activityId);
+  }
+
+  bool hasAcceptedChatGuidelines(String activityId) {
+    return _acceptedChatGuidelinesActivityIds.contains(activityId);
+  }
+
+  void acceptChatGuidelines(String activityId) {
+    if (activityId.isEmpty) {
+      return;
+    }
+
+    if (_acceptedChatGuidelinesActivityIds.add(activityId)) {
+      state = state.copyWith(
+        acceptedChatGuidelinesActivityIds: Set<String>.unmodifiable(
+          _acceptedChatGuidelinesActivityIds,
+        ),
+      );
+      unawaited(_persistSnapshot());
+    }
   }
 
   void dismissBlockedChatWarning(String activityId) {
@@ -687,6 +714,7 @@ class AppController extends ChangeNotifier {
     _blockedUsers.clear();
     _moderationFlags.clear();
     _dismissedBlockedChatWarningActivityIds.clear();
+    _acceptedChatGuidelinesActivityIds.clear();
     _activeChatActivityIds.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
@@ -716,6 +744,7 @@ class AppController extends ChangeNotifier {
     _savedActivityIds.clear();
     _activeChatActivityIds.clear();
     _moderationFlags.clear();
+    _acceptedChatGuidelinesActivityIds.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
@@ -3143,6 +3172,8 @@ class AppController extends ChangeNotifier {
         notifications: state.notifications,
         dismissedBlockedChatWarningActivityIds:
             _dismissedBlockedChatWarningActivityIds.toList(growable: false),
+        acceptedChatGuidelinesActivityIds:
+            _acceptedChatGuidelinesActivityIds.toList(growable: false),
         activityFilters: state.activityFilters.toJson(),
         searchQuery: state.activitySearchQuery,
         settings: state.settings.toJson(),
@@ -3234,6 +3265,14 @@ class AppController extends ChangeNotifier {
             .toList(growable: false),
       );
 
+    _acceptedChatGuidelinesActivityIds
+      ..clear()
+      ..addAll(
+        snapshot.acceptedChatGuidelinesActivityIds
+            .where((activityId) => activityId.isNotEmpty)
+            .toList(growable: false),
+      );
+
     state = state.copyWith(
       stage: _stageForUser(user),
       user: user,
@@ -3254,6 +3293,9 @@ class AppController extends ChangeNotifier {
       ),
       dismissedBlockedChatWarningActivityIds: Set<String>.unmodifiable(
         _dismissedBlockedChatWarningActivityIds,
+      ),
+      acceptedChatGuidelinesActivityIds: Set<String>.unmodifiable(
+        _acceptedChatGuidelinesActivityIds,
       ),
       errorMessage: null,
     );
