@@ -67,6 +67,9 @@ class ActivityDetailScreen extends ConsumerWidget {
     final hasBlockedParticipants = controller.hasBlockedParticipants(activity);
     final canSeeExactLocation = controller.canCurrentUserSeeExactLocation(activity);
     final locationDisclosureLabel = controller.locationDisclosureLabel(activity);
+    final showStartingSoonBadge = controller.isActivityStartingSoonForCurrentUser(
+      activity,
+    );
     final showPreActivityChecklist = controller.shouldShowPreActivityChecklist(
       activity,
     );
@@ -200,6 +203,11 @@ class ActivityDetailScreen extends ConsumerWidget {
                                     '${activity.confirmedCount}/${activity.maxPeople}',
                                 color: Colors.pinkAccent,
                               ),
+                              if (showStartingSoonBadge)
+                                StatusPill(
+                                  label: 'Empieza pronto',
+                                  color: YnotTheme.primary,
+                                ),
                             ],
                           ),
                           const SizedBox(height: 12),

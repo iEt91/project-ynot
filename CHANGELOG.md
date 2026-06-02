@@ -1,3 +1,8 @@
+## v1.0.26.6
+- Added the upcoming activity reminder so joined and confirmed users see "Empieza pronto" and receive a local notification once per activity
+- The reminder badge now appears in Activity Detail, Activities, Chats, and the selected Map preview card
+- The reminder state is stored locally per user and activity without changing lifecycle, location privacy, search, or chat behavior
+
 ## v1.0.26.5
 - Added a compact pre-activity checklist for participants in Activity Detail and Chat header
 - Checklist items persist locally per user and activity, and collapse into a small "Todo listo para la actividad" status when complete

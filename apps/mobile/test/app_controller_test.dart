@@ -2073,6 +2073,56 @@ void main() {
         hasLength(5),
       );
     });
+
+
+    test('upcoming activity reminder shows once and persists locally', () async {
+      final sessionStore = _TestSessionStore(
+        clientUid: 'client_001',
+        phone: '+82 10 1234 5678',
+      );
+      final mockStore = _TestMockStore();
+      final controller = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+
+      final now = DateTime.now();
+      final activity = controller.state.activities.firstWhere(
+        (item) => item.id == 'seed_1',
+      ).copyWith(
+        myStatus: ParticipantStatus.confirmed,
+        startTime: now.add(const Duration(minutes: 20)),
+        endTime: now.add(const Duration(hours: 2)),
+      );
+
+      controller.state = controller.state.copyWith(activities: [activity]);
+      expect(
+        controller.isActivityStartingSoonForCurrentUser(activity, now: now),
+        isTrue,
+      );
+
+      await controller.refreshNotifications();
+      final reminders = controller.state.notifications.where(
+        (item) => item.type == InAppNotificationType.activityStartingSoon,
+      );
+      expect(reminders, hasLength(1));
+      expect(reminders.first.body, 'Tu actividad empieza pronto.');
+
+      await controller.refreshNotifications();
+      final remindersAfterSecondSync = controller.state.notifications.where(
+        (item) => item.type == InAppNotificationType.activityStartingSoon,
+      );
+      expect(remindersAfterSecondSync, hasLength(1));
+
+      final reloadedController = await _buildController(
+        sessionStore: sessionStore,
+        mockStore: mockStore,
+      );
+      final reloadedReminders = reloadedController.state.notifications.where(
+        (item) => item.type == InAppNotificationType.activityStartingSoon,
+      );
+      expect(reloadedReminders, hasLength(1));
+    });
     test('editable profile persists locally and survives restart', () async {
       final sessionStore = _TestSessionStore(
         clientUid: 'client_001',
@@ -2258,4 +2308,3 @@ class _TestMockStore extends LocalMockStore {
     snapshot = null;
   }
 }
-

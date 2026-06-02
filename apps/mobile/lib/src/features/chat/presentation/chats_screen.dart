@@ -18,6 +18,7 @@ class ChatsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
+    final controller = ref.read(appControllerProvider);
     final joinedActivities = state.activities
         .where(
           (activity) =>
@@ -86,6 +87,10 @@ class ChatsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _ChatRow(
                     activity: activity,
+                    showStartingSoonBadge:
+                        controller.isActivityStartingSoonForCurrentUser(
+                          activity,
+                        ),
                     onTap: () => context.push('/chat/${activity.id}'),
                   ),
                 ),
@@ -98,10 +103,15 @@ class ChatsScreen extends ConsumerWidget {
 }
 
 class _ChatRow extends StatelessWidget {
-  const _ChatRow({required this.activity, required this.onTap});
+  const _ChatRow({
+    required this.activity,
+    required this.onTap,
+    required this.showStartingSoonBadge,
+  });
 
   final Activity activity;
   final VoidCallback onTap;
+  final bool showStartingSoonBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +145,32 @@ class _ChatRow extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),
+                      if (showStartingSoonBadge) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF5DB8).withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: const Color(0xFFFF5DB8).withValues(
+                                alpha: 0.28,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Empieza pronto',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: const Color(0xFFFF5DB8),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ),
+                      ],
                       Text(
                         activity.myStatus == ParticipantStatus.confirmed
                             ? 'Abierto'

@@ -39,6 +39,7 @@ class AppState {
     required this.dismissedBlockedChatWarningActivityIds,
     required this.acceptedChatGuidelinesActivityIds,
     required this.preActivityChecklistByActivityId,
+    required this.startingSoonReminderSentActivityKeys,
     required this.settings,
     required this.activityFilters,
     required this.activitySearchQuery,
@@ -64,6 +65,7 @@ class AppState {
       dismissedBlockedChatWarningActivityIds: const {},
       acceptedChatGuidelinesActivityIds: const {},
       preActivityChecklistByActivityId: const {},
+      startingSoonReminderSentActivityKeys: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
       activitySearchQuery: '',
@@ -84,6 +86,7 @@ class AppState {
   final Set<String> dismissedBlockedChatWarningActivityIds;
   final Set<String> acceptedChatGuidelinesActivityIds;
   final Map<String, List<String>> preActivityChecklistByActivityId;
+  final Set<String> startingSoonReminderSentActivityKeys;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
   final String activitySearchQuery;
@@ -107,6 +110,7 @@ class AppState {
     Set<String>? dismissedBlockedChatWarningActivityIds,
     Set<String>? acceptedChatGuidelinesActivityIds,
     Map<String, List<String>>? preActivityChecklistByActivityId,
+    Set<String>? startingSoonReminderSentActivityKeys,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
     String? activitySearchQuery,
@@ -136,6 +140,9 @@ class AppState {
       preActivityChecklistByActivityId:
           preActivityChecklistByActivityId ??
           this.preActivityChecklistByActivityId,
+      startingSoonReminderSentActivityKeys:
+          startingSoonReminderSentActivityKeys ??
+          this.startingSoonReminderSentActivityKeys,
       settings: settings ?? this.settings,
       activityFilters: activityFilters ?? this.activityFilters,
       activitySearchQuery: activitySearchQuery ?? this.activitySearchQuery,
@@ -422,6 +429,8 @@ class AppController extends ChangeNotifier {
   final Set<String> _dismissedBlockedChatWarningActivityIds = {};
   final Set<String> _acceptedChatGuidelinesActivityIds = {};
   final Map<String, Set<String>> _preActivityChecklistByActivityId = {};
+  final Set<String> _startingSoonReminderSentActivityKeys = {};
+  Timer? _timeSyncTimer;
 
   AppState get state => _state;
 
@@ -530,6 +539,28 @@ class AppController extends ChangeNotifier {
         preActivityChecklistItems.every((item) => checked.contains(item.id));
   }
 
+  bool isActivityStartingSoonForCurrentUser(
+    Activity activity, {
+    DateTime? now,
+  }) {
+    final currentUser = state.user;
+    if (currentUser == null ||
+        activity.isFinishedOrArchived ||
+        activity.myStatus == null ||
+        !(activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+            activity.myStatus == ParticipantStatus.confirmed)) {
+      return false;
+    }
+
+    final currentTime = now ?? DateTime.now();
+    if (!currentTime.isBefore(activity.startTime)) {
+      return false;
+    }
+
+    final diff = activity.startTime.difference(currentTime);
+    return diff.inMinutes <= 30;
+  }
+
   Future<void> togglePreActivityChecklistItem({
     required String activityId,
     required String itemId,
@@ -576,6 +607,11 @@ class AppController extends ChangeNotifier {
   }
 
   String _preActivityChecklistKey(String activityId) {
+    final userId = state.user?.id ?? _clientUid ?? 'guest';
+    return '$userId::$activityId';
+  }
+
+  String _startingSoonReminderKey(String activityId) {
     final userId = state.user?.id ?? _clientUid ?? 'guest';
     return '$userId::$activityId';
   }
@@ -643,8 +679,10 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> refreshNotifications() async {
-    _syncTimeBasedNotifications();
-    await _persistSnapshot();
+    final changed = _syncTimeBasedNotifications();
+    if (changed) {
+      await _persistSnapshot();
+    }
   }
 
   Future<void> initialize() async {
@@ -685,6 +723,7 @@ class AppController extends ChangeNotifier {
             ? 'Sesión local'
             : safePhoneDisplay(restoredPhone),
       );
+      _startTimeSyncTimer();
       return;
     }
 
@@ -710,6 +749,7 @@ class AppController extends ChangeNotifier {
       feedbackEntries: const [],
       errorMessage: null,
     );
+    _startTimeSyncTimer();
     unawaited(_persistSnapshot());
   }
 
@@ -838,6 +878,9 @@ class AppController extends ChangeNotifier {
     _dismissedBlockedChatWarningActivityIds.clear();
     _acceptedChatGuidelinesActivityIds.clear();
     _preActivityChecklistByActivityId.clear();
+    _startingSoonReminderSentActivityKeys.clear();
+    _timeSyncTimer?.cancel();
+    _timeSyncTimer = null;
     _activeChatActivityIds.clear();
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
@@ -869,6 +912,9 @@ class AppController extends ChangeNotifier {
     _moderationFlags.clear();
     _acceptedChatGuidelinesActivityIds.clear();
     _preActivityChecklistByActivityId.clear();
+    _startingSoonReminderSentActivityKeys.clear();
+    _timeSyncTimer?.cancel();
+    _timeSyncTimer = null;
     state = AppState.initial().copyWith(
       stage: AppStage.phoneAuth,
       demoMode: true,
@@ -3241,31 +3287,33 @@ class AppController extends ChangeNotifier {
     return ids;
   }
 
-  void _syncTimeBasedNotifications() {
+  bool _syncTimeBasedNotifications() {
     final now = DateTime.now();
+    var changed = false;
     for (final activity in state.activities) {
       if (!activity.isActiveLifecycle || activity.isFinishedOrArchived) {
         continue;
       }
 
-      final startSoon =
-          !now.isAfter(activity.startTime) &&
-          !now.isBefore(
-            activity.startTime.subtract(const Duration(minutes: 10)),
-          );
-      if (startSoon &&
+      if (isActivityStartingSoonForCurrentUser(activity, now: now) &&
           _notificationEnabledForType(
             InAppNotificationType.activityStartingSoon,
           )) {
-        _createNotification(
-          type: InAppNotificationType.activityStartingSoon,
-          activityId: activity.id,
-          title: 'Actividad empieza pronto',
-          body: '${activity.title} comienza en breve.',
-          dedupeKey: 'starting_soon:${activity.id}',
-        );
+        final reminderKey = _startingSoonReminderKey(activity.id);
+        if (_startingSoonReminderSentActivityKeys.add(reminderKey)) {
+          changed = true;
+          _createNotification(
+            type: InAppNotificationType.activityStartingSoon,
+            activityId: activity.id,
+            title: 'Actividad empieza pronto',
+            body: 'Tu actividad empieza pronto.',
+            dedupeKey: 'starting_soon:$reminderKey',
+          );
+        }
       }
+
     }
+    return changed;
   }
 
   String _resolveChatId(String activityId) {
@@ -3300,6 +3348,8 @@ class AppController extends ChangeNotifier {
             _acceptedChatGuidelinesActivityIds.toList(growable: false),
         preActivityChecklistByActivityId:
             _preActivityChecklistStateSnapshot(),
+        startingSoonReminderSentActivityKeys:
+            _startingSoonReminderSentActivityKeys.toList(growable: false),
         activityFilters: state.activityFilters.toJson(),
         searchQuery: state.activitySearchQuery,
         settings: state.settings.toJson(),
@@ -3410,6 +3460,14 @@ class AppController extends ChangeNotifier {
         ),
       );
 
+    _startingSoonReminderSentActivityKeys
+      ..clear()
+      ..addAll(
+        snapshot.startingSoonReminderSentActivityKeys
+            .where((key) => key.isNotEmpty)
+            .toList(growable: false),
+      );
+
     state = state.copyWith(
       stage: _stageForUser(user),
       user: user,
@@ -3436,9 +3494,12 @@ class AppController extends ChangeNotifier {
       ),
       preActivityChecklistByActivityId:
           _preActivityChecklistStateSnapshot(),
+      startingSoonReminderSentActivityKeys:
+          Set<String>.unmodifiable(_startingSoonReminderSentActivityKeys),
       errorMessage: null,
     );
     _syncTimeBasedNotifications();
+    _startTimeSyncTimer();
   }
 
   Map<String, List<ChatMessage>> _restoreMessagesMap(
@@ -3459,6 +3520,25 @@ class AppController extends ChangeNotifier {
             .toList(growable: false),
       ),
     );
+  }
+
+  void _startTimeSyncTimer() {
+    if (_timeSyncTimer?.isActive == true) {
+      return;
+    }
+
+    _timeSyncTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
+      final changed = _syncTimeBasedNotifications();
+      if (changed) {
+        await _persistSnapshot();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timeSyncTimer?.cancel();
+    super.dispose();
   }
 
   Future<String> _ensureClientUid() async {

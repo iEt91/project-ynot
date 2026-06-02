@@ -145,6 +145,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         locationLabel: controller.locationDisclosureLabel(
                           selectedActivity,
                         ),
+                        showStartingSoonBadge:
+                            controller.isActivityStartingSoonForCurrentUser(
+                          selectedActivity,
+                        ),
                         onToggleSave: () async {
                           await controller.toggleSavedActivity(
                             selectedActivity.id,
@@ -211,6 +215,7 @@ class _SelectedActivityCard extends StatelessWidget {
     required this.activity,
     required this.isSaved,
     required this.locationLabel,
+    required this.showStartingSoonBadge,
     required this.onToggleSave,
     required this.onTap,
   });
@@ -218,6 +223,7 @@ class _SelectedActivityCard extends StatelessWidget {
   final Activity activity;
   final bool isSaved;
   final String locationLabel;
+  final bool showStartingSoonBadge;
   final Future<void> Function() onToggleSave;
   final VoidCallback onTap;
 
@@ -263,6 +269,8 @@ class _SelectedActivityCard extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     _MiniMeta(text: locationLabel),
+                    if (showStartingSoonBadge)
+                      _MiniMeta(text: 'Empieza pronto'),
                     _MiniMeta(
                       text:
                           '${activity.confirmedCount}/${activity.maxPeople} asistentes',

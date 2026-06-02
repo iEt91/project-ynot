@@ -23,6 +23,7 @@ class LocalMockSnapshot {
     this.dismissedBlockedChatWarningActivityIds = const [],
     this.acceptedChatGuidelinesActivityIds = const [],
     this.preActivityChecklistByActivityId = const {},
+    this.startingSoonReminderSentActivityKeys = const [],
     required this.activityFilters,
     this.searchQuery = '',
     required this.settings,
@@ -40,6 +41,7 @@ class LocalMockSnapshot {
   final List<String> dismissedBlockedChatWarningActivityIds;
   final List<String> acceptedChatGuidelinesActivityIds;
   final Map<String, List<String>> preActivityChecklistByActivityId;
+  final List<String> startingSoonReminderSentActivityKeys;
   final Map<String, dynamic> activityFilters;
   final String searchQuery;
   final Map<String, dynamic> settings;
@@ -77,6 +79,8 @@ class LocalMockSnapshot {
       'preActivityChecklistByActivityId': preActivityChecklistByActivityId.map(
         (key, value) => MapEntry(key, List<String>.from(value)),
       ),
+      'startingSoonReminderSentActivityKeys':
+          List<String>.from(startingSoonReminderSentActivityKeys),
       'activityFilters': activityFilters,
       'searchQuery': searchQuery,
       'settings': settings,
@@ -158,6 +162,11 @@ class LocalMockSnapshot {
                       .toList(growable: false),
                 ),
               ),
+      startingSoonReminderSentActivityKeys:
+          (json['startingSoonReminderSentActivityKeys'] as List<dynamic>? ??
+                  const [])
+              .whereType<String>()
+              .toList(growable: false),
       activityFilters: Map<String, dynamic>.from(
         json['activityFilters'] as Map<String, dynamic>? ?? const {},
       ),

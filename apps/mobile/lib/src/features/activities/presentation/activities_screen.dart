@@ -19,6 +19,7 @@ class ActivitiesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
+    final controller = ref.read(appControllerProvider);
     final activities = ref.read(appControllerProvider).filteredActivities();
 
     return KawaiiScene(
@@ -89,6 +90,10 @@ class ActivitiesScreen extends ConsumerWidget {
                         final activity = activities[index];
                         return _ActivityListItem(
                           activity: activity,
+                          showStartingSoonBadge:
+                              controller.isActivityStartingSoonForCurrentUser(
+                                activity,
+                              ),
                           onTap: () => context.push('/activity/${activity.id}'),
                         );
                       },
@@ -102,10 +107,15 @@ class ActivitiesScreen extends ConsumerWidget {
 }
 
 class _ActivityListItem extends StatelessWidget {
-  const _ActivityListItem({required this.activity, required this.onTap});
+  const _ActivityListItem({
+    required this.activity,
+    required this.onTap,
+    required this.showStartingSoonBadge,
+  });
 
   final Activity activity;
   final VoidCallback onTap;
+  final bool showStartingSoonBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +162,11 @@ class _ActivityListItem extends StatelessWidget {
                         label: _statusLabel(activity.status),
                         color: _statusColor(activity.status),
                       ),
+                      if (showStartingSoonBadge)
+                        StatusPill(
+                          label: 'Empieza pronto',
+                          color: const Color(0xFFFF5DB8),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 6),
