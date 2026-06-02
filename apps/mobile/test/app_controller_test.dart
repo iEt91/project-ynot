@@ -1996,7 +1996,7 @@ void main() {
             activity.copyWith(myStatus: ParticipantStatus.confirmed),
             now: unlockAt.subtract(const Duration(minutes: 1)),
           ),
-          'Ubicación exacta',
+          'Ubicación exacta disponible',
         );
 
         final creatorView = controller.activityVisibleForCurrentUser(
@@ -2193,3 +2193,4 @@ class _TestMockStore extends LocalMockStore {
     snapshot = null;
   }
 }
+

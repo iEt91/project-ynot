@@ -2054,7 +2054,7 @@ class AppController extends ChangeNotifier {
 
   String locationDisclosureLabel(Activity activity, {DateTime? now}) {
     return _canCurrentUserSeeExactLocation(activity, now: now)
-        ? 'Ubicación exacta'
+        ? 'Ubicación exacta disponible'
         : 'Ubicación aproximada';
   }
 

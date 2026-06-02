@@ -281,7 +281,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 4),
                           Text(
                             canSeeExactLocation
-                                ? 'El punto exacto ya está disponible para ti.'
+                                ? 'Ubicación exacta disponible'
                                 : 'Ubicación aproximada',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: Theme.of(context)
@@ -433,6 +433,7 @@ class ActivityDetailScreen extends ConsumerWidget {
                 canJoin: canJoin,
                 canLeave: canLeave,
                 canOpenChat: canOpenChat,
+                canSeeExactLocation: canSeeExactLocation,
                 canConfirm:
                     !isCreator &&
                     activity.myStatus ==
@@ -940,6 +941,7 @@ class _ActionSection extends StatelessWidget {
     required this.canJoin,
     required this.canLeave,
     required this.canOpenChat,
+    required this.canSeeExactLocation,
     required this.canConfirm,
     required this.onEdit,
     required this.onJoin,
@@ -955,6 +957,7 @@ class _ActionSection extends StatelessWidget {
   final bool canJoin;
   final bool canLeave;
   final bool canOpenChat;
+  final bool canSeeExactLocation;
   final bool canConfirm;
   final VoidCallback? onEdit;
   final Future<void> Function() onJoin;
@@ -1061,6 +1064,16 @@ class _ActionSection extends StatelessWidget {
               onPressed: () => unawaited(onJoin()),
               child: const Text('Unirme'),
             ),
+            if (!canSeeExactLocation) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Verás la ubicación exacta 10 minutos antes del inicio.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.35,
+                    ),
+              ),
+            ],
           ] else ...[
             FilledButton(
               onPressed: null,

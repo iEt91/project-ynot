@@ -92,6 +92,18 @@ class SafetyCenterScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'Ubicación',
+                children: const [
+                  _TipRow(text: 'Mostramos una ubicación aproximada antes del inicio.'),
+                  SizedBox(height: 10),
+                  _TipRow(
+                    text:
+                        'La ubicación exacta se desbloquea sólo para participantes confirmados cerca del horario.',
+                  ),
+                ],
+              ),
             ],
           ),
         ),

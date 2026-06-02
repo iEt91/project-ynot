@@ -515,7 +515,7 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Se mostrará una ubicación aproximada por seguridad.',
+                                        'La ubicación exacta sólo se muestra a participantes confirmados cerca del horario.',
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
                                               color: theme

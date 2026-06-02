@@ -3,6 +3,11 @@
 - Users can choose to edit or continue, and continuing still creates the internal moderation flag
 - The warning flow stays local, private, and non-blocking
 
+## v1.0.26.4
+- Added clear location privacy copy in create/edit activity, detail screens, the join flow, and the safety center
+- Users now see whether location is approximate or exact available, plus a reminder about the 10-minute unlock window
+- The privacy explanation stays local and only changes copy, not location behavior
+
 ## v1.0.26.3
 - Added a user-facing safety center in Configuración with blocked users, reporting guidance, tips, and emergency guidance
 - Added a moderation flag detail screen with activity and chat context for internal review
