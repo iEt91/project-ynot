@@ -701,17 +701,15 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
       if (!proceed || !mounted) {
         return;
       }
-    }
-
-    await controller.sendChatMessage(activityId, text);
-    if (!mounted) return;
-    if (matches.isNotEmpty) {
       controller.logModerationWarningConfirmed(
         sourceType: ModerationFlagSourceType.message,
         activityId: activityId,
         match: matches.first,
       );
     }
+
+    await controller.sendChatMessage(activityId, text);
+    if (!mounted) return;
     _messageController.clear();
   }
 }

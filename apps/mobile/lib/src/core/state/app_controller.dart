@@ -821,6 +821,7 @@ class AppController extends ChangeNotifier {
     required double realLat,
     required double realLng,
     ActivityVisibility visibility = ActivityVisibility.publicActivity,
+    String? activityId,
   }) async {
     if (!canCreateActivity()) {
       state = state.copyWith(errorMessage: creationRestrictionMessage());
@@ -836,7 +837,7 @@ class AppController extends ChangeNotifier {
     }
 
     final created = _buildActivity(
-      id: 'activity_${DateTime.now().millisecondsSinceEpoch}',
+      id: activityId ?? 'activity_${DateTime.now().millisecondsSinceEpoch}',
       creatorId: currentUser.id,
       creatorLabel: state.user?.nickname.isNotEmpty == true
           ? state.user!.nickname

@@ -624,6 +624,13 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
     }
 
     if (isEditing) {
+      if (matches.isNotEmpty) {
+        controller.logModerationWarningConfirmed(
+          sourceType: ModerationFlagSourceType.activity,
+          activityId: widget.editingActivity!.id,
+          match: matches.first,
+        );
+      }
       final updated = await controller.updateActivity(
         activityId: widget.editingActivity!.id,
         title: _titleController.text.trim(),
@@ -640,13 +647,6 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
       );
       if (!context.mounted) return;
       if (updated) {
-        if (matches.isNotEmpty) {
-          controller.logModerationWarningConfirmed(
-            sourceType: ModerationFlagSourceType.activity,
-            activityId: widget.editingActivity!.id,
-            match: matches.first,
-          );
-        }
         context.pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -656,7 +656,16 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
       return;
     }
 
-    final createdId = await controller.createActivity(
+    final pendingActivityId = 'activity_${DateTime.now().millisecondsSinceEpoch}';
+    if (matches.isNotEmpty) {
+      controller.logModerationWarningConfirmed(
+        sourceType: ModerationFlagSourceType.activity,
+        activityId: pendingActivityId,
+        match: matches.first,
+      );
+    }
+
+    await controller.createActivity(
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
       category: _category,
@@ -668,16 +677,10 @@ class _CreateActivityScreenState extends ConsumerState<CreateActivityScreen> {
       realLat: _lat,
       realLng: _lng,
       visibility: _visibility,
+      activityId: pendingActivityId,
     );
 
     if (!context.mounted) return;
-    if (matches.isNotEmpty && createdId.isNotEmpty) {
-      controller.logModerationWarningConfirmed(
-        sourceType: ModerationFlagSourceType.activity,
-        activityId: createdId,
-        match: matches.first,
-      );
-    }
     context.pop();
   }
 }
