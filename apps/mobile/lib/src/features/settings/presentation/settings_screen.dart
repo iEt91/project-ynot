@@ -122,6 +122,12 @@ class SettingsScreen extends ConsumerWidget {
               _SectionCard(
                 title: 'Seguridad',
                 children: [
+                  _ActionRow(
+                    label: 'Centro de seguridad',
+                    value: 'Abrir',
+                    onTap: () => context.push('/settings/security'),
+                  ),
+                  const SizedBox(height: 10),
                   Text(
                     'Tus reportes son privados y ayudan a mantener la comunidad segura.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(

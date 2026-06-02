@@ -4,6 +4,7 @@
 - The warning flow stays local, private, and non-blocking
 
 ## v1.0.26.3
+- Added a user-facing safety center in Configuración with blocked users, reporting guidance, tips, and emergency guidance
 - Added a moderation flag detail screen with activity and chat context for internal review
 - Flags can now be opened from the internal moderation list to inspect surrounding message history or activity text
 - Review actions remain local and private, with no backend changes
