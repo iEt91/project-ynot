@@ -622,8 +622,10 @@ void main() {
       await firstController.setReceiveNotifications(false);
       await firstController.setRecommendedActivitiesNotifications(false);
       await firstController.setActivityStartingSoonNotifications(false);
+      await firstController.setSearchRadiusKm(5);
       await firstController.setShowSavedHighlights(false);
       await firstController.setShowArchivedChats(false);
+      await firstController.setMuteAllChats(true);
       await firstController.setHidePreciseLocationUntilUnlock(false);
       await firstController.setPersonalizedRecommendations(false);
 
@@ -646,9 +648,11 @@ void main() {
         secondController.state.settings.activityStartingSoonNotifications,
         isFalse,
       );
+      expect(secondController.state.settings.searchRadiusKm, 5);
       expect(secondController.state.settings.showRecommendations, isFalse);
       expect(secondController.state.settings.showSavedHighlights, isFalse);
       expect(secondController.state.settings.showArchivedChats, isFalse);
+      expect(secondController.state.settings.muteAllChats, isTrue);
       expect(
         secondController.state.settings.hidePreciseLocationUntilUnlock,
         isFalse,
@@ -1332,6 +1336,17 @@ void main() {
       expect(controller.state.notifications, isEmpty);
 
       await controller.setChatMessagesNotifications(true);
+      await controller.setMuteAllChats(true);
+      await controller.receiveChatMessage(
+        activityId: controller.state.activities.first.id,
+        senderId: 'seed_participant_soojin',
+        senderName: 'Soojin',
+        senderEmoji: '✨',
+        content: 'Hola sin notificación muteda',
+      );
+      expect(controller.state.notifications, isEmpty);
+
+      await controller.setMuteAllChats(false);
       await controller.setActivityStartingSoonNotifications(false);
       await controller.createActivity(
         title: 'Reminder test',
@@ -1351,6 +1366,36 @@ void main() {
           (item) => item.type == InAppNotificationType.activityStartingSoon,
         ),
         isEmpty,
+      );
+    });
+
+    test('search radius filters activities locally', () async {
+      final controller = await _buildLoggedInController();
+
+      final activityId = await controller.createActivity(
+        title: 'Far radius test',
+        description: 'This activity should be hidden at small radius.',
+        category: 'Coffee',
+        vibe: 'Calm',
+        zone: 'Seoul',
+        startTime: DateTime.now().add(const Duration(hours: 2)),
+        duration: const Duration(hours: 1),
+        maxPeople: 6,
+        realLat: 37.5866,
+        realLng: 126.978,
+      );
+      expect(activityId, isNotEmpty);
+
+      await controller.setSearchRadiusKm(1);
+      expect(
+        controller.filteredActivities().any((activity) => activity.id == activityId),
+        isFalse,
+      );
+
+      await controller.setSearchRadiusKm(25);
+      expect(
+        controller.filteredActivities().any((activity) => activity.id == activityId),
+        isTrue,
       );
     });
 

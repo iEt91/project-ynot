@@ -4,9 +4,11 @@ class AppSettings {
     required this.chatMessagesNotifications,
     required this.recommendedActivitiesNotifications,
     required this.activityStartingSoonNotifications,
+    required this.searchRadiusKm,
     required this.showRecommendations,
     required this.showSavedHighlights,
     required this.showArchivedChats,
+    required this.muteAllChats,
     required this.hidePreciseLocationUntilUnlock,
     required this.personalizedRecommendations,
   });
@@ -17,9 +19,11 @@ class AppSettings {
       chatMessagesNotifications: true,
       recommendedActivitiesNotifications: true,
       activityStartingSoonNotifications: true,
+      searchRadiusKm: 25,
       showRecommendations: true,
       showSavedHighlights: true,
       showArchivedChats: true,
+      muteAllChats: false,
       hidePreciseLocationUntilUnlock: true,
       personalizedRecommendations: true,
     );
@@ -29,9 +33,11 @@ class AppSettings {
   final bool chatMessagesNotifications;
   final bool recommendedActivitiesNotifications;
   final bool activityStartingSoonNotifications;
+  final int searchRadiusKm;
   final bool showRecommendations;
   final bool showSavedHighlights;
   final bool showArchivedChats;
+  final bool muteAllChats;
   final bool hidePreciseLocationUntilUnlock;
   final bool personalizedRecommendations;
 
@@ -40,9 +46,11 @@ class AppSettings {
     bool? chatMessagesNotifications,
     bool? recommendedActivitiesNotifications,
     bool? activityStartingSoonNotifications,
+    int? searchRadiusKm,
     bool? showRecommendations,
     bool? showSavedHighlights,
     bool? showArchivedChats,
+    bool? muteAllChats,
     bool? hidePreciseLocationUntilUnlock,
     bool? personalizedRecommendations,
   }) {
@@ -51,14 +59,16 @@ class AppSettings {
       chatMessagesNotifications:
           chatMessagesNotifications ?? this.chatMessagesNotifications,
       recommendedActivitiesNotifications:
-          recommendedActivitiesNotifications ??
+          recommendedActivitiesNotifications ?? 
           this.recommendedActivitiesNotifications,
       activityStartingSoonNotifications:
-          activityStartingSoonNotifications ??
+          activityStartingSoonNotifications ?? 
           this.activityStartingSoonNotifications,
+      searchRadiusKm: searchRadiusKm ?? this.searchRadiusKm,
       showRecommendations: showRecommendations ?? this.showRecommendations,
       showSavedHighlights: showSavedHighlights ?? this.showSavedHighlights,
       showArchivedChats: showArchivedChats ?? this.showArchivedChats,
+      muteAllChats: muteAllChats ?? this.muteAllChats,
       hidePreciseLocationUntilUnlock:
           hidePreciseLocationUntilUnlock ?? this.hidePreciseLocationUntilUnlock,
       personalizedRecommendations:
@@ -73,9 +83,11 @@ class AppSettings {
       'recommendedActivitiesNotifications':
           recommendedActivitiesNotifications,
       'activityStartingSoonNotifications': activityStartingSoonNotifications,
+      'searchRadiusKm': searchRadiusKm,
       'showRecommendations': showRecommendations,
       'showSavedHighlights': showSavedHighlights,
       'showArchivedChats': showArchivedChats,
+      'muteAllChats': muteAllChats,
       'hidePreciseLocationUntilUnlock': hidePreciseLocationUntilUnlock,
       'personalizedRecommendations': personalizedRecommendations,
     };
@@ -91,10 +103,13 @@ class AppSettings {
       recommendedActivitiesNotifications: legacyShowRecommendations ?? true,
       activityStartingSoonNotifications:
           json['activityStartingSoonNotifications'] as bool? ?? true,
+      searchRadiusKm: ((json['searchRadiusKm'] as int? ?? 25).clamp(1, 25))
+          .toInt(),
       showRecommendations:
           json['showRecommendations'] as bool? ?? legacyShowRecommendations ?? true,
       showSavedHighlights: json['showSavedHighlights'] as bool? ?? true,
       showArchivedChats: json['showArchivedChats'] as bool? ?? true,
+      muteAllChats: json['muteAllChats'] as bool? ?? false,
       hidePreciseLocationUntilUnlock:
           json['hidePreciseLocationUntilUnlock'] as bool? ?? true,
       personalizedRecommendations:

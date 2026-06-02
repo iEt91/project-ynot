@@ -20,6 +20,7 @@ import '../models/moderation_flag.dart';
 import '../models/moderation_report.dart';
 import '../models/private_feedback.dart';
 import '../models/pre_activity_checklist.dart';
+import '../utils/geo.dart';
 import '../utils/moderation_keywords.dart';
 import '../models/reportable_participant.dart';
 import '../utils/app_logger.dart';
@@ -1137,6 +1138,12 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  Future<void> setSearchRadiusKm(int value) {
+    return updateSettings(
+      state.settings.copyWith(searchRadiusKm: value.clamp(1, 25).toInt()),
+    );
+  }
+
   Future<void> setHidePreciseLocationUntilUnlock(bool value) {
     return updateSettings(
       state.settings.copyWith(hidePreciseLocationUntilUnlock: value),
@@ -1153,6 +1160,10 @@ class AppController extends ChangeNotifier {
     return updateSettings(
       state.settings.copyWith(showArchivedChats: value),
     );
+  }
+
+  Future<void> setMuteAllChats(bool value) {
+    return updateSettings(state.settings.copyWith(muteAllChats: value));
   }
 
   Future<void> setPersonalizedRecommendations(bool value) {
@@ -2352,16 +2363,32 @@ class AppController extends ChangeNotifier {
 
     final filters = state.activityFilters;
     final query = state.activitySearchQuery.trim().toLowerCase();
+    final searchRadiusKm = state.settings.searchRadiusKm;
     if (filters.isEmpty) {
       return query.isEmpty
           ? visibleActivities
+                .where(
+                  (activity) => _matchesSearchRadius(
+                    activity,
+                    searchRadiusKm,
+                  ),
+                )
+                .toList(growable: false)
           : visibleActivities
-                .where((activity) => _matchesSearchQuery(activity, query))
+                .where(
+                  (activity) =>
+                      _matchesSearchRadius(activity, searchRadiusKm) &&
+                      _matchesSearchQuery(activity, query),
+                )
                 .toList(growable: false);
     }
 
     return visibleActivities
         .where((activity) {
+          if (!_matchesSearchRadius(activity, searchRadiusKm)) {
+            return false;
+          }
+
           if (filters.today) {
             final now = DateTime.now();
             final isToday =
@@ -2492,6 +2519,22 @@ class AppController extends ChangeNotifier {
       activity.vibe,
     ].join(' ').toLowerCase();
     return haystack.contains(query);
+  }
+
+  bool _matchesSearchRadius(Activity activity, int searchRadiusKm) {
+    if (searchRadiusKm <= 0) {
+      return true;
+    }
+
+    const centerLat = 37.5666;
+    const centerLng = 126.9780;
+    return distanceKm(
+          lat1: centerLat,
+          lng1: centerLng,
+          lat2: activity.displayLat,
+          lng2: activity.displayLng,
+        ) <=
+        searchRadiusKm.toDouble();
   }
 
   List<Activity> activeActivitiesForUser(String userId) {
@@ -3532,7 +3575,7 @@ class AppController extends ChangeNotifier {
     }
     return switch (type) {
       InAppNotificationType.newMessage =>
-        state.settings.chatMessagesNotifications,
+        state.settings.chatMessagesNotifications && !state.settings.muteAllChats,
       InAppNotificationType.activityStartingSoon =>
         state.settings.activityStartingSoonNotifications,
       InAppNotificationType.newAttendee => true,

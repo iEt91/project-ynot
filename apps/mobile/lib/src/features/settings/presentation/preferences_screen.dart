@@ -25,11 +25,14 @@ class PreferencesScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
             children: [
-              Row(children: [ProfileBackButton(onTap: () => context.pop())]),
+              Row(
+                children: [ProfileBackButton(onTap: () => context.pop())],
+              ),
               const SizedBox(height: 14),
               const SectionHeader(
                 title: 'Preferencias',
-                subtitle: 'Controla lo que la app muestra y notifica. Todo queda local.',
+                subtitle:
+                    'Controla lo que la app muestra y notifica. Todo queda local.',
               ),
               const SizedBox(height: 16),
               _SectionCard(
@@ -37,21 +40,24 @@ class PreferencesScreen extends ConsumerWidget {
                 children: [
                   _PreferenceSwitch(
                     title: 'Recibir notificaciones',
-                    subtitle: 'Activa o desactiva todas las notificaciones locales.',
+                    subtitle:
+                        'Activa o desactiva todas las notificaciones locales.',
                     value: settings.receiveNotifications,
                     onChanged: controller.setReceiveNotifications,
                   ),
                   const SizedBox(height: 12),
                   _PreferenceSwitch(
                     title: 'Notificaciones de chat',
-                    subtitle: 'Recibe avisos por mensajes nuevos en chats activos.',
+                    subtitle:
+                        'Recibe avisos por mensajes nuevos en chats activos.',
                     value: settings.chatMessagesNotifications,
                     onChanged: controller.setChatMessagesNotifications,
                   ),
                   const SizedBox(height: 12),
                   _PreferenceSwitch(
                     title: 'Recordatorios de actividad',
-                    subtitle: 'Recibe avisos cuando una actividad esté por empezar.',
+                    subtitle:
+                        'Recibe avisos cuando una actividad esté por empezar.',
                     value: settings.activityStartingSoonNotifications,
                     onChanged: controller.setActivityStartingSoonNotifications,
                   ),
@@ -61,11 +67,36 @@ class PreferencesScreen extends ConsumerWidget {
               _SectionCard(
                 title: 'Descubrimiento',
                 children: [
+                  Text(
+                    'Radio de búsqueda',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final radius in const [1, 3, 5, 10, 25])
+                        _RadiusChip(
+                          label: '$radius km',
+                          selected: settings.searchRadiusKm == radius,
+                          onTap: () => controller.setSearchRadiusKm(radius),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   _PreferenceSwitch(
                     title: 'Mostrar recomendaciones',
-                    subtitle: 'Oculta badges de recomendación como "Empieza pronto".',
+                    subtitle:
+                        'Oculta badges y ayudas de descubrimiento como "Empieza pronto".',
                     value: settings.showRecommendations,
-                    onChanged: (value) => controller.setRecommendedActivitiesNotifications(value),
+                    onChanged: (value) =>
+                        controller.setRecommendedActivitiesNotifications(
+                          value,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   _PreferenceSwitch(
@@ -78,6 +109,27 @@ class PreferencesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 14),
               _SectionCard(
+                title: 'Privacidad',
+                children: [
+                  _PreferenceSwitch(
+                    title: 'Mostrar ubicación exacta sólo 10 min antes',
+                    subtitle:
+                        'Protege la ubicación exacta hasta que se acerque el horario.',
+                    value: settings.hidePreciseLocationUntilUnlock,
+                    onChanged: controller.setHidePreciseLocationUntilUnlock,
+                  ),
+                  const SizedBox(height: 12),
+                  _PreferenceSwitch(
+                    title: 'Permitir recomendaciones personalizadas',
+                    subtitle:
+                        'Usa tu actividad local para sugerir momentos más afines.',
+                    value: settings.personalizedRecommendations,
+                    onChanged: controller.setPersonalizedRecommendations,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionCard(
                 title: 'Chats',
                 children: [
                   _PreferenceSwitch(
@@ -85,6 +137,14 @@ class PreferencesScreen extends ConsumerWidget {
                     subtitle: 'Oculta o muestra la sección de chats archivados.',
                     value: settings.showArchivedChats,
                     onChanged: controller.setShowArchivedChats,
+                  ),
+                  const SizedBox(height: 12),
+                  _PreferenceSwitch(
+                    title: 'Silenciar todos los chats',
+                    subtitle:
+                        'No recibes notificaciones locales por mensajes nuevos.',
+                    value: settings.muteAllChats,
+                    onChanged: controller.setMuteAllChats,
                   ),
                 ],
               ),
@@ -186,6 +246,37 @@ class _PreferenceSwitch extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RadiusChip extends StatelessWidget {
+  const _RadiusChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      backgroundColor: YnotTheme.surface2.withValues(alpha: 0.72),
+      selectedColor: YnotTheme.primary.withValues(alpha: 0.22),
+      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: selected ? Colors.white : Colors.white70,
+      ),
+      side: BorderSide(
+        color: selected ? YnotTheme.primary : YnotTheme.border,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     );
   }
 }

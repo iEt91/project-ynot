@@ -1,3 +1,8 @@
+## v1.0.33.0
+- Added advanced local preferences for discovery, privacy, and chat control
+- Search radius now persists locally and filters both Activities and Map results
+- Users can mute all chats, hide archived chats, and control recommendation visibility
+
 ## v1.0.32.0
 - Added a backend readiness audit document that maps the current mock/local state to future Supabase tables, relationships, indexes, and RLS notes
 - Documented the current local models, ownership boundaries, and migration order for users, activities, chats, reports, feedback, notifications, blocks, saved activities, and moderation flags
