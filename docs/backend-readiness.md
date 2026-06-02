@@ -1,32 +1,38 @@
 # Backend Readiness Audit
 
-**Version:** v1.0.32.0
+Version: `v1.0.32.0`
 
-This document maps the current mock/local implementation in `apps/mobile` to a future Supabase-backed backend. It does **not** change app behavior. The app remains fully local/mock for now.
+This document audits the current mock/local implementation in `apps/mobile` and maps it to a future Supabase migration path. It does **not** change app behavior. The app stays fully local/mock for now.
 
-## Current local state
+## A) Current local state overview
 
-The app currently stores and reads the following data locally through `SharedPreferences` snapshots and related helpers:
+The app currently keeps almost all product state inside a single local snapshot managed by `AppController` and persisted through `LocalMockStore`. Session/login state and the seed-disable wipe flag live in `LocalSessionStore`.
 
-- Users / profile data
-- Activities
-- Chats and chat messages
-- Reports
-- Private feedback
-- Notifications
-- Blocked users
-- Saved activities
-- Moderation flags
-- Attendance responses
-- Pre-activity checklist state
-- Notification / recommendation / archive preferences
-- Search and activity filter state
+| Data type | Current local owner | Where it currently lives | Notes |
+| --- | --- | --- | --- |
+| Users / demo session | `AppController`, `LocalSessionStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_session_store.dart` | Demo login, current user, local session restore, wipe flag |
+| Public profiles | `AppController` | `apps/mobile/lib/src/core/state/app_controller.dart` + `AppUser` | Public profile screen uses the same local user model |
+| Activities | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Includes lifecycle, exact/approximate location, counts, saved state, previews |
+| Activity participants | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Join/confirm/leave/attendance responses and per-user activity state |
+| Chats | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Active chats, archived chats, unread counts, per-user visibility |
+| Messages | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Stored per activity/chat, read-only after finish |
+| Saved activities | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Local favorites / saved list |
+| Feedback | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Private feedback entries and gating |
+| Reports | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Internal moderation data only |
+| Blocked users | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Block list, labels, chat masking, safety warnings |
+| Notifications | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Local in-app notification center and unread badge |
+| Moderation flags | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Keyword-based internal moderation flags and review state |
+| Settings / preferences | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Notification toggles, discovery toggles, privacy toggles |
+| Attendance checks | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Post-activity attendance prompt and feedback gating |
+| Archived chats | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Per-user hidden archived chats and read-only archive behavior |
+| Search / filters | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Discovery search query and filters persist locally |
+| Pre-activity checklist | `AppController`, `LocalMockStore` | `apps/mobile/lib/src/core/state/app_controller.dart`, `apps/mobile/lib/src/core/data/local_mock_store.dart` | Per-user, per-activity checklist state |
 
 ## Current local models
 
 | Model | File | What it represents today | Main features that depend on it |
 | --- | --- | --- | --- |
-| `AppUser` | `apps/mobile/lib/src/core/models/app_user.dart` | Local demo user, profile, counts, status, avatar, bio, interests | Auth/bootstrap, Profile, Edit profile, Public profile, onboarding |
+| `AppUser` | `apps/mobile/lib/src/core/models/app_user.dart` | Local demo user, public profile, counts, status, avatar, bio, interests | Auth/bootstrap, Profile, Edit profile, Public profile, onboarding |
 | `Activity` | `apps/mobile/lib/src/core/models/activity.dart` | Activity content, lifecycle, privacy location, counts, chat previews, feedback targets | Map, Activities, Activity detail, Create/Edit, History, Saved, Chat |
 | `ChatMessage` | `apps/mobile/lib/src/core/models/chat_message.dart` | Local chat message with sender metadata | Chat, archived chats, notifications, report flow, moderation |
 | `ModerationReport` | `apps/mobile/lib/src/core/models/moderation_report.dart` | Internal moderation report submitted by users | Report flow, moderation review, safety tooling |
@@ -40,16 +46,17 @@ The app currently stores and reads the following data locally through `SharedPre
 | `PreActivityChecklist` | `apps/mobile/lib/src/core/models/pre_activity_checklist.dart` | User/activity checklist state | Activity detail, chat header checklist |
 | `ReportableParticipant` | `apps/mobile/lib/src/core/models/reportable_participant.dart` | Candidate people for report target selection | Chat report selector, activity detail report flow |
 
-## Suggested future Supabase tables
+## B) Future Supabase tables
 
-The following table names are suggested for migration. They can be adjusted to match existing backend conventions later.
+Below is a suggested table set for the future backend. Table names can change later, but the relationships and responsibilities should remain similar.
 
 ### `profiles`
-Stores public and private profile data for users.
 
-Suggested fields:
+Purpose:
+- Public/private user profile data.
 
-- `id` uuid, primary key, references `auth.users.id`
+Fields:
+- `id` uuid primary key, references `auth.users.id`
 - `phone_masked` text
 - `nickname` text
 - `avatar_emoji` text
@@ -65,18 +72,26 @@ Suggested fields:
 - `created_at` timestamp
 - `updated_at` timestamp
 
-Depends on:
+Relationships:
+- Parent row for almost every user-owned entity.
+- Referenced by activities, participants, messages, reports, feedback, blocks, notifications, moderation flags, settings.
 
-- Profile
-- Edit profile
-- Public profile
-- Onboarding
+Indexes needed:
+- primary key on `id`
+- optional index on `nickname` for public profile lookup
+- optional GIN indexes on `languages`, `vibes`, `interests` if search or discovery filters move server-side later
+
+RLS / security notes:
+- User can read and update their own row.
+- Public profile access should expose only safe fields, either through a view or a restricted policy.
+- Keep phone data private; never expose `phone_masked` to other users.
 
 ### `activities`
-Stores activity content, lifecycle, privacy location, and local counts.
 
-Suggested fields:
+Purpose:
+- Core activity record with lifecycle, time, location, and discovery metadata.
 
+Fields:
 - `id` uuid/text primary key
 - `creator_id` uuid references `profiles.id`
 - `creator_label` text
@@ -105,23 +120,29 @@ Suggested fields:
 - `created_at` timestamp
 - `updated_at` timestamp
 
-Depends on:
+Relationships:
+- Parent for participants, chats, messages, saved activities, reports, feedback, notifications, moderation flags.
 
-- Map
-- Activities list
-- Activity detail
-- Create/Edit activity
-- History
-- Saved
-- Chat previews
-- Upcoming reminders
-- Location privacy
+Indexes needed:
+- `creator_id`
+- `status`
+- `start_time`
+- `category`
+- `zone`
+- combined index on `(status, start_time)` for discovery and reminders
+
+RLS / security notes:
+- Public read should be limited to safe fields for discoverable/open activities.
+- Creator can insert/update/delete their own activity.
+- Exact location must stay protected until the privacy rule allows it.
+- If the backend exposes exact/approximate location separately, use a secure view or RPC for the exact one.
 
 ### `activity_participants`
-Stores per-user activity membership and attendance state.
 
-Suggested fields:
+Purpose:
+- Per-user participation state for an activity.
 
+Fields:
 - `id` uuid primary key
 - `activity_id` uuid references `activities.id`
 - `user_id` uuid references `profiles.id`
@@ -131,40 +152,86 @@ Suggested fields:
 - `confirmed_at` timestamp nullable
 - `attendance_response` text nullable
 - `attendance_response_at` timestamp nullable
-- `created_at` timestamp
-- `updated_at` timestamp
-
-Depends on:
-
-- Join / leave / confirm flow
-- Attendance check
-- Feedback gating
-- Participant counts
-- Chat permissions
-- Archived/finished chat state
-
-### `chat_threads`
-Stores chat metadata per activity.
-
-Suggested fields:
-
-- `id` uuid primary key
-- `activity_id` uuid references `activities.id`
+- `last_read_at` timestamp nullable
+- `chat_unread_count` integer default 0
 - `is_archived_for_user` boolean default false
 - `created_at` timestamp
 - `updated_at` timestamp
 
-Depends on:
+Relationships:
+- Connects users to activities.
+- Feeds participant counts, attendance prompts, chat visibility, archived chat state, and feedback eligibility.
 
-- Chats tab
-- Archived chat management
-- Chat header status
+Indexes needed:
+- unique index on `(activity_id, user_id)`
+- index on `user_id`
+- index on `activity_id`
+- index on `(activity_id, status)`
+
+RLS / security notes:
+- Users can read their own membership rows.
+- Activity creators can read/manage participant rows for their activity.
+- Per-user archive/read state should only be writable by the row owner.
+
+### `chat_threads`
+
+Purpose:
+- Activity chat container and thread-level metadata.
+
+Fields:
+- `id` uuid primary key
+- `activity_id` uuid references `activities.id`
+- `created_at` timestamp
+- `updated_at` timestamp
+
+Relationships:
+- One thread per activity.
+- Parent for chat messages and per-user chat thread state.
+
+Indexes needed:
+- unique index on `activity_id`
+
+RLS / security notes:
+- Only participants/creator should access the thread.
+- Archived/read-only behavior should be derived from activity status and per-user state, not from deleting thread rows.
+
+### `chat_thread_members`
+
+Purpose:
+- Per-user chat state, including archived visibility and unread count.
+
+Fields:
+- `id` uuid primary key
+- `chat_id` uuid references `chat_threads.id`
+- `activity_id` uuid references `activities.id`
+- `user_id` uuid references `profiles.id`
+- `is_archived_for_user` boolean default false
+- `hidden_from_chats_tab` boolean default false
+- `last_read_at` timestamp nullable
+- `unread_count` integer default 0
+- `muted` boolean default false
+- `created_at` timestamp
+- `updated_at` timestamp
+
+Relationships:
+- Joins users to a chat thread for visibility, archive, and unread state.
+
+Indexes needed:
+- unique index on `(chat_id, user_id)`
+- index on `user_id`
+- index on `(user_id, hidden_from_chats_tab)`
+- index on `activity_id`
+
+RLS / security notes:
+- Only the row owner should update archive/read/mute state.
+- Participants and creators can read their own thread membership row.
 
 ### `chat_messages`
-Stores chat messages.
 
-Suggested fields:
+Purpose:
+- Chat message history.
 
+Fields:
 - `id` uuid primary key
 - `chat_id` uuid references `chat_threads.id`
 - `activity_id` uuid references `activities.id`
@@ -175,19 +242,74 @@ Suggested fields:
 - `deleted_at` timestamp nullable
 - `moderation_state` text nullable
 
-Depends on:
+Relationships:
+- Parent for report-message flow, moderation flags, unread counts, and archived chat history.
 
-- Chat
-- Chat notifications
-- Report message flow
-- Moderation flags
-- Archived chat read-only behavior
+Indexes needed:
+- index on `(chat_id, created_at)`
+- index on `activity_id`
+- index on `sender_id`
+
+RLS / security notes:
+- Only chat participants should read messages.
+- Only the sender or a moderation role/service role should edit/delete or flag moderation state.
+- Old messages must remain accessible for moderation even if the chat is archived for the current user.
+
+### `saved_activities`
+
+Purpose:
+- User favorites / saved activities.
+
+Fields:
+- `id` uuid primary key
+- `user_id` uuid references `profiles.id`
+- `activity_id` uuid references `activities.id`
+- `created_at` timestamp
+
+Relationships:
+- Maps a user to a saved activity.
+
+Indexes needed:
+- unique index on `(user_id, activity_id)`
+- index on `user_id`
+- index on `activity_id`
+
+RLS / security notes:
+- Users can only create/read/delete their own saves.
+
+### `private_feedback`
+
+Purpose:
+- Private internal feedback about another attendee.
+
+Fields:
+- `id` uuid primary key
+- `activity_id` uuid references `activities.id`
+- `reviewer_user_id` uuid references `profiles.id`
+- `reviewed_user_id` uuid references `profiles.id`
+- `selected_feedback` text
+- `created_at` timestamp
+
+Relationships:
+- Uses activity participants and attendance responses for gating.
+
+Indexes needed:
+- unique index on `(activity_id, reviewer_user_id, reviewed_user_id)`
+- index on `activity_id`
+- index on `reviewed_user_id`
+- index on `reviewer_user_id`
+
+RLS / security notes:
+- Users can create only their own feedback rows.
+- Users should not see a public feedback history.
+- Aggregated/private internal use only.
 
 ### `moderation_reports`
-Stores user-submitted safety reports.
 
-Suggested fields:
+Purpose:
+- User-submitted moderation reports for activities, users, and messages.
 
+Fields:
 - `report_id` uuid primary key
 - `reporter_user_id` uuid references `profiles.id`
 - `target_type` text (`activity`, `user`, `message`)
@@ -197,35 +319,52 @@ Suggested fields:
 - `note` text nullable
 - `created_at` timestamp
 
-Depends on:
+Relationships:
+- Links to reported activity, user, or message.
 
-- Report activity / user / message
-- Safety tooling
-- Moderation review workflows
+Indexes needed:
+- unique index on `(reporter_user_id, target_type, target_id)` to prevent duplicates
+- index on `activity_id`
+- index on `(target_type, target_id)`
+- index on `reporter_user_id`
+- index on `created_at`
 
-### `private_feedback`
-Stores private feedback entries.
+RLS / security notes:
+- Users can create reports and read only their own submitted rows if needed.
+- Moderation staff/service role should read the full table.
+- Keep report data internal; do not expose it in the user UI.
 
-Suggested fields:
+### `blocked_users`
 
+Purpose:
+- Block relationships between users.
+
+Fields:
 - `id` uuid primary key
-- `activity_id` uuid references `activities.id`
-- `reviewer_user_id` uuid references `profiles.id`
-- `reviewed_user_id` uuid references `profiles.id`
-- `selected_feedback` text
+- `blocker_user_id` uuid references `profiles.id`
+- `blocked_user_id` uuid references `profiles.id`
+- `reason` text nullable
 - `created_at` timestamp
 
-Depends on:
+Relationships:
+- A block can affect chat display, attendee labels, report flows, and safety warnings.
 
-- Feedback screen
-- Feedback gating
-- Internal recommendation signals later
+Indexes needed:
+- unique index on `(blocker_user_id, blocked_user_id)`
+- index on `blocker_user_id`
+- index on `blocked_user_id`
+
+RLS / security notes:
+- Users can create/delete only their own block rows.
+- Other users should not read someone else’s block list.
+- Keep the block list internal to the owner except for safety checks in application logic.
 
 ### `in_app_notifications`
-Stores local/in-app notification feed rows.
 
-Suggested fields:
+Purpose:
+- Local-style notification feed and badge state.
 
+Fields:
 - `id` uuid primary key
 - `user_id` uuid references `profiles.id`
 - `type` text
@@ -233,58 +372,29 @@ Suggested fields:
 - `title` text
 - `body` text
 - `is_read` boolean
-- `dedupe_key` text unique per user
+- `dedupe_key` text
 - `created_at` timestamp
 - `read_at` timestamp nullable
 
-Depends on:
+Relationships:
+- Tied to user, optionally to an activity.
 
-- Notifications screen
-- Bell badge
-- Activity reminders
-- Chat message alerts
-- Activity finished / feedback available
+Indexes needed:
+- unique index on `(user_id, dedupe_key)`
+- index on `(user_id, is_read)`
+- index on `(user_id, created_at)`
+- index on `activity_id`
 
-### `blocked_users`
-Stores block relationships.
-
-Suggested fields:
-
-- `id` uuid primary key
-- `blocker_user_id` uuid references `profiles.id`
-- `blocked_user_id` uuid references `profiles.id`
-- `created_at` timestamp
-- `reason` text nullable
-
-Depends on:
-
-- Block user flow
-- Attendee labels
-- Chat message masking
-- Public profile / safety behavior
-- Feedback restrictions
-
-### `saved_activities`
-Stores saves/favorites.
-
-Suggested fields:
-
-- `id` uuid primary key
-- `user_id` uuid references `profiles.id`
-- `activity_id` uuid references `activities.id`
-- `created_at` timestamp
-
-Depends on:
-
-- Saved activities screen
-- Map / activity cards save actions
-- Share / detail flows that expose save state
+RLS / security notes:
+- Users can read/update only their own notifications.
+- Notification generation should still be controlled by preference toggles.
 
 ### `moderation_flags`
-Stores internal keyword / risk flags for review.
 
-Suggested fields:
+Purpose:
+- Internal keyword/risk flags for moderation review.
 
+Fields:
 - `flag_id` uuid primary key
 - `source_type` text (`activity`, `message`)
 - `source_id` uuid/text
@@ -301,18 +411,27 @@ Suggested fields:
 - `manually_reviewed_by` uuid nullable
 - `reviewed_at` timestamp nullable
 
-Depends on:
+Relationships:
+- Tied to an activity and the user/content that triggered the flag.
 
-- Moderation internal screen
-- Flag detail screen
-- Soft moderation warning
-- Risky content detection
+Indexes needed:
+- unique or partial unique index on dedupe key / source pair to avoid duplicates
+- index on `status`
+- index on `activity_id`
+- index on `source_type`
+- index on `category`
+- index on `created_at`
+
+RLS / security notes:
+- Hidden from normal users.
+- Read/write for moderation service role or internal staff only.
 
 ### `user_settings`
-Stores preference toggles and privacy options.
 
-Suggested fields:
+Purpose:
+- User preferences and toggles.
 
+Fields:
 - `user_id` uuid references `profiles.id`
 - `receive_notifications` boolean
 - `chat_messages_notifications` boolean
@@ -326,35 +445,46 @@ Suggested fields:
 - `theme` text
 - `updated_at` timestamp
 
-Depends on:
+Relationships:
+- One row per user.
 
-- Settings / Preferences
-- Notification gating
-- Discovery badges
-- Archived chats visibility
-- Location privacy explainer
+Indexes needed:
+- unique index on `user_id`
+
+RLS / security notes:
+- Users can only read and update their own settings.
 
 ### `attendance_responses`
-Optional separate table if attendance is split from `activity_participants`.
 
-Suggested fields:
+Purpose:
+- Post-activity attendance answers.
 
+Fields:
 - `id` uuid primary key
 - `activity_id` uuid references `activities.id`
 - `user_id` uuid references `profiles.id`
 - `response` text (`attended`, `no_show`, `unknown`)
 - `created_at` timestamp
 
-Depends on:
+Relationships:
+- Used by feedback gating and activity history.
 
-- Post-activity attendance prompt
-- Feedback gating
+Indexes needed:
+- unique index on `(activity_id, user_id)`
+- index on `activity_id`
+- index on `user_id`
+- index on `response`
 
-### `pre_activity_checklist`
-Optional separate table if checklist is split from `activity_participants`.
+RLS / security notes:
+- Users can create/update their own attendance response.
+- Activity creators may need aggregate read access for internal checks.
 
-Suggested fields:
+### `pre_activity_checklists`
 
+Purpose:
+- Per-user checklist items before an activity starts.
+
+Fields:
 - `id` uuid primary key
 - `activity_id` uuid references `activities.id`
 - `user_id` uuid references `profiles.id`
@@ -363,56 +493,64 @@ Suggested fields:
 - `created_at` timestamp
 - `updated_at` timestamp
 
-Depends on:
+Relationships:
+- Tied to a user and an activity.
 
-- Pre-activity checklist
-- Activity detail / chat header checklist
+Indexes needed:
+- unique index on `(activity_id, user_id, item_key)`
+- index on `user_id`
+- index on `activity_id`
 
-## Relationships
+RLS / security notes:
+- Users can only read/write their own checklist rows.
 
-- `profiles.id` -> parent for almost every user-owned record
-- `activities.creator_id` -> `profiles.id`
-- `activity_participants.activity_id` -> `activities.id`
-- `activity_participants.user_id` -> `profiles.id`
-- `chat_threads.activity_id` -> `activities.id`
-- `chat_messages.chat_id` -> `chat_threads.id`
-- `chat_messages.activity_id` -> `activities.id`
-- `chat_messages.sender_id` -> `profiles.id`
-- `moderation_reports.reporter_user_id` -> `profiles.id`
-- `moderation_reports.activity_id` -> `activities.id`
-- `private_feedback.activity_id` -> `activities.id`
-- `private_feedback.reviewer_user_id` -> `profiles.id`
-- `private_feedback.reviewed_user_id` -> `profiles.id`
-- `in_app_notifications.user_id` -> `profiles.id`
-- `in_app_notifications.activity_id` -> `activities.id`
-- `blocked_users.blocker_user_id` -> `profiles.id`
-- `blocked_users.blocked_user_id` -> `profiles.id`
-- `saved_activities.user_id` -> `profiles.id`
-- `saved_activities.activity_id` -> `activities.id`
-- `moderation_flags.activity_id` -> `activities.id`
-- `moderation_flags.user_id` -> `profiles.id`
+## C) Migration order recommendation
 
-## Suggested migration order
+Recommended migration order:
 
-1. `auth.users` + `profiles`
+1. users / profiles
+2. activities
+3. participants
+4. chats / messages
+5. saved activities
+6. feedback
+7. reports / moderation
+8. notifications
+9. preferences
+
+Suggested practical sequence:
+
+1. `profiles`
 2. `activities`
 3. `activity_participants`
 4. `chat_threads`
-5. `chat_messages`
-6. `saved_activities`
-7. `blocked_users`
-8. `user_settings`
-9. `in_app_notifications`
-10. `moderation_reports`
-11. `moderation_flags`
-12. `private_feedback`
-13. `attendance_responses`
-14. `pre_activity_checklist`
+5. `chat_thread_members`
+6. `chat_messages`
+7. `saved_activities`
+8. `private_feedback`
+9. `moderation_reports`
+10. `blocked_users`
+11. `in_app_notifications`
+12. `moderation_flags`
+13. `user_settings`
+14. `attendance_responses`
+15. `pre_activity_checklists`
 
-## Notes for the migration
+## D) Risk notes
 
-- Keep the mock/local snapshot format working until the backend is fully ready.
-- Migrate one feature at a time, starting with profile, activities, and participants.
-- Chat should come after activities and participants, because it depends on both.
-- Moderation, reports, feedback, and notifications can be migrated later without changing the UI contract.
-- The current app already sanitizes old mojibake and local demo data, so backend data should preserve that same safe-display behavior.
+- The previous Supabase attempt broke when the app expected remote state and RPC/schema pieces that were not aligned yet. The profile/bootstrap path hit missing backend functions or missing schema cache state, so the mock app and remote backend drifted apart.
+- Avoid repeating that by keeping the current local snapshot as the source of truth until one module is fully verified.
+- Keep a mock-mode fallback alive during every migration step.
+- Migrate one module at a time, starting with profiles and activities, then participants, then chat.
+- Commit and tag after each module so rollback stays simple.
+- Do not move moderation, reporting, feedback, notifications, or block logic into Supabase until the core activity and profile tables are stable.
+- Keep exact-location privacy logic and archived-chat behavior consistent with the current local app before migrating those pieces.
+
+## Recommended backend rollout strategy
+
+1. Add tables and RLS for `profiles` and `activities`.
+2. Add `activity_participants` and `chat_threads`.
+3. Add `chat_thread_members` and `chat_messages`.
+4. Add `saved_activities`, `user_settings`, and `attendance_responses`.
+5. Add `private_feedback`, `moderation_reports`, `blocked_users`, `in_app_notifications`, and `moderation_flags`.
+6. Keep the local snapshot adapter until the app can read from Supabase without changing the UI contract.

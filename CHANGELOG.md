@@ -1,6 +1,6 @@
 ## v1.0.32.0
-- Added a backend readiness audit document that maps the current mock/local state to future Supabase tables, relationships, and migration order
-- Documented the current local models for users, activities, chats, reports, feedback, notifications, blocks, saved activities, and moderation flags
+- Added a backend readiness audit document that maps the current mock/local state to future Supabase tables, relationships, indexes, and RLS notes
+- Documented the current local models, ownership boundaries, and migration order for users, activities, chats, reports, feedback, notifications, blocks, saved activities, and moderation flags
 - Kept the app fully mock/local with no Supabase behavior changes
 
 ## v1.0.31.1
