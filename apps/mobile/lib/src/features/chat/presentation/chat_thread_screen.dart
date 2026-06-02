@@ -16,6 +16,7 @@ import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
 import '../../../shared/widgets/chat_conduct_reminder_dialog.dart';
+import '../../../shared/widgets/attendance_prompt_card.dart';
 import '../../../shared/widgets/moderation_warning_dialog.dart';
 import '../../../shared/widgets/pre_activity_checklist_card.dart';
 import '../../../shared/widgets/status_pill.dart';
@@ -485,6 +486,20 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                       label: '⚠ Usuario bloqueado presente',
                       color: const Color(0xFFFFD166),
                     ),
+                  ),
+                ),
+              ],
+              if (controller.shouldShowAttendancePrompt(activity)) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+                  child: AttendancePromptCard(
+                    compact: true,
+                    onSelected: (response) async {
+                      await controller.submitAttendanceResponse(
+                        activityId: activity.id,
+                        response: response,
+                      );
+                    },
                   ),
                 ),
               ],

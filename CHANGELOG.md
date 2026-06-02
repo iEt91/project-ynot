@@ -1,3 +1,8 @@
+## v1.0.26.7
+- Added a local post-activity attendance check so users can confirm whether they actually went to a finished activity
+- The attendance answer is stored per user and activity, appears in Activity Detail, Historial, Chat, and the Feedback flow, and is shown only once
+- Feedback is now unlocked only after the attendance answer, and users who said they could not go are not asked to review others
+
 ## v1.0.26.6
 - Added the upcoming activity reminder so joined and confirmed users see "Empieza pronto" and receive a local notification once per activity
 - The reminder badge now appears in Activity Detail, Activities, Chats, and the selected Map preview card

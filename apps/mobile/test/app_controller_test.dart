@@ -5,6 +5,7 @@ import 'package:ynot_mobile/src/core/data/local_session_store.dart';
 import 'package:ynot_mobile/src/core/models/blocked_user.dart';
 import 'package:ynot_mobile/src/core/models/activity.dart';
 import 'package:ynot_mobile/src/core/models/activity_filters.dart';
+import 'package:ynot_mobile/src/core/models/attendance_response.dart';
 import 'package:ynot_mobile/src/core/models/app_user.dart';
 import 'package:ynot_mobile/src/core/models/chat_message.dart';
 import 'package:ynot_mobile/src/core/models/in_app_notification.dart';
@@ -1024,7 +1025,7 @@ void main() {
           controller.state.notifications.any(
             (item) => item.type == InAppNotificationType.feedbackAvailable,
           ),
-          isTrue,
+          isFalse,
         );
         expect(
           controller.filteredActivities().any((item) => item.id == activityId),
@@ -1050,6 +1051,93 @@ void main() {
           isTrue,
         );
         expect(controller.isActivitySaved(activityId), isFalse);
+      },
+    );
+
+    test(
+      'post activity attendance response unlocks feedback and persists locally',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
+
+        final controller = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        final activityId = await controller.createActivity(
+          title: 'Attendance Check',
+          description: 'Probando asistencia post actividad.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Hongdae',
+          startTime: DateTime(2026, 6, 1, 18, 0),
+          duration: const Duration(hours: 2),
+          maxPeople: 6,
+          realLat: 37.5563,
+          realLng: 126.9228,
+        );
+
+        expect(activityId, isNotEmpty);
+        expect(await controller.startActivity(activityId), isTrue);
+        expect(await controller.finishActivity(activityId), isTrue);
+
+        final finishedActivity = controller.state.activities.firstWhere(
+          (item) => item.id == activityId,
+        );
+        expect(controller.shouldShowAttendancePrompt(finishedActivity), isTrue);
+        expect(
+          controller.state.notifications.any(
+            (item) => item.type == InAppNotificationType.feedbackAvailable,
+          ),
+          isFalse,
+        );
+
+        expect(
+          await controller.submitAttendanceResponse(
+            activityId: activityId,
+            response: AttendanceResponse.attended,
+          ),
+          isTrue,
+        );
+        expect(
+          controller.attendanceResponseForActivity(activityId),
+          AttendanceResponse.attended,
+        );
+        expect(
+          controller.canGiveFeedbackForActivity(
+            controller.state.activities.firstWhere(
+              (item) => item.id == activityId,
+            ),
+          ),
+          isTrue,
+        );
+        expect(
+          controller.state.notifications.any(
+            (item) => item.type == InAppNotificationType.feedbackAvailable,
+          ),
+          isTrue,
+        );
+
+        final reloaded = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+        expect(
+          reloaded.attendanceResponseForActivity(activityId),
+          AttendanceResponse.attended,
+        );
+        expect(
+          reloaded.shouldShowAttendancePrompt(
+            reloaded.state.activities.firstWhere(
+              (item) => item.id == activityId,
+            ),
+          ),
+          isFalse,
+        );
       },
     );
 
@@ -1285,11 +1373,19 @@ void main() {
 
     test('private feedback is saved once per reviewer and activity', () async {
       final controller = await _buildLoggedInController();
-      final activity = controller.state.activities.first;
+      final activity = controller.state.activities.firstWhere(
+        (item) => item.id == 'seed_4',
+      );
       final reviewerId = controller.state.user!.id;
       final reviewedId = activity.feedbackTargets.first.userId;
 
-      await controller.joinActivity(activity.id);
+      expect(
+        await controller.submitAttendanceResponse(
+          activityId: activity.id,
+          response: AttendanceResponse.attended,
+        ),
+        isTrue,
+      );
 
       expect(
         await controller.submitPrivateFeedback(
@@ -1906,9 +2002,21 @@ void main() {
       await firstController.confirmAttendance(createdActivity.id);
       await firstController.toggleSavedActivity(createdActivity.id);
       await firstController.sendChatMessage(createdActivity.id, 'Persisted');
-      final reviewedId = createdActivity.feedbackTargets.first.userId;
+      final finishedActivity = firstController.state.activities.firstWhere(
+        (item) => item.id == 'seed_4',
+      );
+      final reviewedId = finishedActivity.feedbackTargets.firstWhere(
+        (target) => target.userId != firstController.state.user!.id,
+      ).userId;
+      expect(
+        await firstController.submitAttendanceResponse(
+          activityId: finishedActivity.id,
+          response: AttendanceResponse.attended,
+        ),
+        isTrue,
+      );
       await firstController.submitPrivateFeedback(
-        activityId: createdActivity.id,
+        activityId: finishedActivity.id,
         reviewerUserId: firstController.state.user!.id,
         reviewedUserId: reviewedId,
         selectedFeedback: PrivateFeedbackOption.normal,

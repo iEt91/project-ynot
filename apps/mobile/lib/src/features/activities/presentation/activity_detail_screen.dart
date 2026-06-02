@@ -11,6 +11,7 @@ import '../../../core/models/moderation_report.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../core/utils/formatters.dart';
 import 'create_activity_screen.dart';
+import '../../../shared/widgets/attendance_prompt_card.dart';
 import '../../../shared/widgets/kawaii_avatar.dart';
 import '../../../shared/widgets/kawaii_card.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -453,7 +454,18 @@ class ActivityDetailScreen extends ConsumerWidget {
                     ],
                   ],
                 ),
+              ),
+              if (controller.shouldShowAttendancePrompt(activity)) ...[
+                const SizedBox(height: 14),
+                AttendancePromptCard(
+                  onSelected: (response) async {
+                    await controller.submitAttendanceResponse(
+                      activityId: activity.id,
+                      response: response,
+                    );
+                  },
                 ),
+              ],
               const SizedBox(height: 16),
               _ActionSection(
                 isCreator: isCreator,

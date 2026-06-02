@@ -10,6 +10,7 @@ import '../data/local_mock_store.dart';
 import '../data/local_session_store.dart';
 import '../models/activity.dart';
 import '../models/activity_filters.dart';
+import '../models/attendance_response.dart';
 import '../models/blocked_user.dart';
 import '../models/app_settings.dart';
 import '../models/app_user.dart';
@@ -40,6 +41,7 @@ class AppState {
     required this.acceptedChatGuidelinesActivityIds,
     required this.preActivityChecklistByActivityId,
     required this.startingSoonReminderSentActivityKeys,
+    required this.attendanceResponsesByActivityId,
     required this.settings,
     required this.activityFilters,
     required this.activitySearchQuery,
@@ -66,6 +68,7 @@ class AppState {
       acceptedChatGuidelinesActivityIds: const {},
       preActivityChecklistByActivityId: const {},
       startingSoonReminderSentActivityKeys: const {},
+      attendanceResponsesByActivityId: const {},
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
       activitySearchQuery: '',
@@ -87,6 +90,7 @@ class AppState {
   final Set<String> acceptedChatGuidelinesActivityIds;
   final Map<String, List<String>> preActivityChecklistByActivityId;
   final Set<String> startingSoonReminderSentActivityKeys;
+  final Map<String, AttendanceResponse> attendanceResponsesByActivityId;
   final AppSettings settings;
   final ActivityDiscoveryFilters activityFilters;
   final String activitySearchQuery;
@@ -111,6 +115,7 @@ class AppState {
     Set<String>? acceptedChatGuidelinesActivityIds,
     Map<String, List<String>>? preActivityChecklistByActivityId,
     Set<String>? startingSoonReminderSentActivityKeys,
+    Map<String, AttendanceResponse>? attendanceResponsesByActivityId,
     AppSettings? settings,
     ActivityDiscoveryFilters? activityFilters,
     String? activitySearchQuery,
@@ -143,6 +148,9 @@ class AppState {
       startingSoonReminderSentActivityKeys:
           startingSoonReminderSentActivityKeys ??
           this.startingSoonReminderSentActivityKeys,
+      attendanceResponsesByActivityId:
+          attendanceResponsesByActivityId ??
+          this.attendanceResponsesByActivityId,
       settings: settings ?? this.settings,
       activityFilters: activityFilters ?? this.activityFilters,
       activitySearchQuery: activitySearchQuery ?? this.activitySearchQuery,
@@ -430,6 +438,7 @@ class AppController extends ChangeNotifier {
   final Set<String> _acceptedChatGuidelinesActivityIds = {};
   final Map<String, Set<String>> _preActivityChecklistByActivityId = {};
   final Set<String> _startingSoonReminderSentActivityKeys = {};
+  final Map<String, AttendanceResponse> _attendanceResponsesByActivityId = {};
   Timer? _timeSyncTimer;
 
   AppState get state => _state;
@@ -468,6 +477,68 @@ class AppController extends ChangeNotifier {
 
   bool hasAcceptedChatGuidelines(String activityId) {
     return _acceptedChatGuidelinesActivityIds.contains(activityId);
+  }
+
+  AttendanceResponse? attendanceResponseForActivity(
+    String activityId, {
+    String? userId,
+  }) {
+    final resolvedUserId = userId ?? state.user?.id;
+    if (resolvedUserId == null ||
+        resolvedUserId.isEmpty ||
+        activityId.isEmpty) {
+      return null;
+    }
+
+    return _attendanceResponsesByActivityId[
+      _attendanceResponseKey(resolvedUserId, activityId)
+    ];
+  }
+
+  bool shouldShowAttendancePrompt(
+    Activity activity, {
+    String? userId,
+  }) {
+    final resolvedUserId = userId ?? state.user?.id;
+    if (resolvedUserId == null ||
+        resolvedUserId.isEmpty ||
+        activity.id.isEmpty ||
+        !activity.isFinishedOrArchived) {
+      return false;
+    }
+
+    final participated = activity.creatorId == resolvedUserId ||
+        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+        activity.myStatus == ParticipantStatus.confirmed ||
+        activity.myStatus == ParticipantStatus.attended;
+    if (!participated) {
+      return false;
+    }
+
+    return attendanceResponseForActivity(
+          activity.id,
+          userId: resolvedUserId,
+        ) ==
+        null;
+  }
+
+  bool canGiveFeedbackForActivity(
+    Activity activity, {
+    String? userId,
+  }) {
+    if (!activity.isFinishedOrArchived) {
+      return false;
+    }
+
+    final response = attendanceResponseForActivity(
+      activity.id,
+      userId: userId,
+    );
+    if (response == null) {
+      return false;
+    }
+
+    return response != AttendanceResponse.noShow;
   }
 
   void acceptChatGuidelines(String activityId) {
@@ -608,6 +679,10 @@ class AppController extends ChangeNotifier {
 
   String _preActivityChecklistKey(String activityId) {
     final userId = state.user?.id ?? _clientUid ?? 'guest';
+    return '$userId::$activityId';
+  }
+
+  String _attendanceResponseKey(String userId, String activityId) {
     return '$userId::$activityId';
   }
 
@@ -879,6 +954,7 @@ class AppController extends ChangeNotifier {
     _acceptedChatGuidelinesActivityIds.clear();
     _preActivityChecklistByActivityId.clear();
     _startingSoonReminderSentActivityKeys.clear();
+    _attendanceResponsesByActivityId.clear();
     _timeSyncTimer?.cancel();
     _timeSyncTimer = null;
     _activeChatActivityIds.clear();
@@ -913,6 +989,7 @@ class AppController extends ChangeNotifier {
     _acceptedChatGuidelinesActivityIds.clear();
     _preActivityChecklistByActivityId.clear();
     _startingSoonReminderSentActivityKeys.clear();
+    _attendanceResponsesByActivityId.clear();
     _timeSyncTimer?.cancel();
     _timeSyncTimer = null;
     state = AppState.initial().copyWith(
@@ -1718,17 +1795,6 @@ class AppController extends ChangeNotifier {
           dedupeKey: 'finished:$activityId',
         );
       }
-      if (_notificationEnabledForType(
-        InAppNotificationType.feedbackAvailable,
-      )) {
-        _createNotification(
-          type: InAppNotificationType.feedbackAvailable,
-          activityId: activityId,
-          title: 'Feedback disponible',
-          body: 'Ya puedes valorar a las personas de esta actividad.',
-          dedupeKey: 'feedback:$activityId',
-        );
-      }
     }
     _syncTimeBasedNotifications();
     unawaited(_persistSnapshot());
@@ -1782,8 +1848,62 @@ class AppController extends ChangeNotifier {
       (report) =>
           report.reporterUserId == reporterUserId &&
           report.targetType == targetType &&
-          report.targetId == targetId,
+      report.targetId == targetId,
     );
+  }
+
+  Future<bool> submitAttendanceResponse({
+    required String activityId,
+    required AttendanceResponse response,
+  }) async {
+    final currentUser = state.user;
+    final activity = _findActivity(activityId);
+    if (currentUser == null ||
+        activity == null ||
+        activityId.isEmpty ||
+        !(activity.status == ActivityStatus.finished ||
+            activity.status == ActivityStatus.archived)) {
+      return false;
+    }
+
+    final participated = activity.creatorId == currentUser.id ||
+        activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+        activity.myStatus == ParticipantStatus.confirmed ||
+        activity.myStatus == ParticipantStatus.attended;
+    if (!participated) {
+      return false;
+    }
+
+    final responseKey = _attendanceResponseKey(currentUser.id, activityId);
+    if (_attendanceResponsesByActivityId.containsKey(responseKey)) {
+      return false;
+    }
+
+    _attendanceResponsesByActivityId[responseKey] = response;
+    state = state.copyWith(
+      attendanceResponsesByActivityId:
+          Map<String, AttendanceResponse>.unmodifiable(
+            _attendanceResponsesByActivityId,
+          ),
+    );
+
+    if (response != AttendanceResponse.noShow &&
+        _notificationEnabledForType(InAppNotificationType.feedbackAvailable)) {
+      _createNotification(
+        type: InAppNotificationType.feedbackAvailable,
+        activityId: activityId,
+        title: 'Feedback disponible',
+        body: 'Ya puedes valorar a las personas de esta actividad.',
+        dedupeKey: 'feedback:$activityId:${currentUser.id}',
+      );
+    }
+
+    AppLogger.log(
+      'ACTIVITY',
+      'attendance_response_saved activityId=$activityId userId=${currentUser.id} response=${response.name}',
+    );
+    unawaited(_persistSnapshot());
+    return true;
   }
 
   List<ActivityFeedbackTarget> feedbackTargetsForActivity(
@@ -1930,7 +2050,8 @@ class AppController extends ChangeNotifier {
     if (currentActivity == null ||
         reviewerUserId.isEmpty ||
         reviewedUserId.isEmpty ||
-        reviewerUserId == reviewedUserId) {
+        reviewerUserId == reviewedUserId ||
+        !currentActivity.isFinishedOrArchived) {
       return false;
     }
 
@@ -3350,6 +3471,11 @@ class AppController extends ChangeNotifier {
             _preActivityChecklistStateSnapshot(),
         startingSoonReminderSentActivityKeys:
             _startingSoonReminderSentActivityKeys.toList(growable: false),
+        attendanceResponsesByActivityId: Map<String, String>.unmodifiable(
+          _attendanceResponsesByActivityId.map(
+            (key, value) => MapEntry(key, value.name),
+          ),
+        ),
         activityFilters: state.activityFilters.toJson(),
         searchQuery: state.activitySearchQuery,
         settings: state.settings.toJson(),
@@ -3468,6 +3594,20 @@ class AppController extends ChangeNotifier {
             .toList(growable: false),
       );
 
+    _attendanceResponsesByActivityId
+      ..clear()
+      ..addAll(
+        snapshot.attendanceResponsesByActivityId.map(
+          (key, value) => MapEntry(
+            key,
+            AttendanceResponse.values.firstWhere(
+              (response) => response.name == value,
+              orElse: () => AttendanceResponse.unknown,
+            ),
+          ),
+        ),
+      );
+
     state = state.copyWith(
       stage: _stageForUser(user),
       user: user,
@@ -3496,6 +3636,10 @@ class AppController extends ChangeNotifier {
           _preActivityChecklistStateSnapshot(),
       startingSoonReminderSentActivityKeys:
           Set<String>.unmodifiable(_startingSoonReminderSentActivityKeys),
+      attendanceResponsesByActivityId:
+          Map<String, AttendanceResponse>.unmodifiable(
+            _attendanceResponsesByActivityId,
+          ),
       errorMessage: null,
     );
     _syncTimeBasedNotifications();

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/activity.dart';
+import '../models/attendance_response.dart';
 import '../models/blocked_user.dart';
 import '../models/app_user.dart';
 import '../models/chat_message.dart';
@@ -24,6 +25,7 @@ class LocalMockSnapshot {
     this.acceptedChatGuidelinesActivityIds = const [],
     this.preActivityChecklistByActivityId = const {},
     this.startingSoonReminderSentActivityKeys = const [],
+    this.attendanceResponsesByActivityId = const {},
     required this.activityFilters,
     this.searchQuery = '',
     required this.settings,
@@ -42,6 +44,7 @@ class LocalMockSnapshot {
   final List<String> acceptedChatGuidelinesActivityIds;
   final Map<String, List<String>> preActivityChecklistByActivityId;
   final List<String> startingSoonReminderSentActivityKeys;
+  final Map<String, String> attendanceResponsesByActivityId;
   final Map<String, dynamic> activityFilters;
   final String searchQuery;
   final Map<String, dynamic> settings;
@@ -81,6 +84,7 @@ class LocalMockSnapshot {
       ),
       'startingSoonReminderSentActivityKeys':
           List<String>.from(startingSoonReminderSentActivityKeys),
+      'attendanceResponsesByActivityId': attendanceResponsesByActivityId,
       'activityFilters': activityFilters,
       'searchQuery': searchQuery,
       'settings': settings,
@@ -167,6 +171,20 @@ class LocalMockSnapshot {
                   const [])
               .whereType<String>()
               .toList(growable: false),
+      attendanceResponsesByActivityId:
+          (json['attendanceResponsesByActivityId'] as Map<String, dynamic>? ??
+                  const {})
+              .map(
+                (key, value) => MapEntry(
+                  key,
+                  value is String &&
+                          AttendanceResponse.values.any(
+                            (response) => response.name == value,
+                          )
+                      ? value
+                      : AttendanceResponse.unknown.name,
+                ),
+              ),
       activityFilters: Map<String, dynamic>.from(
         json['activityFilters'] as Map<String, dynamic>? ?? const {},
       ),

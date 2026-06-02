@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
+import '../../../shared/widgets/attendance_prompt_card.dart';
 import '../../../shared/widgets/activity_card.dart';
 import '../../../shared/widgets/kawaii_empty_state.dart';
 import '../../../shared/widgets/kawaii_scene.dart';
@@ -17,9 +18,10 @@ class ActivityHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appStateProvider);
     final user = state.user;
+    final controller = ref.read(appControllerProvider);
     final activities = user == null
         ? const <Activity>[]
-        : ref.read(appControllerProvider).historyActivitiesForUser(user.id);
+        : controller.historyActivitiesForUser(user.id);
 
     return Scaffold(
       body: KawaiiScene(
@@ -51,12 +53,29 @@ class ActivityHistoryScreen extends ConsumerWidget {
                 ...activities.map(
                   (activity) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: ActivityCard(
-                      activity: activity,
-                      onTap: () => context.push('/activity/${activity.id}'),
-                      onJoin: () => context.push('/activity/${activity.id}'),
-                      onConfirm: () => context.push('/chat/${activity.id}'),
-                      showActions: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ActivityCard(
+                          activity: activity,
+                          onTap: () => context.push('/activity/${activity.id}'),
+                          onJoin: () => context.push('/activity/${activity.id}'),
+                          onConfirm: () => context.push('/chat/${activity.id}'),
+                          showActions: false,
+                        ),
+                        if (controller.shouldShowAttendancePrompt(activity)) ...[
+                          const SizedBox(height: 12),
+                          AttendancePromptCard(
+                            compact: true,
+                            onSelected: (response) async {
+                              await controller.submitAttendanceResponse(
+                                activityId: activity.id,
+                                response: response,
+                              );
+                            },
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
