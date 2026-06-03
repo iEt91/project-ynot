@@ -394,7 +394,7 @@ class AppRepository implements ActivityRepository {
         'p_reason': reason,
         'p_details': details,
         'p_content': content,
-        'p_timestamp': timestamp?.toIso8601String(),
+        'p_timestamp': timestamp?.toIso8601String() ?? DateTime.now().toIso8601String(),
       },
     );
 

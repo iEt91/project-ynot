@@ -1,3 +1,8 @@
+## v1.0.34.0
+- Polished secondary-screen navigation, empty states, headers, and small-screen layout consistency
+- Kept UX aligned with the same dark kawaii cards, button styles, and back-button patterns across the app
+- Cleaned up visible text and developer-facing inconsistencies without changing business logic
+
 ## v1.0.33.1
 - Added a local mock current location selector for radius testing in Preferences
 - Search radius now can be tested from preset cities or the current map center without real GPS
