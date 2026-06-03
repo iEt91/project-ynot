@@ -20,6 +20,7 @@ class LocalMockSnapshot {
     required this.savedActivityIds,
     required this.blockedUsers,
     this.hiddenArchivedChatActivityIds = const [],
+    this.hiddenHistoryActivityIds = const [],
     this.notifications = const [],
     this.moderationFlags = const [],
     this.dismissedBlockedChatWarningActivityIds = const [],
@@ -40,6 +41,7 @@ class LocalMockSnapshot {
   final List<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
   final List<String> hiddenArchivedChatActivityIds;
+  final List<String> hiddenHistoryActivityIds;
   final List<InAppNotification> notifications;
   final List<ModerationFlag> moderationFlags;
   final List<String> dismissedBlockedChatWarningActivityIds;
@@ -72,6 +74,7 @@ class LocalMockSnapshot {
       'hiddenArchivedChatActivityIds': List<String>.from(
         hiddenArchivedChatActivityIds,
       ),
+      'hiddenHistoryActivityIds': List<String>.from(hiddenHistoryActivityIds),
       'notifications': notifications
           .map((item) => item.toJson())
           .toList(growable: false),
@@ -87,8 +90,9 @@ class LocalMockSnapshot {
       'preActivityChecklistByActivityId': preActivityChecklistByActivityId.map(
         (key, value) => MapEntry(key, List<String>.from(value)),
       ),
-      'startingSoonReminderSentActivityKeys':
-          List<String>.from(startingSoonReminderSentActivityKeys),
+      'startingSoonReminderSentActivityKeys': List<String>.from(
+        startingSoonReminderSentActivityKeys,
+      ),
       'attendanceResponsesByActivityId': attendanceResponsesByActivityId,
       'activityFilters': activityFilters,
       'searchQuery': searchQuery,
@@ -139,6 +143,10 @@ class LocalMockSnapshot {
           .toList(growable: false),
       hiddenArchivedChatActivityIds:
           (json['hiddenArchivedChatActivityIds'] as List<dynamic>? ?? const [])
+              .whereType<String>()
+              .toList(growable: false),
+      hiddenHistoryActivityIds:
+          (json['hiddenHistoryActivityIds'] as List<dynamic>? ?? const [])
               .whereType<String>()
               .toList(growable: false),
       notifications: (json['notifications'] as List<dynamic>? ?? const [])

@@ -1,3 +1,9 @@
+## v1.0.35.0
+- Users can now remove activities from their personal history without deleting anything globally
+- Saved activities now support manual removal from the Guardadas screen with a long press
+- Empty states for Historial and Guardadas were updated to clearer local-only copy
+- History and saved cleanup stays local, persistent, and does not affect chats, feedback, moderation, or the activity itself
+
 ## v1.0.34.0
 - Polished secondary-screen navigation, empty states, headers, and small-screen layout consistency
 - Kept UX aligned with the same dark kawaii cards, button styles, and back-button patterns across the app

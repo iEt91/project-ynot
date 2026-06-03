@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ynot_mobile/src/core/data/local_mock_store.dart';
 import 'package:ynot_mobile/src/core/data/local_session_store.dart';
@@ -217,27 +217,18 @@ void main() {
         (item) => item.id == 'seed_1',
       );
 
-      expect(
-        firstController.hasAcceptedChatGuidelines(activity.id),
-        isFalse,
-      );
+      expect(firstController.hasAcceptedChatGuidelines(activity.id), isFalse);
 
       firstController.acceptChatGuidelines(activity.id);
 
-      expect(
-        firstController.hasAcceptedChatGuidelines(activity.id),
-        isTrue,
-      );
+      expect(firstController.hasAcceptedChatGuidelines(activity.id), isTrue);
 
       final secondController = await _buildController(
         sessionStore: sessionStore,
         mockStore: mockStore,
       );
 
-      expect(
-        secondController.hasAcceptedChatGuidelines(activity.id),
-        isTrue,
-      );
+      expect(secondController.hasAcceptedChatGuidelines(activity.id), isTrue);
     });
 
     test(
@@ -605,6 +596,104 @@ void main() {
       expect(secondController.isActivitySaved(activityId), isFalse);
       expect(secondController.savedActivities(), isEmpty);
     });
+
+    test(
+      'history activity can be hidden locally and survives restart',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
+
+        final firstController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        final createdId = await firstController.createActivity(
+          title: 'Historial local',
+          description: 'Plan para probar el ocultado personal.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Hongdae',
+          startTime: DateTime.now().add(const Duration(hours: 2)),
+          duration: const Duration(hours: 2),
+          maxPeople: 4,
+          realLat: 37.5563,
+          realLng: 126.9228,
+        );
+        expect(createdId, isNotEmpty);
+        expect(await firstController.startActivity(createdId), isTrue);
+        expect(await firstController.finishActivity(createdId), isTrue);
+        expect(
+          firstController.historyActivitiesForUser(
+            firstController.state.user!.id,
+          ),
+          isNotEmpty,
+        );
+        expect(
+          await firstController.hideActivityFromHistory(createdId),
+          isTrue,
+        );
+        expect(
+          firstController
+              .historyActivitiesForUser(firstController.state.user!.id)
+              .any((activity) => activity.id == createdId),
+          isFalse,
+        );
+
+        final secondController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        expect(
+          secondController
+              .historyActivitiesForUser(secondController.state.user!.id)
+              .any((activity) => activity.id == createdId),
+          isFalse,
+        );
+        expect(
+          secondController.state.activities.any(
+            (activity) => activity.id == createdId,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'saved activities can be removed locally and survive restart',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
+
+        final firstController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        final activityId = firstController.state.activities.first.id;
+        expect(await firstController.toggleSavedActivity(activityId), isTrue);
+        expect(firstController.savedActivities(), hasLength(1));
+
+        expect(await firstController.removeSavedActivity(activityId), isTrue);
+        expect(firstController.savedActivities(), isEmpty);
+        expect(firstController.isActivitySaved(activityId), isFalse);
+
+        final secondController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+
+        expect(secondController.isActivitySaved(activityId), isFalse);
+        expect(secondController.savedActivities(), isEmpty);
+      },
+    );
 
     test('settings persist locally and clear with local data', () async {
       final sessionStore = _TestSessionStore(
@@ -1272,51 +1361,54 @@ void main() {
       expect(thirdController.state.notifications.first.isRead, isTrue);
     });
 
-    test('notifications can be deleted individually and cleared locally', () async {
-      final sessionStore = _TestSessionStore(
-        clientUid: 'client_001',
-        phone: '+82 10 1234 5678',
-      );
-      final mockStore = _TestMockStore();
+    test(
+      'notifications can be deleted individually and cleared locally',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
 
-      final controller = await _buildController(
-        sessionStore: sessionStore,
-        mockStore: mockStore,
-      );
+        final controller = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
 
-      final activityId = controller.state.activities.first.id;
-      await controller.receiveChatMessage(
-        activityId: activityId,
-        senderId: 'seed_participant_soojin',
-        senderName: 'Soojin',
-        senderEmoji: '✨',
-        content: 'Hola desde fuera',
-      );
+        final activityId = controller.state.activities.first.id;
+        await controller.receiveChatMessage(
+          activityId: activityId,
+          senderId: 'seed_participant_soojin',
+          senderName: 'Soojin',
+          senderEmoji: '✨',
+          content: 'Hola desde fuera',
+        );
 
-      expect(controller.state.notifications, hasLength(1));
-      final notificationId = controller.state.notifications.first.id;
+        expect(controller.state.notifications, hasLength(1));
+        final notificationId = controller.state.notifications.first.id;
 
-      await controller.deleteNotification(notificationId);
-      expect(controller.state.notifications, isEmpty);
+        await controller.deleteNotification(notificationId);
+        expect(controller.state.notifications, isEmpty);
 
-      await controller.receiveChatMessage(
-        activityId: activityId,
-        senderId: 'seed_participant_soojin',
-        senderName: 'Soojin',
-        senderEmoji: '✨',
-        content: 'Nueva alerta',
-      );
-      expect(controller.state.notifications, hasLength(1));
+        await controller.receiveChatMessage(
+          activityId: activityId,
+          senderId: 'seed_participant_soojin',
+          senderName: 'Soojin',
+          senderEmoji: '✨',
+          content: 'Nueva alerta',
+        );
+        expect(controller.state.notifications, hasLength(1));
 
-      await controller.clearNotifications();
-      expect(controller.state.notifications, isEmpty);
+        await controller.clearNotifications();
+        expect(controller.state.notifications, isEmpty);
 
-      final reloaded = await _buildController(
-        sessionStore: sessionStore,
-        mockStore: mockStore,
-      );
-      expect(reloaded.state.notifications, isEmpty);
-    });
+        final reloaded = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+        expect(reloaded.state.notifications, isEmpty);
+      },
+    );
 
     test('user preferences gate notification creation locally', () async {
       final controller = await _buildLoggedInController();
@@ -1390,47 +1482,58 @@ void main() {
 
       await controller.setSearchRadiusKm(1);
       expect(
-        controller.filteredActivities().any((activity) => activity.id == activityId),
+        controller.filteredActivities().any(
+          (activity) => activity.id == activityId,
+        ),
         isFalse,
       );
 
       await controller.setSearchRadiusKm(25);
       expect(
-        controller.filteredActivities().any((activity) => activity.id == activityId),
+        controller.filteredActivities().any(
+          (activity) => activity.id == activityId,
+        ),
         isTrue,
       );
     });
 
-    test('mock current location changes search radius results locally', () async {
-      final controller = await _buildLoggedInController();
+    test(
+      'mock current location changes search radius results locally',
+      () async {
+        final controller = await _buildLoggedInController();
 
-      final activityId = await controller.createActivity(
-        title: 'Madrid radius test',
-        description: 'This activity should follow the mock location.',
-        category: 'Coffee',
-        vibe: 'Calm',
-        zone: 'Madrid',
-        startTime: DateTime.now().add(const Duration(hours: 2)),
-        duration: const Duration(hours: 1),
-        maxPeople: 6,
-        realLat: 40.4168,
-        realLng: -3.7038,
-      );
-      expect(activityId, isNotEmpty);
+        final activityId = await controller.createActivity(
+          title: 'Madrid radius test',
+          description: 'This activity should follow the mock location.',
+          category: 'Coffee',
+          vibe: 'Calm',
+          zone: 'Madrid',
+          startTime: DateTime.now().add(const Duration(hours: 2)),
+          duration: const Duration(hours: 1),
+          maxPeople: 6,
+          realLat: 40.4168,
+          realLng: -3.7038,
+        );
+        expect(activityId, isNotEmpty);
 
-      await controller.setSearchRadiusKm(1);
-      await controller.setMockCurrentLocationKey('madrid');
-      expect(
-        controller.filteredActivities().any((activity) => activity.id == activityId),
-        isTrue,
-      );
+        await controller.setSearchRadiusKm(1);
+        await controller.setMockCurrentLocationKey('madrid');
+        expect(
+          controller.filteredActivities().any(
+            (activity) => activity.id == activityId,
+          ),
+          isTrue,
+        );
 
-      await controller.setMockCurrentLocationKey('seoul');
-      expect(
-        controller.filteredActivities().any((activity) => activity.id == activityId),
-        isFalse,
-      );
-    });
+        await controller.setMockCurrentLocationKey('seoul');
+        expect(
+          controller.filteredActivities().any(
+            (activity) => activity.id == activityId,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('demo notifications generate stable mixed read states', () async {
       final sessionStore = _TestSessionStore(
@@ -1598,15 +1701,15 @@ void main() {
         );
 
         expect(
-          controller.archivedChatsForUser(userId).any(
-            (item) => item.id == archivedChat.id,
-          ),
+          controller
+              .archivedChatsForUser(userId)
+              .any((item) => item.id == archivedChat.id),
           isTrue,
         );
         expect(
-          controller.activeChatsForUser(userId).any(
-            (item) => item.id == archivedChat.id,
-          ),
+          controller
+              .activeChatsForUser(userId)
+              .any((item) => item.id == archivedChat.id),
           isFalse,
         );
 
@@ -1617,9 +1720,9 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         expect(
-          controller.archivedChatsForUser(userId).any(
-            (item) => item.id == archivedChat.id,
-          ),
+          controller
+              .archivedChatsForUser(userId)
+              .any((item) => item.id == archivedChat.id),
           isFalse,
         );
 
@@ -1628,9 +1731,9 @@ void main() {
           mockStore: mockStore,
         );
         expect(
-          reloadedController.archivedChatsForUser(userId).any(
-            (item) => item.id == archivedChat.id,
-          ),
+          reloadedController
+              .archivedChatsForUser(userId)
+              .any((item) => item.id == archivedChat.id),
           isFalse,
         );
       },
@@ -2032,10 +2135,7 @@ void main() {
         final weedFlag = firstController.moderationFlags.firstWhere(
           (flag) => flag.keyword == 'weed',
         );
-        expect(
-          firstController.moderationFlagById(weedFlag.flagId),
-          isNotNull,
-        );
+        expect(firstController.moderationFlagById(weedFlag.flagId), isNotNull);
         await firstController.markModerationFlagReviewed(weedFlag.flagId);
         expect(
           firstController.moderationFlags
@@ -2270,9 +2370,11 @@ void main() {
       final finishedActivity = firstController.state.activities.firstWhere(
         (item) => item.id == 'seed_4',
       );
-      final reviewedId = finishedActivity.feedbackTargets.firstWhere(
-        (target) => target.userId != firstController.state.user!.id,
-      ).userId;
+      final reviewedId = finishedActivity.feedbackTargets
+          .firstWhere(
+            (target) => target.userId != firstController.state.user!.id,
+          )
+          .userId;
       expect(
         await firstController.submitAttendanceResponse(
           activityId: finishedActivity.id,
@@ -2381,8 +2483,6 @@ void main() {
       },
     );
 
-
-
     test('pre activity checklist persists per activity and user', () async {
       final sessionStore = _TestSessionStore(
         clientUid: 'client_001',
@@ -2447,55 +2547,57 @@ void main() {
       );
     });
 
+    test(
+      'upcoming activity reminder shows once and persists locally',
+      () async {
+        final sessionStore = _TestSessionStore(
+          clientUid: 'client_001',
+          phone: '+82 10 1234 5678',
+        );
+        final mockStore = _TestMockStore();
+        final controller = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
 
-    test('upcoming activity reminder shows once and persists locally', () async {
-      final sessionStore = _TestSessionStore(
-        clientUid: 'client_001',
-        phone: '+82 10 1234 5678',
-      );
-      final mockStore = _TestMockStore();
-      final controller = await _buildController(
-        sessionStore: sessionStore,
-        mockStore: mockStore,
-      );
+        final now = DateTime.now();
+        final activity = controller.state.activities
+            .firstWhere((item) => item.id == 'seed_1')
+            .copyWith(
+              myStatus: ParticipantStatus.confirmed,
+              startTime: now.add(const Duration(minutes: 20)),
+              endTime: now.add(const Duration(hours: 2)),
+            );
 
-      final now = DateTime.now();
-      final activity = controller.state.activities.firstWhere(
-        (item) => item.id == 'seed_1',
-      ).copyWith(
-        myStatus: ParticipantStatus.confirmed,
-        startTime: now.add(const Duration(minutes: 20)),
-        endTime: now.add(const Duration(hours: 2)),
-      );
+        controller.state = controller.state.copyWith(activities: [activity]);
+        expect(
+          controller.isActivityStartingSoonForCurrentUser(activity, now: now),
+          isTrue,
+        );
 
-      controller.state = controller.state.copyWith(activities: [activity]);
-      expect(
-        controller.isActivityStartingSoonForCurrentUser(activity, now: now),
-        isTrue,
-      );
+        await controller.refreshNotifications();
+        final reminders = controller.state.notifications.where(
+          (item) => item.type == InAppNotificationType.activityStartingSoon,
+        );
+        expect(reminders, hasLength(1));
+        expect(reminders.first.body, 'Tu actividad empieza pronto.');
 
-      await controller.refreshNotifications();
-      final reminders = controller.state.notifications.where(
-        (item) => item.type == InAppNotificationType.activityStartingSoon,
-      );
-      expect(reminders, hasLength(1));
-      expect(reminders.first.body, 'Tu actividad empieza pronto.');
+        await controller.refreshNotifications();
+        final remindersAfterSecondSync = controller.state.notifications.where(
+          (item) => item.type == InAppNotificationType.activityStartingSoon,
+        );
+        expect(remindersAfterSecondSync, hasLength(1));
 
-      await controller.refreshNotifications();
-      final remindersAfterSecondSync = controller.state.notifications.where(
-        (item) => item.type == InAppNotificationType.activityStartingSoon,
-      );
-      expect(remindersAfterSecondSync, hasLength(1));
-
-      final reloadedController = await _buildController(
-        sessionStore: sessionStore,
-        mockStore: mockStore,
-      );
-      final reloadedReminders = reloadedController.state.notifications.where(
-        (item) => item.type == InAppNotificationType.activityStartingSoon,
-      );
-      expect(reloadedReminders, hasLength(1));
-    });
+        final reloadedController = await _buildController(
+          sessionStore: sessionStore,
+          mockStore: mockStore,
+        );
+        final reloadedReminders = reloadedController.state.notifications.where(
+          (item) => item.type == InAppNotificationType.activityStartingSoon,
+        );
+        expect(reloadedReminders, hasLength(1));
+      },
+    );
     test('editable profile persists locally and survives restart', () async {
       final sessionStore = _TestSessionStore(
         clientUid: 'client_001',
@@ -2681,4 +2783,3 @@ class _TestMockStore extends LocalMockStore {
     snapshot = null;
   }
 }
-

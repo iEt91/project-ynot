@@ -16,6 +16,7 @@ class ActivityCard extends StatelessWidget {
     required this.onConfirm,
     required this.showActions,
     this.onShare,
+    this.onLongPress,
   });
 
   final Activity activity;
@@ -24,6 +25,7 @@ class ActivityCard extends StatelessWidget {
   final VoidCallback onConfirm;
   final bool showActions;
   final VoidCallback? onShare;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +55,7 @@ class ActivityCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: KawaiiCard(
         gradient: LinearGradient(
           colors: [
@@ -123,13 +126,11 @@ class ActivityCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 StatusPill(
-                  label: '${activity.confirmedCount}/${activity.maxPeople} asistentes',
+                  label:
+                      '${activity.confirmedCount}/${activity.maxPeople} asistentes',
                   color: colors.secondary,
                 ),
-                StatusPill(
-                  label: activity.vibe,
-                  color: colors.tertiary,
-                ),
+                StatusPill(label: activity.vibe, color: colors.tertiary),
                 StatusPill(
                   label: '${distance.toStringAsFixed(1)} km',
                   color: colors.primary,
@@ -158,11 +159,14 @@ class ActivityCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: activity.myStatus == ParticipantStatus.joinedPendingConfirmation
+                      onPressed:
+                          activity.myStatus ==
+                              ParticipantStatus.joinedPendingConfirmation
                           ? onConfirm
                           : onTap,
                       child: Text(
-                        activity.myStatus == ParticipantStatus.joinedPendingConfirmation
+                        activity.myStatus ==
+                                ParticipantStatus.joinedPendingConfirmation
                             ? 'Confirmar'
                             : 'Ver detalle',
                       ),

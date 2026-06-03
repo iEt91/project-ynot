@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -29,11 +29,7 @@ class SavedActivitiesScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
             children: [
-              Row(
-                children: [
-                  ProfileBackButton(onTap: () => context.pop()),
-                ],
-              ),
+              Row(children: [ProfileBackButton(onTap: () => context.pop())]),
               const SizedBox(height: 14),
               const SectionHeader(
                 title: 'Guardadas',
@@ -41,18 +37,24 @@ class SavedActivitiesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               if (user == null)
-                const KawaiiCard(child: Text('No encontramos una sesión activa.'))
+                const KawaiiCard(
+                  child: Text('No encontramos una sesión activa.'),
+                )
               else if (activities.isEmpty)
                 const KawaiiEmptyState(
-                  emoji: '??',
-                  title: 'Todavía no guardaste actividades',
-                  message: 'Guarda un plan para volver a encontrarlo cuando quieras.',
+                  emoji: '💖',
+                  title: 'No tienes actividades guardadas.',
+                  message:
+                      'Guarda un plan para volver a encontrarlo cuando quieras.',
                 )
               else
                 ...activities.map(
                   (activity) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _SavedActivityRow(activity: activity),
+                    child: _SavedActivityRow(
+                      activity: activity,
+                      controller: controller,
+                    ),
                   ),
                 ),
             ],
@@ -64,9 +66,10 @@ class SavedActivitiesScreen extends ConsumerWidget {
 }
 
 class _SavedActivityRow extends StatelessWidget {
-  const _SavedActivityRow({required this.activity});
+  const _SavedActivityRow({required this.activity, required this.controller});
 
   final Activity activity;
+  final AppController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +80,73 @@ class _SavedActivityRow extends StatelessWidget {
       onConfirm: () => context.push('/activity/${activity.id}'),
       showActions: false,
       onShare: () => shareActivityOrCopyFallback(context, activity),
+      onLongPress: () => _showSavedActions(context, controller, activity),
     );
   }
 }
 
+Future<void> _showSavedActions(
+  BuildContext context,
+  AppController controller,
+  Activity activity,
+) async {
+  final shouldRemove =
+      await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black.withValues(alpha: 0.72),
+        builder: (sheetContext) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: FractionallySizedBox(
+                  widthFactor: 0.92,
+                  child: KawaiiCard(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 42,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.bookmark_remove_outlined),
+                          title: const Text('Quitar de guardadas'),
+                          onTap: () => Navigator.of(sheetContext).pop(true),
+                        ),
+                        const SizedBox(height: 8),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.close_rounded),
+                          title: const Text('Cancelar'),
+                          onTap: () => Navigator.of(sheetContext).pop(false),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ) ??
+      false;
+
+  if (!shouldRemove || !context.mounted) {
+    return;
+  }
+
+  await controller.removeSavedActivity(activity.id);
+}

@@ -39,6 +39,7 @@ class AppState {
     required this.savedActivityIds,
     required this.blockedUsers,
     required this.hiddenArchivedChatActivityIds,
+    required this.hiddenHistoryActivityIds,
     required this.notifications,
     required this.moderationFlags,
     required this.dismissedBlockedChatWarningActivityIds,
@@ -67,6 +68,7 @@ class AppState {
       savedActivityIds: const {},
       blockedUsers: const [],
       hiddenArchivedChatActivityIds: const {},
+      hiddenHistoryActivityIds: const {},
       notifications: const [],
       moderationFlags: const [],
       dismissedBlockedChatWarningActivityIds: const {},
@@ -90,6 +92,7 @@ class AppState {
   final Set<String> savedActivityIds;
   final List<BlockedUserEntry> blockedUsers;
   final Set<String> hiddenArchivedChatActivityIds;
+  final Set<String> hiddenHistoryActivityIds;
   final List<InAppNotification> notifications;
   final List<ModerationFlag> moderationFlags;
   final Set<String> dismissedBlockedChatWarningActivityIds;
@@ -116,6 +119,7 @@ class AppState {
     Set<String>? savedActivityIds,
     List<BlockedUserEntry>? blockedUsers,
     Set<String>? hiddenArchivedChatActivityIds,
+    Set<String>? hiddenHistoryActivityIds,
     List<InAppNotification>? notifications,
     List<ModerationFlag>? moderationFlags,
     Set<String>? dismissedBlockedChatWarningActivityIds,
@@ -143,6 +147,8 @@ class AppState {
       blockedUsers: blockedUsers ?? this.blockedUsers,
       hiddenArchivedChatActivityIds:
           hiddenArchivedChatActivityIds ?? this.hiddenArchivedChatActivityIds,
+      hiddenHistoryActivityIds:
+          hiddenHistoryActivityIds ?? this.hiddenHistoryActivityIds,
       notifications: notifications ?? this.notifications,
       moderationFlags: moderationFlags ?? this.moderationFlags,
       dismissedBlockedChatWarningActivityIds:
@@ -444,6 +450,7 @@ class AppController extends ChangeNotifier {
   final Set<String> _savedActivityIds = {};
   final List<BlockedUserEntry> _blockedUsers = [];
   final Set<String> _hiddenArchivedChatActivityIds = {};
+  final Set<String> _hiddenHistoryActivityIds = {};
   final List<ModerationFlag> _moderationFlags = [];
   final Set<String> _dismissedBlockedChatWarningActivityIds = {};
   final Set<String> _acceptedChatGuidelinesActivityIds = {};
@@ -468,6 +475,10 @@ class AppController extends ChangeNotifier {
 
   bool isArchivedChatHidden(String activityId) {
     return _hiddenArchivedChatActivityIds.contains(activityId);
+  }
+
+  bool isHistoryActivityHidden(String activityId) {
+    return _hiddenHistoryActivityIds.contains(activityId);
   }
 
   List<ModerationFlag> get moderationFlags =>
@@ -504,7 +515,8 @@ class AppController extends ChangeNotifier {
       return false;
     }
 
-    final participated = activity.creatorId == currentUser.id ||
+    final participated =
+        activity.creatorId == currentUser.id ||
         activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
         activity.myStatus == ParticipantStatus.confirmed ||
         activity.myStatus == ParticipantStatus.attended ||
@@ -527,6 +539,38 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> hideActivityFromHistory(String activityId) async {
+    final currentUser = state.user;
+    final activity = _findActivity(activityId);
+    if (currentUser == null || activity == null || activityId.isEmpty) {
+      return false;
+    }
+
+    final eligibleForHistory =
+        activity.isFinishedOrArchived &&
+        (activity.creatorId == currentUser.id ||
+            activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
+            activity.myStatus == ParticipantStatus.confirmed ||
+            activity.myStatus == ParticipantStatus.attended ||
+            activity.myStatus == ParticipantStatus.noShow ||
+            activity.myStatus == ParticipantStatus.notSure);
+    if (!eligibleForHistory) {
+      return false;
+    }
+
+    if (!_hiddenHistoryActivityIds.add(activityId)) {
+      return false;
+    }
+
+    state = state.copyWith(
+      hiddenHistoryActivityIds: Set<String>.unmodifiable(
+        _hiddenHistoryActivityIds,
+      ),
+    );
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
   AttendanceResponse? attendanceResponseForActivity(
     String activityId, {
     String? userId,
@@ -538,15 +582,13 @@ class AppController extends ChangeNotifier {
       return null;
     }
 
-    return _attendanceResponsesByActivityId[
-      _attendanceResponseKey(resolvedUserId, activityId)
-    ];
+    return _attendanceResponsesByActivityId[_attendanceResponseKey(
+      resolvedUserId,
+      activityId,
+    )];
   }
 
-  bool shouldShowAttendancePrompt(
-    Activity activity, {
-    String? userId,
-  }) {
+  bool shouldShowAttendancePrompt(Activity activity, {String? userId}) {
     final resolvedUserId = userId ?? state.user?.id;
     if (resolvedUserId == null ||
         resolvedUserId.isEmpty ||
@@ -559,17 +601,11 @@ class AppController extends ChangeNotifier {
       return false;
     }
 
-    return attendanceResponseForActivity(
-          activity.id,
-          userId: resolvedUserId,
-        ) ==
+    return attendanceResponseForActivity(activity.id, userId: resolvedUserId) ==
         null;
   }
 
-  bool shouldShowAttendanceClosedNotice(
-    Activity activity, {
-    String? userId,
-  }) {
+  bool shouldShowAttendanceClosedNotice(Activity activity, {String? userId}) {
     final resolvedUserId = userId ?? state.user?.id;
     if (resolvedUserId == null ||
         resolvedUserId.isEmpty ||
@@ -578,7 +614,8 @@ class AppController extends ChangeNotifier {
       return false;
     }
 
-    final participated = activity.creatorId == resolvedUserId ||
+    final participated =
+        activity.creatorId == resolvedUserId ||
         activity.myStatus == ParticipantStatus.joinedPendingConfirmation ||
         activity.myStatus == ParticipantStatus.confirmed ||
         activity.myStatus == ParticipantStatus.attended;
@@ -587,25 +624,16 @@ class AppController extends ChangeNotifier {
     }
 
     return !_hasAttendanceEligibleStatus(activity, resolvedUserId) &&
-        attendanceResponseForActivity(
-              activity.id,
-              userId: resolvedUserId,
-            ) ==
+        attendanceResponseForActivity(activity.id, userId: resolvedUserId) ==
             null;
   }
 
-  bool canGiveFeedbackForActivity(
-    Activity activity, {
-    String? userId,
-  }) {
+  bool canGiveFeedbackForActivity(Activity activity, {String? userId}) {
     if (!activity.isFinishedOrArchived) {
       return false;
     }
 
-    final response = attendanceResponseForActivity(
-      activity.id,
-      userId: userId,
-    );
+    final response = attendanceResponseForActivity(activity.id, userId: userId);
     if (response == null) {
       return false;
     }
@@ -675,9 +703,8 @@ class AppController extends ChangeNotifier {
   }
 
   bool isPreActivityChecklistComplete(String activityId) {
-    final checked = _preActivityChecklistByActivityId[_preActivityChecklistKey(
-      activityId,
-    )];
+    final checked =
+        _preActivityChecklistByActivityId[_preActivityChecklistKey(activityId)];
     return checked != null &&
         preActivityChecklistItems.every((item) => checked.contains(item.id));
   }
@@ -766,10 +793,7 @@ class AppController extends ChangeNotifier {
   Map<String, List<String>> _preActivityChecklistStateSnapshot() {
     return Map<String, List<String>>.unmodifiable(
       _preActivityChecklistByActivityId.map(
-        (key, value) => MapEntry(
-          key,
-          List<String>.unmodifiable(value),
-        ),
+        (key, value) => MapEntry(key, List<String>.unmodifiable(value)),
       ),
     );
   }
@@ -1047,6 +1071,7 @@ class AppController extends ChangeNotifier {
     _savedActivityIds.clear();
     _blockedUsers.clear();
     _hiddenArchivedChatActivityIds.clear();
+    _hiddenHistoryActivityIds.clear();
     _moderationFlags.clear();
     _dismissedBlockedChatWarningActivityIds.clear();
     _acceptedChatGuidelinesActivityIds.clear();
@@ -1063,6 +1088,7 @@ class AppController extends ChangeNotifier {
       chatMessages: const {},
       savedActivityIds: const {},
       hiddenArchivedChatActivityIds: const {},
+      hiddenHistoryActivityIds: const {},
       notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
@@ -1086,6 +1112,7 @@ class AppController extends ChangeNotifier {
     _activeChatActivityIds.clear();
     _moderationFlags.clear();
     _hiddenArchivedChatActivityIds.clear();
+    _hiddenHistoryActivityIds.clear();
     _acceptedChatGuidelinesActivityIds.clear();
     _preActivityChecklistByActivityId.clear();
     _startingSoonReminderSentActivityKeys.clear();
@@ -1099,6 +1126,7 @@ class AppController extends ChangeNotifier {
       chatMessages: const {},
       savedActivityIds: const {},
       hiddenArchivedChatActivityIds: const {},
+      hiddenHistoryActivityIds: const {},
       notifications: const [],
       settings: AppSettings.initial(),
       activityFilters: ActivityDiscoveryFilters.initial(),
@@ -1115,9 +1143,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> setReceiveNotifications(bool value) {
-    return updateSettings(
-      state.settings.copyWith(receiveNotifications: value),
-    );
+    return updateSettings(state.settings.copyWith(receiveNotifications: value));
   }
 
   Future<void> setChatMessagesNotifications(bool value) {
@@ -1160,15 +1186,11 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> setShowSavedHighlights(bool value) {
-    return updateSettings(
-      state.settings.copyWith(showSavedHighlights: value),
-    );
+    return updateSettings(state.settings.copyWith(showSavedHighlights: value));
   }
 
   Future<void> setShowArchivedChats(bool value) {
-    return updateSettings(
-      state.settings.copyWith(showArchivedChats: value),
-    );
+    return updateSettings(state.settings.copyWith(showArchivedChats: value));
   }
 
   Future<void> setMuteAllChats(bool value) {
@@ -2004,7 +2026,7 @@ class AppController extends ChangeNotifier {
       (report) =>
           report.reporterUserId == reporterUserId &&
           report.targetType == targetType &&
-      report.targetId == targetId,
+          report.targetId == targetId,
     );
   }
 
@@ -2283,6 +2305,7 @@ class AppController extends ChangeNotifier {
     _joinedActivityIds.remove(activityId);
     _confirmedAttendanceActivityIds.remove(activityId);
     _savedActivityIds.remove(activityId);
+    _hiddenHistoryActivityIds.remove(activityId);
     _removeNotificationsForActivity(activityId);
 
     final nextChatMessages = Map<String, List<ChatMessage>>.from(
@@ -2302,6 +2325,7 @@ class AppController extends ChangeNotifier {
       activities: nextActivities,
       chatMessages: nextChatMessages,
       savedActivityIds: Set<String>.from(_savedActivityIds),
+      hiddenHistoryActivityIds: Set<String>.from(_hiddenHistoryActivityIds),
       reports: nextReports,
       feedbackEntries: state.feedbackEntries
           .where((entry) => entry.activityId != activityId)
@@ -2371,6 +2395,22 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> removeSavedActivity(String activityId) async {
+    final activity = _findActivity(activityId);
+    if (activity == null ||
+        !activity.isActiveLifecycle ||
+        !_savedActivityIds.contains(activityId)) {
+      return false;
+    }
+
+    _savedActivityIds.remove(activityId);
+    state = state.copyWith(
+      savedActivityIds: Set<String>.from(_savedActivityIds),
+    );
+    unawaited(_persistSnapshot());
+    return true;
+  }
+
   List<Activity> savedActivities() {
     final savedIds = _savedActivityIds;
     return state.activities
@@ -2395,25 +2435,25 @@ class AppController extends ChangeNotifier {
     if (filters.isEmpty) {
       return query.isEmpty
           ? visibleActivities
-              .where(
-                (activity) => _matchesSearchRadius(
-                  activity,
-                  searchRadiusKm,
-                  currentLocation,
-                ),
-              )
-              .toList(growable: false)
+                .where(
+                  (activity) => _matchesSearchRadius(
+                    activity,
+                    searchRadiusKm,
+                    currentLocation,
+                  ),
+                )
+                .toList(growable: false)
           : visibleActivities
-              .where(
-                    (activity) =>
-                        _matchesSearchRadius(
-                          activity,
-                          searchRadiusKm,
-                          currentLocation,
-                        ) &&
-                        _matchesSearchQuery(activity, query),
-              )
-              .toList(growable: false);
+                .where(
+                  (activity) =>
+                      _matchesSearchRadius(
+                        activity,
+                        searchRadiusKm,
+                        currentLocation,
+                      ) &&
+                      _matchesSearchQuery(activity, query),
+                )
+                .toList(growable: false);
     }
 
     return visibleActivities
@@ -2625,6 +2665,7 @@ class AppController extends ChangeNotifier {
     return state.activities
         .where(
           (activity) =>
+              !isHistoryActivityHidden(activity.id) &&
               activity.isFinishedOrArchived &&
               (activity.creatorId == userId ||
                   activity.myStatus ==
@@ -3613,7 +3654,8 @@ class AppController extends ChangeNotifier {
     }
     return switch (type) {
       InAppNotificationType.newMessage =>
-        state.settings.chatMessagesNotifications && !state.settings.muteAllChats,
+        state.settings.chatMessagesNotifications &&
+            !state.settings.muteAllChats,
       InAppNotificationType.activityStartingSoon =>
         state.settings.activityStartingSoonNotifications,
       InAppNotificationType.newAttendee => true,
@@ -3668,7 +3710,6 @@ class AppController extends ChangeNotifier {
           );
         }
       }
-
     }
     return changed;
   }
@@ -3697,16 +3738,19 @@ class AppController extends ChangeNotifier {
         ),
         savedActivityIds: _savedActivityIds.toList(growable: false),
         blockedUsers: List<BlockedUserEntry>.unmodifiable(_blockedUsers),
-        hiddenArchivedChatActivityIds:
-            _hiddenArchivedChatActivityIds.toList(growable: false),
+        hiddenArchivedChatActivityIds: _hiddenArchivedChatActivityIds.toList(
+          growable: false,
+        ),
+        hiddenHistoryActivityIds: _hiddenHistoryActivityIds.toList(
+          growable: false,
+        ),
         moderationFlags: List<ModerationFlag>.unmodifiable(_moderationFlags),
         notifications: state.notifications,
         dismissedBlockedChatWarningActivityIds:
             _dismissedBlockedChatWarningActivityIds.toList(growable: false),
-        acceptedChatGuidelinesActivityIds:
-            _acceptedChatGuidelinesActivityIds.toList(growable: false),
-        preActivityChecklistByActivityId:
-            _preActivityChecklistStateSnapshot(),
+        acceptedChatGuidelinesActivityIds: _acceptedChatGuidelinesActivityIds
+            .toList(growable: false),
+        preActivityChecklistByActivityId: _preActivityChecklistStateSnapshot(),
         startingSoonReminderSentActivityKeys:
             _startingSoonReminderSentActivityKeys.toList(growable: false),
         attendanceResponsesByActivityId: Map<String, String>.unmodifiable(
@@ -3797,6 +3841,14 @@ class AppController extends ChangeNotifier {
             .toList(growable: false),
       );
 
+    _hiddenHistoryActivityIds
+      ..clear()
+      ..addAll(
+        snapshot.hiddenHistoryActivityIds
+            .where((activityId) => activityId.isNotEmpty)
+            .toList(growable: false),
+      );
+
     _moderationFlags
       ..clear()
       ..addAll(
@@ -3825,10 +3877,8 @@ class AppController extends ChangeNotifier {
       ..clear()
       ..addAll(
         snapshot.preActivityChecklistByActivityId.map(
-          (key, value) => MapEntry(
-            key,
-            value.where((item) => item.isNotEmpty).toSet(),
-          ),
+          (key, value) =>
+              MapEntry(key, value.where((item) => item.isNotEmpty).toSet()),
         ),
       );
 
@@ -3865,6 +3915,9 @@ class AppController extends ChangeNotifier {
       hiddenArchivedChatActivityIds: Set<String>.unmodifiable(
         _hiddenArchivedChatActivityIds,
       ),
+      hiddenHistoryActivityIds: Set<String>.unmodifiable(
+        _hiddenHistoryActivityIds,
+      ),
       settings: hydratedSettings,
       activityFilters: hydratedFilters,
       activitySearchQuery: hydratedSearchQuery,
@@ -3881,10 +3934,10 @@ class AppController extends ChangeNotifier {
       acceptedChatGuidelinesActivityIds: Set<String>.unmodifiable(
         _acceptedChatGuidelinesActivityIds,
       ),
-      preActivityChecklistByActivityId:
-          _preActivityChecklistStateSnapshot(),
-      startingSoonReminderSentActivityKeys:
-          Set<String>.unmodifiable(_startingSoonReminderSentActivityKeys),
+      preActivityChecklistByActivityId: _preActivityChecklistStateSnapshot(),
+      startingSoonReminderSentActivityKeys: Set<String>.unmodifiable(
+        _startingSoonReminderSentActivityKeys,
+      ),
       attendanceResponsesByActivityId:
           Map<String, AttendanceResponse>.unmodifiable(
             _attendanceResponsesByActivityId,

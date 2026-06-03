@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/state/app_controller.dart';
 import '../../../shared/widgets/attendance_prompt_card.dart';
@@ -31,13 +32,7 @@ class ActivityHistoryScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 132),
             children: [
-              Row(
-                children: [
-                  ProfileBackButton(
-                    onTap: () => context.pop(),
-                  ),
-                ],
-              ),
+              Row(children: [ProfileBackButton(onTap: () => context.pop())]),
               const SizedBox(height: 14),
               const SectionHeader(
                 title: 'Historial',
@@ -46,9 +41,10 @@ class ActivityHistoryScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               if (activities.isEmpty)
                 const KawaiiEmptyState(
-                  emoji: '??',
-                  title: 'Todavía no hay historial',
-                  message: 'Cuando termines actividades, aparecerán aquí para revisarlas después.',
+                  emoji: '🕯️',
+                  title: 'No tienes actividades en tu historial.',
+                  message:
+                      'Aquí verás tus actividades terminadas y archivadas.',
                 )
               else
                 ...activities.map(
@@ -60,11 +56,19 @@ class ActivityHistoryScreen extends ConsumerWidget {
                         ActivityCard(
                           activity: activity,
                           onTap: () => context.push('/activity/${activity.id}'),
-                          onJoin: () => context.push('/activity/${activity.id}'),
+                          onJoin: () =>
+                              context.push('/activity/${activity.id}'),
                           onConfirm: () => context.push('/chat/${activity.id}'),
                           showActions: false,
+                          onLongPress: () => _showHistoryActions(
+                            context,
+                            controller,
+                            activity,
+                          ),
                         ),
-                        if (controller.shouldShowAttendancePrompt(activity)) ...[
+                        if (controller.shouldShowAttendancePrompt(
+                          activity,
+                        )) ...[
                           const SizedBox(height: 12),
                           AttendancePromptCard(
                             compact: true,
@@ -75,9 +79,9 @@ class ActivityHistoryScreen extends ConsumerWidget {
                               );
                             },
                           ),
-                        ] else if (
-                          controller.shouldShowAttendanceClosedNotice(activity)
-                        ) ...[
+                        ] else if (controller.shouldShowAttendanceClosedNotice(
+                          activity,
+                        )) ...[
                           const SizedBox(height: 12),
                           KawaiiCard(
                             padding: const EdgeInsets.all(16),
@@ -116,3 +120,97 @@ class ActivityHistoryScreen extends ConsumerWidget {
   }
 }
 
+Future<void> _showHistoryActions(
+  BuildContext context,
+  AppController controller,
+  Activity activity,
+) async {
+  final shouldRemove =
+      await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black.withValues(alpha: 0.72),
+        builder: (sheetContext) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: FractionallySizedBox(
+                  widthFactor: 0.92,
+                  child: KawaiiCard(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 42,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.delete_outline_rounded),
+                          title: const Text('Eliminar de mi historial'),
+                          onTap: () => Navigator.of(sheetContext).pop(true),
+                        ),
+                        const SizedBox(height: 8),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.close_rounded),
+                          title: const Text('Cancelar'),
+                          onTap: () => Navigator.of(sheetContext).pop(false),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ) ??
+      false;
+
+  if (!shouldRemove || !context.mounted) {
+    return;
+  }
+
+  final confirmed =
+      await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: YnotTheme.surface2,
+            title: const Text('Eliminar actividad del historial'),
+            content: const Text(
+              'Esta actividad desaparecerá de tu historial personal. No afectará a otras personas.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          );
+        },
+      ) ??
+      false;
+
+  if (!confirmed) {
+    return;
+  }
+
+  await controller.hideActivityFromHistory(activity.id);
+}
