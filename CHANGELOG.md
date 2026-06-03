@@ -1,3 +1,8 @@
+## v1.0.36.0
+- Added a final local MVP audit document to prepare the app for future backend work
+- Documented the current mock/local coverage, migration risks, and the manual QA checklist to run before major backend changes
+- Kept the app behavior unchanged while consolidating the local-first scope
+
 ## v1.0.35.0
 - Users can now remove activities from their personal history without deleting anything globally
 - Saved activities now support manual removal from the Guardadas screen with a long press
