@@ -3,6 +3,7 @@
 - Saved activities now support manual removal from the Guardadas screen with a long press
 - Empty states for Historial and Guardadas were updated to clearer local-only copy
 - History and saved cleanup stays local, persistent, and does not affect chats, feedback, moderation, or the activity itself
+- Removing from history is restricted to finished or archived activities, so active activities stay protected
 
 ## v1.0.34.0
 - Polished secondary-screen navigation, empty states, headers, and small-screen layout consistency

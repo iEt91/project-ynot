@@ -125,6 +125,17 @@ Future<void> _showHistoryActions(
   AppController controller,
   Activity activity,
 ) async {
+  if (!activity.isFinishedOrArchived) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Solo puedes eliminar actividades finalizadas de tu historial.',
+        ),
+      ),
+    );
+    return;
+  }
+
   final shouldRemove =
       await showModalBottomSheet<bool>(
         context: context,
