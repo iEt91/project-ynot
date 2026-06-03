@@ -1,3 +1,8 @@
+## v1.0.37.0
+- Drafted the future Supabase schema for the Ynot MVP without changing the current mock/local app behavior
+- Documented the planned tables, relationships, indexes, RLS placeholders, and migration order for the backend rollout
+- Added a schema reference doc so the next backend step can move one module at a time with less risk
+
 ## v1.0.36.0
 - Added a final local MVP audit document to prepare the app for future backend work
 - Documented the current mock/local coverage, migration risks, and the manual QA checklist to run before major backend changes
